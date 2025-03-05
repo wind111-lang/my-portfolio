@@ -24,7 +24,9 @@ export default function ScrollToTop(): React.ReactNode {
   return (
     <button
       onClick={scrollToTop}
-      className={`${visible ? "block" : "hidden"} fixed right-5 bottom-5 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full`}
+      className={`${
+        visible ? "block" : "hidden"
+      } fixed right-5 bottom-5 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full`}
     >
       <FaArrowUp />
     </button>

@@ -12,7 +12,7 @@ export default function AboutSection(): React.ReactNode {
       />
       <div className="mt-4 flex justify-center gap-4 text-2xl">
         <a
-          href="https://twitter.com/yourhandle"
+          href="https://twitter.com/tsuttsun_wind"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
@@ -20,7 +20,7 @@ export default function AboutSection(): React.ReactNode {
           <FaTwitter />
         </a>
         <a
-          href="https://github.com/yourhandle"
+          href="https://github.com/wind111-lang"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-800 dark:text-gray-200 hover:text-blue-500"

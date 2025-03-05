@@ -44,9 +44,9 @@ export default function Header(): React.ReactNode {
   };
 
   return (
-    <header className="shadow py-4 dark:bg-gray-900">
-      <nav className="relative max-w-7xl mx-auto px-4 bg-white dark:bg-gray-900">
-        <ul className="flex justify-center gap-4 list-none">
+    <header className="shadow py-4 md:py-4 dark:bg-gray-900">
+      <nav className="relative max-w-7xl mx-auto px-2 md:py-4 bg-white dark:bg-gray-900">
+        <ul className="flex justify-center gap-2 md:gap-4 list-none">
           <li>
             <a
               href="#about"

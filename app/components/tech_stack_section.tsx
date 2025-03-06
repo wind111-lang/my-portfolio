@@ -11,8 +11,8 @@ import { FaGolang } from "react-icons/fa6";
 export default function TechStackSection(): React.ReactNode {
   return (
     <section id="tech" className="py-8">
-      <h2 className="text-3xl font-semibold mb-4 dark:text-gray-200">
-        技術スタック
+      <h2 className="text-3xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+        Tech Stack
       </h2>
       <div className="flex gap-4 text-3xl">
         <a

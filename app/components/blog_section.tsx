@@ -3,7 +3,9 @@ import React from "react";
 export default function BlogSection(): React.ReactNode {
   return (
     <section id="blog" className="py-8">
-      <h2 className="text-3xl font-semibold mb-4 dark:text-gray-200">ブログ</h2>
+      <h2 className="text-3xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+        Blog
+      </h2>
       <article className="mb-6">
         <h3 className="text-2xl font-bold dark:text-gray-200">
           記事タイトル例

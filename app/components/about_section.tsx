@@ -4,7 +4,9 @@ import { FaTwitter, FaGithub } from "react-icons/fa";
 export default function AboutSection(): React.ReactNode {
   return (
     <section id="about" className="py-8 text-center">
-      <h1 className="text-4xl font-bold dark:text-gray-200">Tsutsui Shota</h1>
+      <h1 className="text-4xl font-bold mb-4 text-gray-800 dark:text-gray-200">
+        Tsutsui Shota
+      </h1>
       <img
         src="app/images/74229075.jpeg"
         alt="profile-pic"

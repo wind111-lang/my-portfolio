@@ -9,7 +9,7 @@ export default function Footer(): React.ReactNode {
           href="https://twitter.com/tsuttsun_wind"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaTwitter />
         </a>
@@ -17,13 +17,13 @@ export default function Footer(): React.ReactNode {
           href="https://github.com/wind111-lang"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaGithub />
         </a>
         <a
           href="mailto:windmill@pluslab.org"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaEnvelope />
         </a>

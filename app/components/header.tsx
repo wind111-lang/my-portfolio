@@ -51,7 +51,7 @@ export default function Header(): React.ReactNode {
             <a
               href="#about"
               onClick={(e) => handleNavClick(e, "about")}
-              className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
               Home
             </a>
@@ -60,7 +60,7 @@ export default function Header(): React.ReactNode {
             <a
               href="#profile"
               onClick={(e) => handleNavClick(e, "profile")}
-              className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
               プロフィール
             </a>
@@ -69,7 +69,7 @@ export default function Header(): React.ReactNode {
             <a
               href="#tech"
               onClick={(e) => handleNavClick(e, "tech")}
-              className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
               技術スタック
             </a>
@@ -78,7 +78,7 @@ export default function Header(): React.ReactNode {
             <a
               href="#blog"
               onClick={(e) => handleNavClick(e, "blog")}
-              className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
               ブログ
             </a>

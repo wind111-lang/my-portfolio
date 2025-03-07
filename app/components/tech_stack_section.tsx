@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  FaReact,
-  FaPhp,
-  FaPython,
-  FaDocker,
-  FaAws,
-} from "react-icons/fa";
+import { FaReact, FaPhp, FaPython, FaDocker, FaAws } from "react-icons/fa";
 import { FaGolang } from "react-icons/fa6";
 
 export default function TechStackSection(): React.ReactNode {
@@ -19,7 +13,7 @@ export default function TechStackSection(): React.ReactNode {
           href="https://www.php.net/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaPhp title="PHP" />
         </a>
@@ -27,7 +21,7 @@ export default function TechStackSection(): React.ReactNode {
           href="https://go.dev/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaGolang title="Go" />
         </a>
@@ -35,7 +29,7 @@ export default function TechStackSection(): React.ReactNode {
           href="https://python.org/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaPython title="Python" />
         </a>
@@ -43,7 +37,7 @@ export default function TechStackSection(): React.ReactNode {
           href="https://reactjs.org/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaReact title="React" />
         </a>
@@ -51,7 +45,7 @@ export default function TechStackSection(): React.ReactNode {
           href="https://docker.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaDocker title="Docker" />
         </a>
@@ -59,7 +53,7 @@ export default function TechStackSection(): React.ReactNode {
           href="https://aws.amazon.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           <FaAws title="AWS" />
         </a>

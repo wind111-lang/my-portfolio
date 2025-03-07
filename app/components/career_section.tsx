@@ -14,7 +14,7 @@ export default function CareerSection(): React.ReactNode {
           href="https://www.daido-h.ed.jp/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           Daido University Daido Senior High School
         </a>
@@ -25,7 +25,7 @@ export default function CareerSection(): React.ReactNode {
           href="https://www.ait.ac.jp/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           Aichi Institute of Technology
         </a>
@@ -36,7 +36,7 @@ export default function CareerSection(): React.ReactNode {
           href="https://prtimes.co.jp/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
         >
           PR TIMES Inc.
         </a>

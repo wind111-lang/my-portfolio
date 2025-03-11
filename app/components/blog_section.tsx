@@ -6,7 +6,7 @@ export default function BlogSection(): React.ReactNode {
       <h2 className="text-3xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
         Blog
       </h2>
-      <article className="mb-6">
+      <article className="flex flex-col gap-4">
         <a
           href="https://qiita.com/wind111-lang/items/af7e3fadeb1c71673cda"
           className="hover:text-blue-500 dark:hover:text-blue-500  text-gray-800 dark:text-gray-200"

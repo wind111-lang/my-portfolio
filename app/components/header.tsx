@@ -49,20 +49,20 @@ export default function Header(): React.ReactNode {
         <ul className="flex justify-center gap-2 md:gap-4 list-none">
           <li>
             <a
-              href="#about"
-              onClick={(e) => handleNavClick(e, "about")}
-              className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
-            >
-              Home
-            </a>
-          </li>
-          <li>
-            <a
               href="#profile"
               onClick={(e) => handleNavClick(e, "profile")}
               className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
-              プロフィール
+              Profile
+            </a>
+          </li>
+          <li>
+            <a
+              href="career"
+              onClick={(e) => handleNavClick(e, "career")}
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
+            >
+              Career
             </a>
           </li>
           <li>
@@ -71,7 +71,7 @@ export default function Header(): React.ReactNode {
               onClick={(e) => handleNavClick(e, "tech")}
               className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
-              技術スタック
+              Tech Stack
             </a>
           </li>
           <li>
@@ -80,7 +80,7 @@ export default function Header(): React.ReactNode {
               onClick={(e) => handleNavClick(e, "blog")}
               className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >
-              ブログ
+              Blog
             </a>
           </li>
         </ul>

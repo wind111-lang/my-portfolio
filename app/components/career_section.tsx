@@ -8,7 +8,7 @@ export default function CareerSection(): React.ReactNode {
           Career
         </h2>
         <h5 className="text-1xl font-semibold mb-1 text-gray-800 dark:text-gray-200">
-          2016.04 - 2020.03
+          2017.04 - 2020.03
         </h5>
         <a
           href="https://www.daido-h.ed.jp/"

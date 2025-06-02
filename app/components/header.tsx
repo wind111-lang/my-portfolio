@@ -58,7 +58,7 @@ export default function Header(): React.ReactNode {
           </li>
           <li>
             <a
-              href="career"
+              href="#career"
               onClick={(e) => handleNavClick(e, "career")}
               className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
             >

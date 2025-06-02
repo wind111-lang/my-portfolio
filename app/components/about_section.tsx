@@ -8,7 +8,7 @@ export default function AboutSection(): React.ReactNode {
         Tsutsui Shota
       </h1>
       <img
-        src="public/images/74229075.jpeg"
+        src="images/74229075.jpeg"
         alt="profile-pic"
         className="w-72 h-72 rounded-full mx-auto mt-4"
       />

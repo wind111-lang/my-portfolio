@@ -7,11 +7,13 @@ import TechStackSection from "~/components/tech_stack_section";
 import BlogSection from "~/components/blog_section";
 import Footer from "~/components/footer";
 import ScrollToTop from "~/components/scroll_to_top";
+import SpotifyFloatingEmbed from "~/components/spotify_parts";
 
 export default function Index(): React.ReactNode {
   return (
     <>
       <Header />
+      <SpotifyFloatingEmbed />
       <main className="max-w-4xl mx-auto p-4">
         <AboutSection />
         <ProfileSection />

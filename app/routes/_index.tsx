@@ -21,7 +21,8 @@ export default function Index(): React.ReactNode {
         <BlogSection />
       </main>
       <Footer />
-      <ScrollToTop /><SpotifyFloatingEmbed />
+      <SpotifyFloatingEmbed />
+      <ScrollToTop />
     </>
   );
 }

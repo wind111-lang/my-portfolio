@@ -35,8 +35,7 @@ export default function SpotifyFloatingEmbed(): React.ReactNode {
           className="spotify-float-iframe"
           src="https://open.spotify.com/embed/playlist/7LMXraj2azy5FpVVrGdCGw?utm_source=generator"
           height="152"
-          frameBorder="0"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
           allowFullScreen
           title="Spotify playlist embed"

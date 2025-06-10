@@ -6,15 +6,15 @@ export default function SpotifyFloatingEmbed(): React.ReactNode {
       <style>
         {`
           .spotify-float-iframe {
-            width: 50vw;
+            width: 50% !important;
             min-width: 180px;
             max-width: 600px;
+            border-radius: 16px;
           }
           @media (max-width: 600px) {
             .spotify-float-iframe {
-              width: 25vw !important;
+              width: 25% !important;
               min-width: 80px !important;
-              left: 0 !important;
             }
           }
         `}
@@ -28,14 +28,15 @@ export default function SpotifyFloatingEmbed(): React.ReactNode {
           borderRadius: "16px",
           boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
           background: "white",
+          padding: "8px",
         }}
       >
         <iframe
           className="spotify-float-iframe"
-          style={{ borderRadius: "16px" }}
-          src="https://open.spotify.com/embed/playlist/7LMXraj2azy5FpVVrGdCGw?utm_source=generator&theme=0"
+          src="https://open.spotify.com/embed/playlist/7LMXraj2azy5FpVVrGdCGw?utm_source=generator"
           height="152"
-          allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          frameBorder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
           allowFullScreen
           title="Spotify playlist embed"

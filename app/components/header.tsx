@@ -86,7 +86,7 @@ export default function Header(): React.ReactNode {
         </ul>
         <button
           onClick={toggleDarkMode}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-800 dark:text-gray-200"
+          className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-800 dark:text-gray-200"
           aria-label="Toggle Dark Mode"
         >
           {darkMode ? <FaSun /> : <FaMoon />}

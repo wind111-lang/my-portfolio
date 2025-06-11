@@ -1,4 +1,4 @@
-mport React, { useEffect, useState } from "react";Add commentMore actions
+import React, { useEffect, useState } from "react";Add commentMore actions
 import { FaSun, FaMoon } from "react-icons/fa";
 
 export default function Header(): React.ReactNode {

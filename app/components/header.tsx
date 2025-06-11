@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";Add commentMore actions
+import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
 
 export default function Header(): React.ReactNode {
@@ -31,7 +31,6 @@ export default function Header(): React.ReactNode {
     }
   };
 
-
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     sectionId: string
@@ -42,7 +41,6 @@ export default function Header(): React.ReactNode {
       element.scrollIntoView({ behavior: "smooth" });
     }
   };
-
 
   return (
     <header className="shadow py-4 md:py-4 dark:bg-gray-900">
@@ -89,7 +87,6 @@ export default function Header(): React.ReactNode {
           onClick={toggleDarkMode}
           className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-800 dark:text-gray-200"
           aria-label="Toggle Dark Mode"
-
         >
           {darkMode ? <FaSun /> : <FaMoon />}
         </button>

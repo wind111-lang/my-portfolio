@@ -13,8 +13,8 @@ export default function Index(): React.ReactNode {
   return (
     <>
       <Header />
+      <SpotifyFloatingEmbed />
       <main className="max-w-4xl mx-auto p-4">
-        <SpotifyFloatingEmbed />
         <AboutSection />
         <ProfileSection />
         <CareerSection />

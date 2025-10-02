@@ -59,6 +59,30 @@ export default function BlogSection(): React.ReactNode {
             S3のテストをMockする方法について紹介した記事です。
           </p>
         </a>
+        <a
+          href="https://developers.prtimes.jp/2025/06/24/backup-and-restore-in-amazon-fsx-for-netapp-ontap/"
+          className="hover:text-blue-500 dark:hover:text-blue-500 text-gray-800 dark:text-gray-200"
+        >
+          <h3 className="text-2xl font-bold">
+            Amazon FSx for NetApp
+            ONTAPで手動バックアップおよびリストアを行うTips
+          </h3>
+          <p className="text-lg">
+            Amazon FSx for NetApp
+            ONTAPでのバックアップ作成や復元についてまとめた記事です。
+          </p>
+        </a>
+        <a
+          href="https://developers.prtimes.jp/2025/10/01/version-up-prtimes-opensearch/"
+          className="hover:text-blue-500 dark:hover:text-blue-500 text-gray-800 dark:text-gray-200"
+        >
+          <h3 className="text-2xl font-bold">
+            PR TIMESのOpenSearchをバージョンアップしました
+          </h3>
+          <p className="text-lg">
+            PR TIMESの検索で利用しているOpenSearchのバージョンアップについて紹介した記事です。
+          </p>
+        </a>
       </article>
     </section>
   );

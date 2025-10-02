@@ -8,6 +8,7 @@ import BlogSection from "~/components/blog_section";
 import Footer from "~/components/footer";
 import ScrollToTop from "~/components/scroll_to_top";
 import SpotifyFloatingEmbed from "~/components/spotify_parts";
+import SpeakSection from "~/components/speak_section";
 
 export default function Index(): React.ReactNode {
   return (
@@ -20,6 +21,7 @@ export default function Index(): React.ReactNode {
         <CareerSection />
         <TechStackSection />
         <BlogSection />
+        <SpeakSection />
       </main>
       <Footer />
       <ScrollToTop />

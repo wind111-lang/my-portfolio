@@ -4,7 +4,7 @@ export default function SpeakSection(): React.ReactNode {
   return (
     <section id="speak" className="py-8">
       <h2 className="text-3xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-        Blog
+        Speak
       </h2>
       <article className="flex flex-col gap-4">
         <a

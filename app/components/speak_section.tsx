@@ -15,7 +15,7 @@ export default function SpeakSection(): React.ReactNode {
             ゼロタウンタイムでミドルウェアのバージョンアップを実現した手法と課題
           </h3>
           <p className="text-lg">
-            （発表前）ゼロタウンタイムでOpenSearchのバージョンアップを実現した方法や今後の課題について話します
+            ゼロタウンタイムでOpenSearchのバージョンアップを実現した方法や今後の課題について話しました
           </p>
         </a>
       </article>

@@ -29,7 +29,7 @@ export default function BlogSection(): React.ReactNode {
           </p>
         </a>
         <a
-          href="https://developers.prtimes.jp/2024/09/02/execute-bg-data-transfers/"
+          href="https://developers.prtimes.com/2024/09/02/execute-bg-data-transfers/"
           className="hover:text-blue-500 dark:hover:text-blue-500  text-gray-800 dark:text-gray-200"
         >
           <h3 className="text-2xl font-bold">
@@ -50,7 +50,7 @@ export default function BlogSection(): React.ReactNode {
           </p>
         </a>
         <a
-          href="https://developers.prtimes.jp/2025/02/18/mock-aws-sdk-in-php/"
+          href="https://developers.prtimes.com/2025/02/18/mock-aws-sdk-in-php/"
           className="hover:text-blue-500 dark:hover:text-blue-500 text-gray-800 dark:text-gray-200"
         >
           <h3 className="text-2xl font-bold">PHPでAWS SDKのテストをMockする</h3>
@@ -60,7 +60,7 @@ export default function BlogSection(): React.ReactNode {
           </p>
         </a>
         <a
-          href="https://developers.prtimes.jp/2025/06/24/backup-and-restore-in-amazon-fsx-for-netapp-ontap/"
+          href="https://developers.prtimes.com/2025/06/24/backup-and-restore-in-amazon-fsx-for-netapp-ontap/"
           className="hover:text-blue-500 dark:hover:text-blue-500 text-gray-800 dark:text-gray-200"
         >
           <h3 className="text-2xl font-bold">
@@ -73,14 +73,27 @@ export default function BlogSection(): React.ReactNode {
           </p>
         </a>
         <a
-          href="https://developers.prtimes.jp/2025/10/01/version-up-prtimes-opensearch/"
+          href="https://developers.prtimes.com/2025/10/01/version-up-prtimes-opensearch/"
           className="hover:text-blue-500 dark:hover:text-blue-500 text-gray-800 dark:text-gray-200"
         >
           <h3 className="text-2xl font-bold">
             PR TIMESのOpenSearchをバージョンアップしました
           </h3>
           <p className="text-lg">
-            PR TIMESの検索で利用しているOpenSearchのバージョンアップについて紹介した記事です。
+            PR
+            TIMESの検索で利用しているOpenSearchのバージョンアップについて紹介した記事です。
+          </p>
+        </a>
+        <a
+          href="https://developers.prtimes.com/2026/05/13/press-release-url-evaluation-domain/"
+          className="hover:text-blue-500 dark:hover:text-blue-500 text-gray-800 dark:text-gray-200"
+        >
+          <h3 className="text-2xl font-bold">
+            メール到達性を支える、プレスリリース内URLのドメイン評価の仕組み
+          </h3>
+          <p className="text-lg">
+            一部ユーザーに対してPR TIMESのメール送信が行われなかったことを受け、PR TIMESのプレスリリースエディターにURLのドメイン評価を行う機能を実装しました。
+            ドメイン評価の仕組みについて詳しく紹介した記事です。
           </p>
         </a>
       </article>

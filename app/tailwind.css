@@ -196,6 +196,11 @@ button:focus-visible {
   background: var(--terminal-accent);
 }
 
+.mode-switcher button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .mode-switcher kbd {
   font: inherit;
   font-weight: 700;
@@ -229,6 +234,7 @@ button:focus-visible {
 }
 
 .boot-message {
+  min-height: 10.85em;
   margin-bottom: 3rem;
 }
 

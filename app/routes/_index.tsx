@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Header from "~/components/header";
 import AboutSection from "~/components/about_section";
 import ProfileSection from "~/components/profile_section";
@@ -7,24 +7,80 @@ import TechStackSection from "~/components/tech_stack_section";
 import BlogSection from "~/components/blog_section";
 import Footer from "~/components/footer";
 import ScrollToTop from "~/components/scroll_to_top";
-import SpotifyFloatingEmbed from "~/components/spotify_parts";
 import SpeakSection from "~/components/speak_section";
+import CommandView from "~/components/command_view";
+import type { MetaFunction } from "@remix-run/node";
+
+export const meta: MetaFunction = () => [
+  { title: "Tsutsui Shota | Software Engineer" },
+  {
+    name: "description",
+    content:
+      "Software Engineer Tsutsui Shota のポートフォリオ。プロフィール、経歴、技術スタック、執筆・登壇情報を掲載しています。",
+  },
+  { property: "og:title", content: "Tsutsui Shota | Software Engineer" },
+  {
+    property: "og:description",
+    content: "Human68k v3.02 / SX-WINDOW inspired portfolio.",
+  },
+  { property: "og:type", content: "website" },
+  {
+    property: "og:image",
+    content: "https://wind111-lang.github.io/my-portfolio/og-v2.png",
+  },
+  { name: "twitter:card", content: "summary_large_image" },
+  {
+    name: "twitter:image",
+    content: "https://wind111-lang.github.io/my-portfolio/og-v2.png",
+  },
+];
 
 export default function Index(): React.ReactNode {
+  const [mode, setMode] = useState<"command" | "gui">("command");
+
+  useEffect(() => {
+    const handleFunctionKey = (event: KeyboardEvent) => {
+      if (event.key === "F1") {
+        event.preventDefault();
+        setMode("command");
+      }
+      if (event.key === "F2") {
+        event.preventDefault();
+        setMode("gui");
+      }
+    };
+
+    window.addEventListener("keydown", handleFunctionKey);
+    return () => window.removeEventListener("keydown", handleFunctionKey);
+  }, []);
+
   return (
-    <>
-      <Header />
-      <main className="max-w-4xl mx-auto p-4">
-        <SpotifyFloatingEmbed />
-        <AboutSection />
-        <ProfileSection />
-        <CareerSection />
-        <TechStackSection />
-        <BlogSection />
-        <SpeakSection />
-      </main>
+    <div className="site-shell" data-mode={mode}>
+      <Header mode={mode} onModeChange={setMode} />
+      {mode === "command" ? (
+        <CommandView onModeChange={setMode} />
+      ) : (
+        <div className="sx-workspace">
+          <aside className="sx-icon-rail" aria-label="SX-WINDOW デスクトップ">
+            <a href="#profile"><span className="sx-drive-icon">A:</span><span>PROFILE</span></a>
+            <a href="#tech"><span className="sx-folder-icon" aria-hidden="true" /><span>TECH</span></a>
+            <a href="#blog"><span className="sx-file-icon" aria-hidden="true">T</span><span>ARTICLES</span></a>
+            <button type="button" onClick={() => setMode("command")}>
+              <span className="sx-terminal-icon" aria-hidden="true">A&gt;</span><span>COMMAND.X</span>
+            </button>
+          </aside>
+          <main className="desktop-grid" id="top">
+            <AboutSection />
+            <ProfileSection />
+            <CareerSection />
+            <TechStackSection />
+            <BlogSection />
+            <SpeakSection />
+          </main>
+        </div>
+      )}
       <Footer />
       <ScrollToTop />
-    </>
+    </div>
   );
 }

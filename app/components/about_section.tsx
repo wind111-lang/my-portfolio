@@ -3,32 +3,46 @@ import { FaTwitter, FaGithub } from "react-icons/fa";
 
 export default function AboutSection(): React.ReactNode {
   return (
-    <section id="about" className="py-8 text-center">
-      <h1 className="text-4xl font-bold mb-4 text-gray-800 dark:text-gray-200">
-        Tsutsui Shota
-      </h1>
-      <img
-        src="images/74229075.jpeg"
-        alt="profile-pic"
-        className="w-72 h-72 rounded-full mx-auto mt-4"
-      />
-      <div className="mt-4 flex justify-center gap-4 text-2xl">
-        <a
-          href="https://twitter.com/tsuttsun_wind"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
-        >
-          <FaTwitter />
-        </a>
-        <a
-          href="https://github.com/wind111-lang"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-500"
-        >
-          <FaGithub />
-        </a>
+    <section id="about" className="hero-panel">
+      <div className="hero-screen">
+        <div className="boot-line">HUMAN.SYS READY</div>
+        <p className="hero-kicker">SOFTWARE ENGINEER</p>
+        <h1>
+          <span>TSUTSUI</span>
+          <span>SHOTA</span>
+        </h1>
+        <p className="hero-copy">
+          Building reliable software,
+          <br /> one command at a time.
+        </p>
+        <div className="command-line" aria-hidden="true">
+          A:\&gt; show portfolio<span className="cursor">_</span>
+        </div>
+      </div>
+      <div className="identity-card">
+        <div className="portrait-frame">
+          <img
+            src={`${import.meta.env.BASE_URL}images/74229075.jpeg`}
+            alt="筒井 翔太のプロフィール写真"
+          />
+          <span>USER_ID: WIND111</span>
+        </div>
+        <div className="social-links" aria-label="ソーシャルリンク">
+          <a
+            href="https://twitter.com/tsuttsun_wind"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <FaTwitter aria-hidden="true" /> X / TWITTER
+          </a>
+          <a
+            href="https://github.com/wind111-lang"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <FaGithub aria-hidden="true" /> GITHUB
+          </a>
+        </div>
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { playForeverX68000Track } from "~/lib/forever_x68000_player";
 import { playOpmTrack } from "~/lib/opm_player";
 
 const articles = [
@@ -20,6 +21,7 @@ type OutputName =
   | "tech"
   | "articles"
   | "speak"
+  | "forever"
   | "opm"
   | "version"
   | "error";
@@ -53,6 +55,8 @@ const commandAliases: Record<string, OutputName> = {
   "DIR A:\\ARTICLES": "articles",
   SPEAK: "speak",
   "TYPE SPEAK.LOG": "speak",
+  FOREVERX68000: "forever",
+  FOREVERX68K: "forever",
   OPM: "opm",
   VER: "version",
 };
@@ -187,6 +191,15 @@ function CommandOutput({
     );
   }
 
+  if (output === "forever") {
+    return (
+      <div className="terminal-output">
+        <p>YM2151 (OPM) + MSM6258 ADPCM SOUND SYSTEM</p>
+        <p>NOW PLAYING... FOREVER.DAT</p>
+      </div>
+    );
+  }
+
   if (output === "version") {
     return <div className="terminal-output"><p>Human68k version 3.02 / PORTFOLIO.SYS version 1.01</p></div>;
   }
@@ -207,7 +220,7 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
   const nextId = useRef(1);
   const inputRef = useRef<HTMLInputElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const stopOpmRef = useRef<(() => void) | null>(null);
+  const stopMusicRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
@@ -215,14 +228,14 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
     }
 
     return () => {
-      stopOpmRef.current?.();
+      stopMusicRef.current?.();
       if (audioContextRef.current?.state !== "closed") {
         void audioContextRef.current?.close();
       }
     };
   }, []);
 
-  const runOpmCommand = () => {
+  const runMusicCommand = (playTrack: typeof playOpmTrack) => {
     const context = audioContextRef.current?.state === "closed"
       ? null
       : audioContextRef.current;
@@ -231,8 +244,8 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
     audioContextRef.current = audioContext;
 
     const startPlayback = () => {
-      stopOpmRef.current?.();
-      stopOpmRef.current = playOpmTrack(audioContext);
+      stopMusicRef.current?.();
+      stopMusicRef.current = playTrack(audioContext);
     };
 
     if (audioContext.state === "suspended") {
@@ -258,7 +271,10 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
       return;
     }
     if (command === "OPM") {
-      runOpmCommand();
+      runMusicCommand(playOpmTrack);
+    }
+    if (command === "FOREVERX68000" || command === "FOREVERX68K") {
+      runMusicCommand(playForeverX68000Track);
     }
 
     setHistory((entries) => [

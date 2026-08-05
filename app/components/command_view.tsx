@@ -182,7 +182,7 @@ function CommandOutput({
     return (
       <div className="terminal-output">
         <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
-        <p>NOW PLAYING... 1993.DAT</p>
+        <p>NOW PLAYING... MUSIC.DAT</p>
       </div>
     );
   }

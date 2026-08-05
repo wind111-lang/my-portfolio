@@ -8,7 +8,7 @@ type FmPatch = {
   sustainGain: number;
 };
 
-const BPM = 150;
+const BPM = 112;
 const BEAT = 60 / BPM / 2;
 const HARMONY_BEATS = 4;
 const GROOVE_BEATS = 128;
@@ -21,8 +21,8 @@ const brassPatch: FmPatch = {
   modulation: [2.4, 0, 1.1],
   attack: 0.014,
   decay: 0.16,
-  peakGain: 0.034,
-  sustainGain: 0.014,
+  peakGain: 0.027,
+  sustainGain: 0.011,
 };
 
 const bassPatch: FmPatch = {
@@ -41,8 +41,8 @@ const leadPatch: FmPatch = {
   modulation: [1.6, 0.8, 0.45],
   attack: 0.012,
   decay: 0.18,
-  peakGain: 0.026,
-  sustainGain: 0.015,
+  peakGain: 0.038,
+  sustainGain: 0.021,
 };
 
 const arpeggioPatch: FmPatch = {
@@ -51,7 +51,7 @@ const arpeggioPatch: FmPatch = {
   modulation: [1.35, 0, 0.8],
   attack: 0.005,
   decay: 0.07,
-  peakGain: 0.025,
+  peakGain: 0.018,
   sustainGain: 0.004,
 };
 
@@ -61,8 +61,8 @@ const counterPatch: FmPatch = {
   modulation: [1.5, 0.55, 0.3],
   attack: 0.012,
   decay: 0.15,
-  peakGain: 0.018,
-  sustainGain: 0.008,
+  peakGain: 0.012,
+  sustainGain: 0.006,
 };
 
 const bellPatch: FmPatch = {
@@ -86,67 +86,60 @@ const finalPatch: FmPatch = {
 };
 
 const harmonies = {
-  dm: {
-    bass: 73.42,
-    notes: [146.83, 174.61, 220],
-    arpeggio: [146.83, 220, 293.66, 174.61],
-    bells: [880, 1174.66],
+  bm: {
+    bass: 61.74,
+    notes: [123.47, 146.83, 185],
+    arpeggio: [123.47, 185, 246.94, 146.83],
+    bells: [987.77, 1479.98],
   },
-  a7: {
-    bass: 55,
-    notes: [110, 138.59, 164.81, 196],
-    arpeggio: [110, 164.81, 220, 138.59],
-    bells: [880, 1108.73],
+  em: {
+    bass: 82.41,
+    notes: [164.81, 196, 246.94],
+    arpeggio: [164.81, 246.94, 329.63, 196],
+    bells: [987.77, 1318.51],
   },
-  c7: {
-    bass: 65.41,
-    notes: [130.81, 164.81, 196, 233.08],
-    arpeggio: [130.81, 196, 261.63, 233.08],
-    bells: [783.99, 1046.5],
-  },
-  f: {
-    bass: 87.31,
-    notes: [174.61, 220, 261.63],
-    arpeggio: [174.61, 261.63, 349.23, 220],
-    bells: [880, 1046.5],
-  },
-  gm: {
-    bass: 98,
-    notes: [196, 233.08, 293.66],
-    arpeggio: [196, 293.66, 392, 233.08],
-    bells: [932.33, 1174.66],
+  fs7: {
+    bass: 46.25,
+    notes: [92.5, 116.54, 138.59, 164.81],
+    arpeggio: [92.5, 138.59, 185, 116.54],
+    bells: [932.33, 1108.73],
   },
 } as const;
 
 const chordProgression = [
-  harmonies.dm, harmonies.a7, harmonies.dm, harmonies.a7,
-  harmonies.dm, harmonies.a7, harmonies.dm, harmonies.c7,
-  harmonies.c7, harmonies.f, harmonies.a7, harmonies.dm,
-  harmonies.gm, harmonies.dm, harmonies.a7, harmonies.dm,
-  harmonies.dm, harmonies.dm, harmonies.a7, harmonies.a7,
-  harmonies.dm, harmonies.dm, harmonies.a7, harmonies.a7,
-  harmonies.dm, harmonies.dm, harmonies.gm, harmonies.gm,
-  harmonies.dm, harmonies.a7, harmonies.dm, harmonies.dm,
+  harmonies.bm, harmonies.bm, harmonies.em, harmonies.em,
+  harmonies.fs7, harmonies.fs7, harmonies.bm, harmonies.bm,
+  harmonies.bm, harmonies.bm, harmonies.em, harmonies.em,
+  harmonies.bm, harmonies.bm, harmonies.fs7, harmonies.fs7,
+  harmonies.bm, harmonies.bm, harmonies.em, harmonies.em,
+  harmonies.fs7, harmonies.fs7, harmonies.bm, harmonies.bm,
+  harmonies.bm, harmonies.bm, harmonies.em, harmonies.em,
+  harmonies.fs7, harmonies.fs7, harmonies.bm, harmonies.bm,
 ] as const;
 
-const leadSequence = [
-  [1, 69, 2], [3, 67, 1], [4, 65, 2], [6, 64, 2],
-  [8, 62, 2], [10, 61, 2], [12, 62, 2], [14, 57, 2],
-  [17, 69, 2], [19, 67, 1], [20, 65, 2], [22, 64, 2],
-  [24, 62, 2], [26, 61, 2], [28, 62, 2], [30, 60, 2],
-  [33, 72, 2], [35, 71, 1], [36, 71, 2], [38, 69, 2],
-  [41, 69, 2], [43, 67, 1], [44, 67, 2], [46, 65, 2],
-  [49, 64, 1], [50, 65, 1], [51, 67, 1], [52, 69, 2], [54, 57, 2],
-  [56, 65, 1], [57, 64, 1], [58, 62, 1], [59, 61, 1], [60, 62, 2],
-  [64, 65, 5], [69, 65, 1], [70, 64, 1], [71, 62, 1],
-  [72, 64, 5], [77, 64, 1], [78, 62, 1], [79, 61, 1],
-  [80, 62, 5], [85, 62, 1], [86, 64, 1], [87, 62, 1],
-  [88, 61, 2], [90, 57, 2], [92, 57, 4],
-  [96, 65, 5], [101, 65, 1], [102, 64, 1], [103, 65, 1],
-  [104, 67, 5], [109, 67, 1], [110, 65, 1], [111, 67, 1],
-  [112, 69, 3], [115, 67, 1], [116, 65, 2], [118, 64, 2],
-  [120, 62, 2], [122, 61, 2], [124, 62, 2],
+const troikaPhraseA = [
+  [0, 66, 1], [1, 71, 3], [4, 73, 1], [5, 74, 1], [6, 73, 1], [7, 71, 1],
+  [8, 67, 0.5], [8.5, 66, 0.5], [9, 64, 3], [12, 67, 1], [13, 71, 2], [15, 73, 1],
+  [16, 71, 1], [17, 66, 3], [20, 67, 1], [21, 66, 1], [22, 64, 1], [23, 61, 1],
+  [24, 62, 1], [25, 59, 6],
 ] as const;
+
+const troikaPhraseB = [
+  [0, 66, 1], [1, 71, 3], [4, 71, 1], [5, 71, 1], [6, 71, 1], [7, 70, 1],
+  [8, 71, 1], [9, 73, 3], [12, 70, 1], [13, 66, 2],
+  [16, 66, 1], [17, 74, 2], [19, 71, 2], [21, 62, 1], [22, 62, 1], [23, 64, 1],
+  [24, 64, 1], [25, 66, 6],
+] as const;
+
+const leadSequence = [troikaPhraseA, troikaPhraseB, troikaPhraseA, troikaPhraseA].flatMap(
+  (phrase, phraseIndex) => phrase.map(
+    ([beatOffset, midiNote, durationInBeats]) => [
+      beatOffset + phraseIndex * 32,
+      midiNote,
+      durationInBeats,
+    ] as const,
+  ),
+);
 
 function midiToFrequency(note: number): number {
   return 440 * 2 ** ((note - 69) / 12);
@@ -334,7 +327,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   compressor.attack.setValueAtTime(0.003, startAt);
   compressor.release.setValueAtTime(0.15, startAt);
   fmBus.gain.setValueAtTime(0.9, startAt);
-  percussionBus.gain.setValueAtTime(0.72, startAt);
+  percussionBus.gain.setValueAtTime(0.58, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
 
@@ -424,7 +417,7 @@ export function playOpmTrack(context: AudioContext): () => void {
 
   const finalStart = startAt + GROOVE_BEATS * BEAT;
   const finalDuration = 4.5 * BEAT;
-  [146.83, 174.61, 220, 293.66].forEach((frequency, index) => {
+  [123.47, 146.83, 185, 246.94].forEach((frequency, index) => {
     createFmVoice(
       context,
       fmBus,
@@ -436,8 +429,8 @@ export function playOpmTrack(context: AudioContext): () => void {
       finalPatch,
     );
   });
-  createFmVoice(context, fmBus, sources, 73.42, finalStart, finalDuration, 0, bassPatch);
-  createFmVoice(context, fmBus, sources, midiToFrequency(74), finalStart, finalDuration, 0.12, leadPatch);
+  createFmVoice(context, fmBus, sources, 61.74, finalStart, finalDuration, 0, bassPatch);
+  createFmVoice(context, fmBus, sources, midiToFrequency(71), finalStart, finalDuration, 0.12, leadPatch);
 
   for (let beat = 0; beat < GROOVE_BEATS; beat += 1) {
     const hitAt = startAt + beat * BEAT;

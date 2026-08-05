@@ -85,16 +85,16 @@ function CommandOutput({
       <div className="terminal-output help-output">
         <p>使用できるコマンド:</p>
         <dl>
-          <div><dt>DIR</dt><dd>ルートのファイル一覧を表示</dd></div>
-          <div><dt>TYPE PROFILE.DAT</dt><dd>プロフィールを表示</dd></div>
-          <div><dt>TYPE CAREER.LOG</dt><dd>経歴を表示</dd></div>
-          <div><dt>DIR TECH</dt><dd>技術スタックを表示</dd></div>
-          <div><dt>DIR ARTICLES</dt><dd>執筆記事を表示</dd></div>
-          <div><dt>TYPE SPEAK.LOG</dt><dd>登壇情報を表示</dd></div>
-          <div><dt>GUI</dt><dd>SX-WINDOWへ切り替え</dd></div>
-          <div><dt>VER</dt><dd>システムのバージョンを表示</dd></div>
-          <div><dt>CLS</dt><dd>画面をクリア</dd></div>
-          <div><dt>HELP / ?</dt><dd>この一覧を表示</dd></div>
+          <div><dt><span>DIR</span><span>A:\</span></dt><dd>ルートのファイル一覧を表示</dd></div>
+          <div><dt><span>DIR</span><span>TECH</span></dt><dd>技術スタックを表示</dd></div>
+          <div><dt><span>DIR</span><span>ARTICLES</span></dt><dd>執筆記事を表示</dd></div>
+          <div><dt><span>TYPE</span><span>PROFILE.DAT</span></dt><dd>プロフィールを表示</dd></div>
+          <div><dt><span>TYPE</span><span>CAREER.LOG</span></dt><dd>経歴を表示</dd></div>
+          <div><dt><span>TYPE</span><span>SPEAK.LOG</span></dt><dd>登壇情報を表示</dd></div>
+          <div><dt><span>GUI</span><span /></dt><dd>SX-WINDOWへ切り替え</dd></div>
+          <div><dt><span>VER</span><span /></dt><dd>システムのバージョンを表示</dd></div>
+          <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
+          <div><dt><span>HELP</span><span>/ ?</span></dt><dd>この一覧を表示</dd></div>
         </dl>
       </div>
     );

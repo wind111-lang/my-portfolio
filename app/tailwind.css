@@ -229,7 +229,13 @@ button:focus-visible {
 }
 
 .help-output dt {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
   color: #fff;
+}
+
+.help-output dt span:last-child {
+  color: var(--terminal-text);
 }
 
 .help-output dd {
@@ -1026,17 +1032,17 @@ button:focus-visible {
   }
 
   .help-output dl > div {
-    display: block;
+    grid-template-columns: 1fr;
+    gap: 0;
     margin-bottom: 0.6rem;
   }
 
-  .help-output dt,
-  .help-output dd {
-    display: inline;
+  .help-output dt {
+    grid-template-columns: 4rem 1fr;
   }
 
-  .help-output dd::before {
-    content: " — ";
+  .help-output dd {
+    margin-left: 4rem;
   }
 
   .terminal-table p {

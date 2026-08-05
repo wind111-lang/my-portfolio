@@ -206,7 +206,7 @@ function CommandOutput({
   if (output === "forever") {
     return (
       <div className="terminal-output">
-        <p>YM2151 (OPM) + MSM6258 ADPCM SOUND SYSTEM</p>
+        <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
         <p>NOW PLAYING... FOREVER.DAT</p>
       </div>
     );

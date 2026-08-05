@@ -84,6 +84,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
                 <div><dt>OS:</dt><dd>Human68k Version 3.02</dd></div>
               </dl>
               <p className="x68k-splash-motto">POWER TO MAKE YOUR DREAM COME TRUE.</p>
+              <p className="x68k-splash-secret">FOREVER X68000 (FOREVERX68K) !</p>
             </div>
           </div>
         </section>

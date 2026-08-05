@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { playOpmTrack } from "~/lib/opm_player";
 
 const articles = [
   ["GoオンリーでGUI上からQRコード読み取りをしてみた", "https://qiita.com/wind111-lang/items/af7e3fadeb1c71673cda"],
@@ -55,123 +56,6 @@ const commandAliases: Record<string, OutputName> = {
   OPM: "opm",
   VER: "version",
 };
-
-const opmPhrase = [
-  { offset: 0, frequency: 261.63, duration: 0.34, pan: -0.45 },
-  { offset: 0.12, frequency: 329.63, duration: 0.34, pan: -0.15 },
-  { offset: 0.24, frequency: 392, duration: 0.34, pan: 0.15 },
-  { offset: 0.36, frequency: 523.25, duration: 0.42, pan: 0.45 },
-  { offset: 0.76, frequency: 659.25, duration: 0.18, pan: 0.35 },
-  { offset: 0.96, frequency: 587.33, duration: 0.18, pan: 0.15 },
-  { offset: 1.16, frequency: 783.99, duration: 0.4, pan: 0.45 },
-  { offset: 1.64, frequency: 261.63, duration: 0.58, pan: -0.55 },
-  { offset: 1.64, frequency: 329.63, duration: 0.58, pan: -0.2 },
-  { offset: 1.64, frequency: 392, duration: 0.58, pan: 0.2 },
-  { offset: 1.64, frequency: 523.25, duration: 0.58, pan: 0.55 },
-  { offset: 2.3, frequency: 392, duration: 0.16, pan: -0.25 },
-  { offset: 2.48, frequency: 523.25, duration: 0.16, pan: 0 },
-  { offset: 2.66, frequency: 783.99, duration: 0.5, pan: 0.25 },
-] as const;
-
-function createOpmVoice(
-  context: AudioContext,
-  destination: AudioNode,
-  frequency: number,
-  startAt: number,
-  duration: number,
-  pan: number,
-): OscillatorNode[] {
-  const operators = Array.from({ length: 4 }, () => context.createOscillator());
-  const modulationDepths = Array.from({ length: 3 }, () => context.createGain());
-  const envelope = context.createGain();
-  const panner = context.createStereoPanner();
-
-  operators.forEach((operator, index) => {
-    operator.type = "sine";
-    operator.frequency.setValueAtTime(frequency * (index + 1), startAt);
-  });
-
-  modulationDepths[2].gain.setValueAtTime(frequency * 0.8, startAt);
-  modulationDepths[1].gain.setValueAtTime(frequency * 1.35, startAt);
-  modulationDepths[0].gain.setValueAtTime(frequency * 2.1, startAt);
-
-  operators[3].connect(modulationDepths[2]);
-  modulationDepths[2].connect(operators[2].frequency);
-  operators[2].connect(modulationDepths[1]);
-  modulationDepths[1].connect(operators[1].frequency);
-  operators[1].connect(modulationDepths[0]);
-  modulationDepths[0].connect(operators[0].frequency);
-
-  envelope.gain.setValueAtTime(0.0001, startAt);
-  envelope.gain.exponentialRampToValueAtTime(0.11, startAt + 0.012);
-  envelope.gain.exponentialRampToValueAtTime(0.055, startAt + Math.min(0.11, duration * 0.35));
-  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-  panner.pan.setValueAtTime(pan, startAt);
-
-  operators[0].connect(envelope);
-  envelope.connect(panner);
-  panner.connect(destination);
-
-  operators.forEach((operator) => {
-    operator.start(startAt);
-    operator.stop(startAt + duration + 0.02);
-  });
-
-  return operators;
-}
-
-function playOpmJingle(context: AudioContext): () => void {
-  const startAt = context.currentTime + 0.025;
-  const master = context.createGain();
-  const compressor = context.createDynamicsCompressor();
-  const oscillators: OscillatorNode[] = [];
-  let disconnected = false;
-
-  master.gain.setValueAtTime(0.42, startAt);
-  compressor.threshold.setValueAtTime(-20, startAt);
-  compressor.knee.setValueAtTime(12, startAt);
-  compressor.ratio.setValueAtTime(8, startAt);
-  compressor.attack.setValueAtTime(0.003, startAt);
-  compressor.release.setValueAtTime(0.15, startAt);
-  master.connect(compressor);
-  compressor.connect(context.destination);
-
-  opmPhrase.forEach((note) => {
-    oscillators.push(
-      ...createOpmVoice(
-        context,
-        master,
-        note.frequency,
-        startAt + note.offset,
-        note.duration,
-        note.pan,
-      ),
-    );
-  });
-
-  const disconnectGraph = () => {
-    if (disconnected) return;
-    disconnected = true;
-    master.disconnect();
-    compressor.disconnect();
-  };
-  const cleanupTimer = window.setTimeout(disconnectGraph, 3400);
-
-  return () => {
-    window.clearTimeout(cleanupTimer);
-    const stopAt = context.currentTime + 0.025;
-    master.gain.cancelScheduledValues(context.currentTime);
-    master.gain.setTargetAtTime(0.0001, context.currentTime, 0.008);
-    oscillators.forEach((oscillator) => {
-      try {
-        oscillator.stop(stopAt);
-      } catch {
-        // すでに再生を終えたオペレーターは停止済みのため何もしない。
-      }
-    });
-    window.setTimeout(disconnectGraph, 80);
-  };
-}
 
 function CommandOutput({
   output,
@@ -297,8 +181,8 @@ function CommandOutput({
   if (output === "opm") {
     return (
       <div className="terminal-output">
-        <p>YM2151 (OPM) FM SOUND SOURCE TEST</p>
-        <p>NOW PLAYING...</p>
+        <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
+        <p>NOW PLAYING... 1993.DAT</p>
       </div>
     );
   }
@@ -344,7 +228,7 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
 
     const startPlayback = () => {
       stopOpmRef.current?.();
-      stopOpmRef.current = playOpmJingle(audioContext);
+      stopOpmRef.current = playOpmTrack(audioContext);
     };
 
     if (audioContext.state === "suspended") {

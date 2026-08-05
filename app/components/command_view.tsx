@@ -210,6 +210,10 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
   const stopOpmRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      inputRef.current?.focus({ preventScroll: true });
+    }
+
     return () => {
       stopOpmRef.current?.();
       if (audioContextRef.current?.state !== "closed") {
@@ -269,7 +273,7 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
   };
 
   return (
-    <main className="terminal-screen" id="top" onClick={() => inputRef.current?.focus()}>
+    <main className="terminal-screen" id="top">
       <div className="boot-message" aria-label="Human68k 起動メッセージ">
         <p>Human68k for X680x0 version 3.02</p>
         <p>Copyright 1987-93 SHARP/Hudson</p>
@@ -305,7 +309,6 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
           autoCapitalize="characters"
           spellCheck={false}
           aria-describedby="command-hint"
-          autoFocus
         />
         <button type="submit">RETURN</button>
       </form>

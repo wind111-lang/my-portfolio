@@ -3,20 +3,21 @@ import { createFmVoice, midiToFrequency, type FmPatch } from "~/lib/fm_synth";
 type NoteEvent = readonly [start: number, note: number, length: number];
 type ArrangementDensity = "intro" | "light" | "full";
 
-// 提供音源のオンセット間隔は約75 BPM。BEATは譜面上の八分音符1つ分。
-const BPM = 75;
+// 約75 BPMはハーフテンポ判定。原曲の拍感は約150 BPMで、
+// BEATは譜面上の八分音符1つ分を表す。
+const BPM = 150;
 const BEAT = 60 / BPM / 2;
-const HARMONY_BEATS = 4;
-const FIRST_THEME_BEAT = 32;
-const FIRST_FULL_BEAT = 64;
-const INTERLUDE_BEAT = 176;
-const SECOND_FULL_BEAT = 208;
-const OUTRO_BEAT = 320;
-const CODA_BEAT = 352;
-const FINAL_CHORD_BEAT = 384;
-const TRACK_BEATS = 394;
+const HARMONY_BEATS = 8;
+const FIRST_THEME_BEAT = 64;
+const FIRST_FULL_BEAT = 128;
+const INTERLUDE_BEAT = 352;
+const SECOND_FULL_BEAT = 416;
+const OUTRO_BEAT = 640;
+const CODA_BEAT = 704;
+const FINAL_CHORD_BEAT = 768;
+const TRACK_BEATS = 788;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
-const LEAD_ECHO_DELAY = BEAT / 4;
+const LEAD_ECHO_DELAY = BEAT / 2;
 const SCHEDULE_AHEAD_SECONDS = 8;
 
 const brassPatch: FmPatch = {
@@ -241,6 +242,27 @@ const octaveLeadPatch: FmPatch = {
   release: 0.52,
   vibratoRate: 5.2,
   vibratoCents: 4.2,
+};
+
+const piccoloPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 4.01, 2.002, 7.03],
+  modulation: [0.58, 0, 0.42],
+  waveforms: ["sine", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-2.8, 1.2, 2.8, -1.2],
+  filterFrequency: 7600,
+  filterStartFrequency: 3900,
+  filterAttack: 0.045,
+  filterQ: 0.96,
+  pitchAttackCents: -16,
+  pitchAttackTime: 0.05,
+  attack: 0.008,
+  decay: 0.18,
+  peakGain: 0.0048,
+  sustainGain: 0.002,
+  release: 0.44,
+  vibratoRate: 5.4,
+  vibratoCents: 3.6,
 };
 
 const lowCounterPatch: FmPatch = {
@@ -495,7 +517,7 @@ export function playOpmTrack(context: AudioContext): () => void {
     const segmentStart = startAt + beatOffset * BEAT;
     const chord = chordProgression[segmentIndex % chordProgression.length];
     const density = getDensity(beatOffset);
-    const noteDuration = (density === "intro" ? 3.88 : 3.62) * BEAT;
+    const noteDuration = (density === "intro" ? 7.76 : 7.24) * BEAT;
 
     chord.notes.forEach((frequency, noteIndex) => {
       createFmVoice(
@@ -531,8 +553,8 @@ export function playOpmTrack(context: AudioContext): () => void {
         fmBus,
         sources,
         frequency,
-        segmentStart + step * 2 * BEAT,
-        (density === "intro" ? 3.72 : 1.68) * BEAT,
+        segmentStart + step * 4 * BEAT,
+        (density === "intro" ? 7.44 : 3.36) * BEAT,
         step % 2 === 0 ? -0.08 : 0.08,
         bassPatch,
       );
@@ -541,14 +563,14 @@ export function playOpmTrack(context: AudioContext): () => void {
         fmBus,
         sources,
         frequency * 2,
-        segmentStart + step * 2 * BEAT,
-        0.72 * BEAT,
+        segmentStart + step * 4 * BEAT,
+        1.44 * BEAT,
         step % 2 === 0 ? 0.06 : -0.06,
         bassAttackPatch,
       );
     });
 
-    const arpeggioStep = density === "full" ? 0.5 : density === "light" ? 1 : 2;
+    const arpeggioStep = density === "full" ? 1 : density === "light" ? 2 : 4;
     const arpeggioCount = Math.round(HARMONY_BEATS / arpeggioStep);
     for (let step = 0; step < arpeggioCount; step += 1) {
       const register = density === "intro" ? 1 : 2;
@@ -564,6 +586,19 @@ export function playOpmTrack(context: AudioContext): () => void {
         arpeggioPatch,
         step % 2 === 0 ? -2.8 : 2.8,
       );
+      if (density === "full" && step % 4 === 2) {
+        createFmVoice(
+          context,
+          leadBus,
+          sources,
+          frequency * 2,
+          segmentStart + step * arpeggioStep * BEAT + 0.012,
+          1.5 * BEAT,
+          step % 8 === 2 ? -0.3 : 0.3,
+          piccoloPatch,
+          step % 8 === 2 ? -1.8 : 1.8,
+        );
+      }
     }
 
     if (density === "full") {
@@ -573,7 +608,7 @@ export function playOpmTrack(context: AudioContext): () => void {
         sources,
         chord.notes[1] * 4,
         segmentStart,
-        3.7 * BEAT,
+        7.4 * BEAT,
         segmentIndex % 2 === 0 ? 0.32 : -0.32,
         counterPatch,
       );
@@ -583,8 +618,8 @@ export function playOpmTrack(context: AudioContext): () => void {
           fmBus,
           sources,
           chord.bells[segmentIndex % chord.bells.length],
-          segmentStart + (segmentIndex % 4 === 0 ? 1 : 3) * BEAT,
-          0.85 * BEAT,
+          segmentStart + (segmentIndex % 4 === 0 ? 2 : 6) * BEAT,
+          1.7 * BEAT,
           segmentIndex % 4 === 0 ? -0.7 : 0.7,
           bellPatch,
         );
@@ -636,6 +671,19 @@ export function playOpmTrack(context: AudioContext): () => void {
           index % 2 === 0 ? -2.4 : 2.4,
         );
       }
+      if ((full && (index % 3 === 0 || durationInBeats >= 2)) || (!full && durationInBeats >= 3)) {
+        createFmVoice(
+          context,
+          leadBus,
+          sources,
+          midiToFrequency(midiNote + 24),
+          noteStart + 0.032,
+          noteDuration * 0.88,
+          index % 2 === 0 ? -0.32 : 0.32,
+          piccoloPatch,
+          index % 2 === 0 ? 1.6 : -1.6,
+        );
+      }
       if (full && beatOffset >= 32 && durationInBeats >= 2) {
         createFmVoice(
           context,
@@ -658,17 +706,22 @@ export function playOpmTrack(context: AudioContext): () => void {
     .map(([beatOffset, note, length]) => [beatOffset - 64, note, length] as const);
   const melodySections = [
     { startBeat: FIRST_THEME_BEAT, sequence: previewSequence, patch: softLeadPatch, full: false },
+    { startBeat: 96, sequence: previewSequence, patch: softLeadPatch, full: false },
     { startBeat: FIRST_FULL_BEAT, sequence: leadSequence, patch: leadPatch, full: true },
-    { startBeat: 160, sequence: cadenceSequence, patch: leadPatch, full: true },
+    { startBeat: 224, sequence: leadSequence, patch: leadPatch, full: true },
+    { startBeat: 320, sequence: cadenceSequence, patch: leadPatch, full: true },
     { startBeat: INTERLUDE_BEAT, sequence: previewSequence, patch: softLeadPatch, full: false },
+    { startBeat: 384, sequence: previewSequence, patch: softLeadPatch, full: false },
     { startBeat: SECOND_FULL_BEAT, sequence: leadSequence, patch: leadPatch, full: true },
-    { startBeat: 304, sequence: cadenceSequence, patch: leadPatch, full: true },
+    { startBeat: 512, sequence: leadSequence, patch: leadPatch, full: true },
+    { startBeat: 608, sequence: cadenceSequence, patch: leadPatch, full: true },
     { startBeat: OUTRO_BEAT, sequence: outroSequence, patch: softLeadPatch, full: false },
+    { startBeat: 672, sequence: outroSequence, patch: softLeadPatch, full: false },
   ] as const;
 
   const schedulePercussionBlock = (blockStartBeat: number, blockIndex: number) => {
     for (let halfBeat = 0; halfBeat < 32; halfBeat += 1) {
-      const beatPosition = halfBeat / 2;
+      const beatPosition = halfBeat;
       const hitAt = startAt + (blockStartBeat + beatPosition) * BEAT;
       if (halfBeat % 8 === 0) {
         createKick(context, percussionBus, sources, hitAt, halfBeat === 0 ? 0.12 : 0.085);
@@ -698,7 +751,7 @@ export function playOpmTrack(context: AudioContext): () => void {
           context,
           percussionBus,
           sources,
-          startAt + (blockStartBeat + 13 + index * 1.25) * BEAT,
+          startAt + (blockStartBeat + 26 + index * 2.5) * BEAT,
           frequency,
           0.052 - index * 0.006,
         );
@@ -707,12 +760,13 @@ export function playOpmTrack(context: AudioContext): () => void {
   };
 
   const percussionBlocks = [
-    ...Array.from({ length: 7 }, (_, index) => FIRST_FULL_BEAT + index * 16),
-    ...Array.from({ length: 7 }, (_, index) => SECOND_FULL_BEAT + index * 16),
+    ...Array.from({ length: 7 }, (_, index) => FIRST_FULL_BEAT + index * 32),
+    ...Array.from({ length: 7 }, (_, index) => SECOND_FULL_BEAT + index * 32),
   ];
 
   const scheduleCoda = () => {
     scheduleLeadEvents(codaSequence, CODA_BEAT, softLeadPatch, false);
+    scheduleLeadEvents(codaSequence, CODA_BEAT + 32, softLeadPatch, false);
     const finalStart = startAt + FINAL_CHORD_BEAT * BEAT;
     [45, 57, 60, 64, 69].forEach((note, index) => {
       createFmVoice(
@@ -721,7 +775,7 @@ export function playOpmTrack(context: AudioContext): () => void {
         sources,
         midiToFrequency(note),
         finalStart,
-        8 * BEAT,
+        16 * BEAT,
         (index - 2) * 0.25,
         finalPatch,
         (index - 2) * 1.6,
@@ -733,7 +787,7 @@ export function playOpmTrack(context: AudioContext): () => void {
           sources,
           midiToFrequency(note + 12),
           finalStart + 0.035,
-          7.5 * BEAT,
+          15 * BEAT,
           (2 - index) * 0.2,
           octaveLeadPatch,
           (2 - index) * 1.2,
@@ -800,7 +854,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   schedulePendingEvents();
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
-  const fadeStart = startAt + (TRACK_BEATS - 12) * BEAT;
+  const fadeStart = startAt + (FINAL_CHORD_BEAT + 8) * BEAT;
   master.gain.setValueAtTime(0.45, fadeStart);
   master.gain.exponentialRampToValueAtTime(0.0001, startAt + TRACK_DURATION);
 

@@ -44,6 +44,26 @@ const leadPatch: FmPatch = {
   sustainGain: 0.012,
 };
 
+const arpeggioPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 2, 3, 6],
+  modulation: [1.35, 0, 0.8],
+  attack: 0.005,
+  decay: 0.07,
+  peakGain: 0.025,
+  sustainGain: 0.004,
+};
+
+const counterPatch: FmPatch = {
+  algorithm: "fan",
+  ratios: [1, 2, 3, 5],
+  modulation: [1.5, 0.55, 0.3],
+  attack: 0.012,
+  decay: 0.15,
+  peakGain: 0.018,
+  sustainGain: 0.008,
+};
+
 const finalPatch: FmPatch = {
   algorithm: "dual",
   ratios: [1, 3, 1, 2],
@@ -55,10 +75,26 @@ const finalPatch: FmPatch = {
 };
 
 const chordProgression = [
-  { bass: 110, notes: [220, 261.63, 329.63] },
-  { bass: 87.31, notes: [174.61, 220, 261.63] },
-  { bass: 98, notes: [196, 246.94, 293.66] },
-  { bass: 82.41, notes: [164.81, 207.65, 246.94, 293.66] },
+  {
+    bass: 110,
+    notes: [220, 261.63, 329.63],
+    arpeggio: [220, 261.63, 329.63, 440, 329.63, 261.63, 329.63, 440],
+  },
+  {
+    bass: 87.31,
+    notes: [174.61, 220, 261.63],
+    arpeggio: [174.61, 220, 261.63, 349.23, 261.63, 220, 261.63, 349.23],
+  },
+  {
+    bass: 98,
+    notes: [196, 246.94, 293.66],
+    arpeggio: [196, 246.94, 293.66, 392, 293.66, 246.94, 293.66, 392],
+  },
+  {
+    bass: 82.41,
+    notes: [164.81, 207.65, 246.94, 293.66],
+    arpeggio: [164.81, 207.65, 246.94, 293.66, 329.63, 293.66, 246.94, 207.65],
+  },
 ] as const;
 
 const leadSequence = [
@@ -66,6 +102,13 @@ const leadSequence = [
   [4.5, 72, 0.35], [5, 77, 0.35], [5.5, 81, 0.75], [6.5, 79, 0.35], [7, 76, 0.75],
   [8, 74, 0.35], [8.5, 79, 0.35], [9, 83, 0.75], [10, 81, 0.35], [10.5, 79, 0.35], [11, 74, 0.75],
   [12, 80, 0.35], [12.5, 83, 0.35], [13, 81, 0.35], [13.5, 80, 0.75], [14.5, 76, 0.35], [15, 83, 0.8],
+] as const;
+
+const counterSequence = [
+  [0, 64, 0.7], [2, 67, 0.35], [3.25, 64, 0.5],
+  [4, 65, 0.7], [6, 69, 0.35], [7.25, 65, 0.5],
+  [8, 67, 0.7], [10, 71, 0.35], [11.25, 67, 0.5],
+  [12, 68, 0.35], [12.75, 71, 0.35], [13.5, 74, 0.35], [14.25, 71, 0.35], [15, 68, 0.65],
 ] as const;
 
 function midiToFrequency(note: number): number {
@@ -200,6 +243,29 @@ function createKick(
   sources.push(oscillator);
 }
 
+function createTom(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  startAt: number,
+  frequency: number,
+): void {
+  const oscillator = context.createOscillator();
+  const envelope = context.createGain();
+
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(frequency, startAt);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.55, startAt + 0.13);
+  envelope.gain.setValueAtTime(0.075, startAt);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.16);
+
+  oscillator.connect(envelope);
+  envelope.connect(destination);
+  oscillator.start(startAt);
+  oscillator.stop(startAt + 0.17);
+  sources.push(oscillator);
+}
+
 function createFourBitCurve(): Float32Array {
   const curve = new Float32Array(256);
   const maxFourBitValue = 15;
@@ -224,7 +290,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.48, startAt);
+  master.gain.setValueAtTime(0.44, startAt);
   compressor.threshold.setValueAtTime(-18, startAt);
   compressor.knee.setValueAtTime(16, startAt);
   compressor.ratio.setValueAtTime(8, startAt);
@@ -271,6 +337,19 @@ export function playOpmTrack(context: AudioContext): () => void {
         bassPatch,
       );
     });
+
+    chord.arpeggio.forEach((frequency, step) => {
+      createFmVoice(
+        context,
+        fmBus,
+        sources,
+        frequency,
+        barStart + step * 0.5 * BEAT,
+        0.22 * BEAT,
+        step % 2 === 0 ? -0.58 : 0.58,
+        arpeggioPatch,
+      );
+    });
   });
 
   leadSequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
@@ -283,6 +362,19 @@ export function playOpmTrack(context: AudioContext): () => void {
       durationInBeats * BEAT,
       index % 2 === 0 ? -0.22 : 0.22,
       leadPatch,
+    );
+  });
+
+  counterSequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
+    createFmVoice(
+      context,
+      fmBus,
+      sources,
+      midiToFrequency(midiNote),
+      startAt + beatOffset * BEAT,
+      durationInBeats * BEAT,
+      index % 2 === 0 ? 0.34 : -0.34,
+      counterPatch,
     );
   });
 
@@ -324,6 +416,10 @@ export function playOpmTrack(context: AudioContext): () => void {
       "highpass",
     );
   }
+
+  [180, 145, 110].forEach((frequency, index) => {
+    createTom(context, percussionBus, sources, startAt + (14.5 + index * 0.5) * BEAT, frequency);
+  });
   createKick(context, percussionBus, sources, finalStart);
   createNoiseHit(context, percussionBus, sources, noiseBuffer, finalStart, 0.18, 5200, 0.05, "highpass");
 

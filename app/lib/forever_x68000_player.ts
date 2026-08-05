@@ -224,23 +224,42 @@ const glassPatch: FmPatch = {
 
 const airLeadPatch: FmPatch = {
   algorithm: "dual",
-  ratios: [1, 5.01, 2.002, 8.03],
-  modulation: [0.48, 0, 0.26],
+  ratios: [1, 5.01, 2.002, 9.03],
+  modulation: [0.52, 0, 0.31],
   waveforms: ["sine", "sine", "triangle", "sine"],
   operatorDetuneCents: [-2.6, 1.1, 2.6, -1.1],
-  filterFrequency: 11800,
-  filterStartFrequency: 6100,
-  filterAttack: 0.055,
+  filterFrequency: 13200,
+  filterStartFrequency: 6800,
+  filterAttack: 0.048,
   filterQ: 0.94,
   pitchAttackCents: -14,
   pitchAttackTime: 0.065,
-  attack: 0.014,
+  attack: 0.01,
   decay: 0.28,
-  peakGain: 0.0049,
-  sustainGain: 0.0023,
+  peakGain: 0.0052,
+  sustainGain: 0.0025,
   release: 0.68,
   vibratoRate: 5.35,
   vibratoCents: 3.2,
+};
+
+const sparklePatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 6.01, 2.003, 11.02],
+  modulation: [0.62, 0, 0.38],
+  waveforms: ["sine", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-2.4, 1, 2.4, -1],
+  filterFrequency: 14200,
+  filterStartFrequency: 7200,
+  filterAttack: 0.032,
+  filterQ: 1.08,
+  pitchAttackCents: -18,
+  pitchAttackTime: 0.045,
+  attack: 0.004,
+  decay: 0.16,
+  peakGain: 0.0038,
+  sustainGain: 0.0009,
+  release: 0.5,
 };
 
 const guitarPatch: FmPatch = {
@@ -594,6 +613,35 @@ function scheduleHighArpeggio(
   });
 }
 
+function scheduleAirArpeggio(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  sequence: readonly NoteEvent[],
+  entryAt: number,
+  offset: number,
+  transpose: number,
+  stepUnits: number,
+): void {
+  const intervals = [48, 55, 60, 55] as const;
+  sequence.forEach(([start, note, length], noteIndex) => {
+    for (let position = 6; position < length; position += stepUnits) {
+      const step = Math.floor(position / stepUnits) + noteIndex;
+      createFmVoice(
+        context,
+        destination,
+        sources,
+        midiToFrequency(note + transpose + intervals[step % intervals.length]),
+        entryAt + (offset + start + position) * SIXTEENTH,
+        1.8 * SIXTEENTH,
+        step % 2 === 0 ? -0.56 : 0.56,
+        sparklePatch,
+        step % 2 === 0 ? -2.1 : 2.1,
+      );
+    }
+  });
+}
+
 function scheduleGuitarChops(
   context: AudioContext,
   destination: AudioNode,
@@ -675,12 +723,14 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
   const leadBus = context.createGain();
+  const airBus = context.createGain();
   const fmBus = context.createGain();
   const adpcmBus = context.createGain();
   const adpcmDry = context.createGain();
   const adpcmCrushed = context.createGain();
   const toneFilter = context.createBiquadFilter();
   const presenceFilter = context.createBiquadFilter();
+  const airFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
   const softClip = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context, 0.7);
@@ -694,6 +744,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   compressor.attack.setValueAtTime(0.012, startAt);
   compressor.release.setValueAtTime(0.24, startAt);
   leadBus.gain.setValueAtTime(0.74, startAt);
+  airBus.gain.setValueAtTime(0.36, startAt);
   fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
   adpcmDry.gain.setValueAtTime(0.78, startAt);
@@ -705,6 +756,9 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   presenceFilter.frequency.setValueAtTime(2700, startAt);
   presenceFilter.Q.setValueAtTime(0.84, startAt);
   presenceFilter.gain.setValueAtTime(2.4, startAt);
+  airFilter.type = "highshelf";
+  airFilter.frequency.setValueAtTime(4600, startAt);
+  airFilter.gain.setValueAtTime(3.2, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
@@ -712,6 +766,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
 
   leadBus.connect(presenceFilter);
   presenceFilter.connect(softClip);
+  airBus.connect(airFilter);
+  airFilter.connect(softClip);
   fmBus.connect(toneFilter);
   toneFilter.connect(softClip);
   adpcmBus.connect(adpcmDry);
@@ -793,6 +849,16 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       phrase % 2 === 0 ? 16 : 8,
     );
     scheduleHighArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
+    scheduleAirArpeggio(
+      context,
+      airBus,
+      sources,
+      bassSequence,
+      entryAt,
+      offset,
+      transpose,
+      phrase >= 2 ? 8 : 16,
+    );
 
     const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
     scheduleSequence(
@@ -811,7 +877,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     const upperAccents = shortAccents.filter((_, index) => (index + phrase) % 3 === 0);
     scheduleSequence(
       context,
-      leadBus,
+      airBus,
       sources,
       upperAccents,
       entryAt,
@@ -821,6 +887,22 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       transpose + 24,
       fineTune * 0.2,
     );
+
+    if (phrase >= 2) {
+      const sparkleAccents = upperAccents.filter((_, index) => index % 2 === phrase % 2);
+      scheduleSequence(
+        context,
+        airBus,
+        sources,
+        sparkleAccents,
+        entryAt,
+        offset + 1.42,
+        -chordPan * 0.42,
+        sparklePatch,
+        transpose + 36,
+        -fineTune * 0.15,
+      );
+    }
 
     if (phrase === 3) {
       scheduleSequence(
@@ -905,7 +987,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     );
     scheduleSequence(
       context,
-      leadBus,
+      airBus,
       sources,
       endingLeadSequence,
       finalStart,
@@ -967,7 +1049,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       );
       createFmVoice(
         context,
-        leadBus,
+        airBus,
         sources,
         midiToFrequency(note + 36),
         finalResolutionStart + 0.055,
@@ -1019,12 +1101,14 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     if (disconnected) return;
     disconnected = true;
     leadBus.disconnect();
+    airBus.disconnect();
     fmBus.disconnect();
     adpcmBus.disconnect();
     adpcmDry.disconnect();
     adpcmCrushed.disconnect();
     toneFilter.disconnect();
     presenceFilter.disconnect();
+    airFilter.disconnect();
     quantizer.disconnect();
     softClip.disconnect();
     master.disconnect();

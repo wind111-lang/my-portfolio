@@ -8,10 +8,11 @@ type FmPatch = {
   sustainGain: number;
 };
 
-const BPM = 132;
-const BEAT = 60 / BPM;
-const GROOVE_BEATS = 16;
-const TRACK_BEATS = 18;
+const BPM = 150;
+const BEAT = 60 / BPM / 2;
+const HARMONY_BEATS = 4;
+const GROOVE_BEATS = 128;
+const TRACK_BEATS = 136;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
 
 const brassPatch: FmPatch = {
@@ -36,12 +37,12 @@ const bassPatch: FmPatch = {
 
 const leadPatch: FmPatch = {
   algorithm: "fan",
-  ratios: [1, 2, 3, 4],
-  modulation: [2.4, 1.2, 0.7],
-  attack: 0.009,
-  decay: 0.11,
-  peakGain: 0.027,
-  sustainGain: 0.012,
+  ratios: [1, 1, 2, 3],
+  modulation: [1.6, 0.8, 0.45],
+  attack: 0.012,
+  decay: 0.18,
+  peakGain: 0.026,
+  sustainGain: 0.015,
 };
 
 const arpeggioPatch: FmPatch = {
@@ -64,6 +65,16 @@ const counterPatch: FmPatch = {
   sustainGain: 0.008,
 };
 
+const bellPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 2.5, 4, 7],
+  modulation: [1.8, 0, 2.2],
+  attack: 0.003,
+  decay: 0.08,
+  peakGain: 0.019,
+  sustainGain: 0.002,
+};
+
 const finalPatch: FmPatch = {
   algorithm: "dual",
   ratios: [1, 3, 1, 2],
@@ -74,41 +85,67 @@ const finalPatch: FmPatch = {
   sustainGain: 0.021,
 };
 
-const chordProgression = [
-  {
-    bass: 110,
-    notes: [220, 261.63, 329.63],
-    arpeggio: [220, 261.63, 329.63, 440, 329.63, 261.63, 329.63, 440],
+const harmonies = {
+  dm: {
+    bass: 73.42,
+    notes: [146.83, 174.61, 220],
+    arpeggio: [146.83, 220, 293.66, 174.61],
+    bells: [880, 1174.66],
   },
-  {
+  a7: {
+    bass: 55,
+    notes: [110, 138.59, 164.81, 196],
+    arpeggio: [110, 164.81, 220, 138.59],
+    bells: [880, 1108.73],
+  },
+  c7: {
+    bass: 65.41,
+    notes: [130.81, 164.81, 196, 233.08],
+    arpeggio: [130.81, 196, 261.63, 233.08],
+    bells: [783.99, 1046.5],
+  },
+  f: {
     bass: 87.31,
     notes: [174.61, 220, 261.63],
-    arpeggio: [174.61, 220, 261.63, 349.23, 261.63, 220, 261.63, 349.23],
+    arpeggio: [174.61, 261.63, 349.23, 220],
+    bells: [880, 1046.5],
   },
-  {
+  gm: {
     bass: 98,
-    notes: [196, 246.94, 293.66],
-    arpeggio: [196, 246.94, 293.66, 392, 293.66, 246.94, 293.66, 392],
+    notes: [196, 233.08, 293.66],
+    arpeggio: [196, 293.66, 392, 233.08],
+    bells: [932.33, 1174.66],
   },
-  {
-    bass: 82.41,
-    notes: [164.81, 207.65, 246.94, 293.66],
-    arpeggio: [164.81, 207.65, 246.94, 293.66, 329.63, 293.66, 246.94, 207.65],
-  },
+} as const;
+
+const chordProgression = [
+  harmonies.dm, harmonies.a7, harmonies.dm, harmonies.a7,
+  harmonies.dm, harmonies.a7, harmonies.dm, harmonies.c7,
+  harmonies.c7, harmonies.f, harmonies.a7, harmonies.dm,
+  harmonies.gm, harmonies.dm, harmonies.a7, harmonies.dm,
+  harmonies.dm, harmonies.dm, harmonies.a7, harmonies.a7,
+  harmonies.dm, harmonies.dm, harmonies.a7, harmonies.a7,
+  harmonies.dm, harmonies.dm, harmonies.gm, harmonies.gm,
+  harmonies.dm, harmonies.a7, harmonies.dm, harmonies.dm,
 ] as const;
 
 const leadSequence = [
-  [0.5, 72, 0.35], [1, 76, 0.35], [1.5, 81, 0.75], [2.5, 79, 0.35], [3, 76, 0.75],
-  [4.5, 72, 0.35], [5, 77, 0.35], [5.5, 81, 0.75], [6.5, 79, 0.35], [7, 76, 0.75],
-  [8, 74, 0.35], [8.5, 79, 0.35], [9, 83, 0.75], [10, 81, 0.35], [10.5, 79, 0.35], [11, 74, 0.75],
-  [12, 80, 0.35], [12.5, 83, 0.35], [13, 81, 0.35], [13.5, 80, 0.75], [14.5, 76, 0.35], [15, 83, 0.8],
-] as const;
-
-const counterSequence = [
-  [0, 64, 0.7], [2, 67, 0.35], [3.25, 64, 0.5],
-  [4, 65, 0.7], [6, 69, 0.35], [7.25, 65, 0.5],
-  [8, 67, 0.7], [10, 71, 0.35], [11.25, 67, 0.5],
-  [12, 68, 0.35], [12.75, 71, 0.35], [13.5, 74, 0.35], [14.25, 71, 0.35], [15, 68, 0.65],
+  [1, 69, 2], [3, 67, 1], [4, 65, 2], [6, 64, 2],
+  [8, 62, 2], [10, 61, 2], [12, 62, 2], [14, 57, 2],
+  [17, 69, 2], [19, 67, 1], [20, 65, 2], [22, 64, 2],
+  [24, 62, 2], [26, 61, 2], [28, 62, 2], [30, 60, 2],
+  [33, 72, 2], [35, 71, 1], [36, 71, 2], [38, 69, 2],
+  [41, 69, 2], [43, 67, 1], [44, 67, 2], [46, 65, 2],
+  [49, 64, 1], [50, 65, 1], [51, 67, 1], [52, 69, 2], [54, 57, 2],
+  [56, 65, 1], [57, 64, 1], [58, 62, 1], [59, 61, 1], [60, 62, 2],
+  [64, 65, 5], [69, 65, 1], [70, 64, 1], [71, 62, 1],
+  [72, 64, 5], [77, 64, 1], [78, 62, 1], [79, 61, 1],
+  [80, 62, 5], [85, 62, 1], [86, 64, 1], [87, 62, 1],
+  [88, 61, 2], [90, 57, 2], [92, 57, 4],
+  [96, 65, 5], [101, 65, 1], [102, 64, 1], [103, 65, 1],
+  [104, 67, 5], [109, 67, 1], [110, 65, 1], [111, 67, 1],
+  [112, 69, 3], [115, 67, 1], [116, 65, 2], [118, 64, 2],
+  [120, 62, 2], [122, 61, 2], [124, 62, 2],
 ] as const;
 
 function midiToFrequency(note: number): number {
@@ -307,32 +344,30 @@ export function playOpmTrack(context: AudioContext): () => void {
   master.connect(compressor);
   compressor.connect(context.destination);
 
-  chordProgression.forEach((chord, barIndex) => {
-    const barStart = startAt + barIndex * 4 * BEAT;
+  chordProgression.forEach((chord, segmentIndex) => {
+    const segmentStart = startAt + segmentIndex * HARMONY_BEATS * BEAT;
 
-    [0, 2.5].forEach((beatOffset, stabIndex) => {
-      chord.notes.forEach((frequency, noteIndex) => {
-        createFmVoice(
-          context,
-          fmBus,
-          sources,
-          frequency,
-          barStart + beatOffset * BEAT,
-          (stabIndex === 0 ? 1.35 : 0.8) * BEAT,
-          (noteIndex - 1) * 0.48,
-          brassPatch,
-        );
-      });
+    chord.notes.forEach((frequency, noteIndex) => {
+      createFmVoice(
+        context,
+        fmBus,
+        sources,
+        frequency,
+        segmentStart,
+        2.5 * BEAT,
+        (noteIndex - (chord.notes.length - 1) / 2) * 0.36,
+        brassPatch,
+      );
     });
 
-    [1, 1, 1.5, 2, 1, 1.5, 1, 2].forEach((ratio, step) => {
+    [1, 2].forEach((ratio, step) => {
       createFmVoice(
         context,
         fmBus,
         sources,
         chord.bass * ratio,
-        barStart + step * 0.5 * BEAT,
-        0.38 * BEAT,
+        segmentStart + step * 2 * BEAT,
+        1.2 * BEAT,
         step % 2 === 0 ? -0.08 : 0.08,
         bassPatch,
       );
@@ -344,12 +379,34 @@ export function playOpmTrack(context: AudioContext): () => void {
         fmBus,
         sources,
         frequency,
-        barStart + step * 0.5 * BEAT,
-        0.22 * BEAT,
+        segmentStart + step * BEAT,
+        0.55 * BEAT,
         step % 2 === 0 ? -0.58 : 0.58,
         arpeggioPatch,
       );
     });
+
+    createFmVoice(
+      context,
+      fmBus,
+      sources,
+      chord.notes[1] * 2,
+      segmentStart,
+      3.5 * BEAT,
+      segmentIndex % 2 === 0 ? 0.3 : -0.3,
+      counterPatch,
+    );
+
+    createFmVoice(
+      context,
+      fmBus,
+      sources,
+      chord.bells[segmentIndex % chord.bells.length],
+      segmentStart + 3 * BEAT,
+      0.7 * BEAT,
+      segmentIndex % 2 === 0 ? -0.72 : 0.72,
+      bellPatch,
+    );
   });
 
   leadSequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
@@ -365,22 +422,9 @@ export function playOpmTrack(context: AudioContext): () => void {
     );
   });
 
-  counterSequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
-    createFmVoice(
-      context,
-      fmBus,
-      sources,
-      midiToFrequency(midiNote),
-      startAt + beatOffset * BEAT,
-      durationInBeats * BEAT,
-      index % 2 === 0 ? 0.34 : -0.34,
-      counterPatch,
-    );
-  });
-
   const finalStart = startAt + GROOVE_BEATS * BEAT;
-  const finalDuration = 1.55 * BEAT;
-  [220, 261.63, 329.63, 392].forEach((frequency, index) => {
+  const finalDuration = 4.5 * BEAT;
+  [146.83, 174.61, 220, 293.66].forEach((frequency, index) => {
     createFmVoice(
       context,
       fmBus,
@@ -392,33 +436,26 @@ export function playOpmTrack(context: AudioContext): () => void {
       finalPatch,
     );
   });
-  createFmVoice(context, fmBus, sources, 110, finalStart, finalDuration, 0, bassPatch);
-  createFmVoice(context, fmBus, sources, midiToFrequency(81), finalStart, finalDuration, 0.12, leadPatch);
+  createFmVoice(context, fmBus, sources, 73.42, finalStart, finalDuration, 0, bassPatch);
+  createFmVoice(context, fmBus, sources, midiToFrequency(74), finalStart, finalDuration, 0.12, leadPatch);
 
   for (let beat = 0; beat < GROOVE_BEATS; beat += 1) {
-    createKick(context, percussionBus, sources, startAt + beat * BEAT);
+    const hitAt = startAt + beat * BEAT;
 
-    if (beat % 4 === 1 || beat % 4 === 3) {
-      createNoiseHit(context, percussionBus, sources, noiseBuffer, startAt + beat * BEAT, 0.14, 1650, 0.085, "bandpass");
+    if (beat % 4 === 0) {
+      createKick(context, percussionBus, sources, hitAt);
     }
-  }
 
-  for (let step = 0; step < GROOVE_BEATS * 2; step += 1) {
-    createNoiseHit(
-      context,
-      percussionBus,
-      sources,
-      noiseBuffer,
-      startAt + step * 0.5 * BEAT,
-      step % 8 === 7 ? 0.11 : 0.045,
-      6800,
-      step % 2 === 0 ? 0.035 : 0.022,
-      "highpass",
-    );
+    if (beat % 8 === 4) {
+      createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.12, 1650, 0.07, "bandpass");
+    }
+
+    createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.05, beat % 2 === 0 ? 920 : 760, beat % 2 === 0 ? 0.032 : 0.022, "bandpass");
+    createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.04, 7200, beat % 4 === 3 ? 0.022 : 0.012, "highpass");
   }
 
   [180, 145, 110].forEach((frequency, index) => {
-    createTom(context, percussionBus, sources, startAt + (14.5 + index * 0.5) * BEAT, frequency);
+    createTom(context, percussionBus, sources, startAt + (124 + index * 1.5) * BEAT, frequency);
   });
   createKick(context, percussionBus, sources, finalStart);
   createNoiseHit(context, percussionBus, sources, noiseBuffer, finalStart, 0.18, 5200, 0.05, "highpass");

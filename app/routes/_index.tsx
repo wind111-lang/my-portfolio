@@ -73,13 +73,13 @@ export default function Index(): React.ReactNode {
   return (
     <div className="site-shell" data-mode={mode}>
       <Header mode={mode} onModeChange={setMode} disabled={startupPhase !== "ready"} />
-      {mode === "command" ? (
-        <CommandView
-          onModeChange={setMode}
-          isInitializing={startupPhase === "command"}
-          onInitializationComplete={completeStartup}
-        />
-      ) : (
+      <CommandView
+        onModeChange={setMode}
+        isInitializing={startupPhase === "command"}
+        onInitializationComplete={completeStartup}
+        isActive={mode === "command"}
+      />
+      {mode === "gui" && (
         <div className="sx-workspace">
           <aside className="sx-icon-rail" aria-label="SX-WINDOW デスクトップ">
             <a href="#profile"><span className="sx-drive-icon">A:</span><span>PROFILE</span></a>

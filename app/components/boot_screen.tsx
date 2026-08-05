@@ -16,6 +16,7 @@ const systemMessages = [
 ] as const;
 
 export default function BootScreen({ onComplete }: BootScreenProps): React.ReactNode {
+  const [stage, setStage] = useState<"splash" | "drivers">("splash");
   const [visibleMessageCount, setVisibleMessageCount] = useState(0);
 
   useEffect(() => {
@@ -36,10 +37,11 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
     window.addEventListener("keydown", blockInput, true);
 
+    schedule(() => setStage("drivers"), 5000);
     systemMessages.forEach((_, index) => {
-      schedule(() => setVisibleMessageCount(index + 1), 180 + index * 150);
+      schedule(() => setVisibleMessageCount(index + 1), 5180 + index * 150);
     });
-    schedule(onComplete, 1850);
+    schedule(onComplete, 6850);
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -50,26 +52,56 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
 
   return (
     <main className="x68k-boot-screen" aria-label="システム起動中">
-      <section className="x68k-boot-console" aria-live="polite" aria-atomic="false">
-        {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
-          message
-            ? <p key={`${index}-${message}`}>{message}</p>
-            : <br key={`space-${index}`} />
-        ))}
-        <span className="x68k-boot-cursor" aria-hidden="true" />
-      </section>
+      {stage === "splash" ? (
+        <section className="x68k-custom-splash" aria-live="polite">
+          <div className="x68k-splash-card">
+            <div className="x68k-paw-mark" aria-hidden="true">
+              <span className="toe toe-1" />
+              <span className="toe toe-2" />
+              <span className="toe toe-3" />
+              <span className="toe toe-4" />
+              <span className="pad" />
+            </div>
+            <div className="x68k-splash-copy">
+              <p className="x68k-splash-title">
+                PERSONAL WORKSTATION <strong>X68000</strong> PORTFOLIO
+              </p>
+              <p className="x68k-splash-clock">- HIGH CLOCK -</p>
+              <dl className="x68k-splash-specs">
+                <div><dt>HOSTNAME:</dt><dd>PORTFOLIO</dd></div>
+                <div><dt>OWNER:</dt><dd>SHOTA TSUTSUI</dd></div>
+                <div><dt>OS:</dt><dd>Human68k Version 3.02</dd></div>
+              </dl>
+              <p className="x68k-splash-motto">POWER TO MAKE YOUR DREAM COME TRUE.</p>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="x68k-boot-console" aria-live="polite" aria-atomic="false">
+          {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
+            message
+              ? <p key={`${index}-${message}`}>{message}</p>
+              : <br key={`space-${index}`} />
+          ))}
+          <span className="x68k-boot-cursor" aria-hidden="true" />
+        </section>
+      )}
 
-      <div className="x68k-drive-status" aria-hidden="true">
-        <span className="is-active" />
-        <small>FDD 0</small>
-      </div>
-      <p
-        className="x68k-boot-status"
-        role="status"
-        aria-label="システム起動中。入力は無効です。"
-      >
-        SYSTEM STARTING...
-      </p>
+      {stage === "drivers" && (
+        <>
+          <div className="x68k-drive-status" aria-hidden="true">
+            <span className="is-active" />
+            <small>FDD 0</small>
+          </div>
+          <p
+            className="x68k-boot-status"
+            role="status"
+            aria-label="システム起動中。入力は無効です。"
+          >
+            SYSTEM STARTING...
+          </p>
+        </>
+      )}
     </main>
   );
 }

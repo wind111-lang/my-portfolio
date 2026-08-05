@@ -4,8 +4,13 @@ export type FmPatch = {
   modulation: readonly [number, number, number];
   operatorCount?: 2 | 4;
   waveforms?: readonly [OscillatorType, OscillatorType, OscillatorType, OscillatorType];
+  operatorDetuneCents?: readonly [number, number, number, number];
   filterFrequency?: number;
+  filterStartFrequency?: number;
+  filterAttack?: number;
   filterQ?: number;
+  pitchAttackCents?: number;
+  pitchAttackTime?: number;
   attack: number;
   decay: number;
   peakGain: number;
@@ -37,11 +42,27 @@ export function createFmVoice(
   const envelope = context.createGain();
   const panner = context.createStereoPanner();
   const filter = patch.filterFrequency ? context.createBiquadFilter() : null;
+  const trackSource = (source: AudioScheduledSourceNode) => {
+    sources.push(source);
+    source.addEventListener("ended", () => {
+      const sourceIndex = sources.indexOf(source);
+      if (sourceIndex >= 0) sources.splice(sourceIndex, 1);
+    }, { once: true });
+  };
 
   operators.forEach((operator, index) => {
     operator.type = patch.waveforms?.[index] ?? "sine";
     operator.frequency.setValueAtTime(frequency * patch.ratios[index], startAt);
-    operator.detune.setValueAtTime(detuneCents, startAt);
+    const settledDetune = detuneCents + (patch.operatorDetuneCents?.[index] ?? 0);
+    if (patch.pitchAttackCents) {
+      operator.detune.setValueAtTime(settledDetune + patch.pitchAttackCents, startAt);
+      operator.detune.linearRampToValueAtTime(
+        settledDetune,
+        startAt + Math.min(patch.pitchAttackTime ?? 0.06, duration * 0.35),
+      );
+    } else {
+      operator.detune.setValueAtTime(settledDetune, startAt);
+    }
   });
 
   if (patch.vibratoRate && patch.vibratoCents) {
@@ -57,7 +78,7 @@ export function createFmVoice(
     operators.forEach((operator) => vibratoDepth.connect(operator.detune));
     vibrato.start(startAt);
     vibrato.stop(soundEnd + 0.02);
-    sources.push(vibrato);
+    trackSource(vibrato);
   }
 
   modulationDepths.forEach((depth, index) => {
@@ -102,7 +123,16 @@ export function createFmVoice(
 
   if (filter) {
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(patch.filterFrequency ?? 12000, startAt);
+    const filterFrequency = patch.filterFrequency ?? 12000;
+    if (patch.filterStartFrequency) {
+      filter.frequency.setValueAtTime(patch.filterStartFrequency, startAt);
+      filter.frequency.exponentialRampToValueAtTime(
+        filterFrequency,
+        startAt + Math.min(patch.filterAttack ?? 0.08, duration * 0.45),
+      );
+    } else {
+      filter.frequency.setValueAtTime(filterFrequency, startAt);
+    }
     filter.Q.setValueAtTime(patch.filterQ ?? 0.7, startAt);
     envelope.connect(filter);
     filter.connect(panner);
@@ -114,6 +144,6 @@ export function createFmVoice(
   operators.forEach((operator) => {
     operator.start(startAt);
     operator.stop(soundEnd + 0.02);
-    sources.push(operator);
+    trackSource(operator);
   });
 }

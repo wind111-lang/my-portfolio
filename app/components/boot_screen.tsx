@@ -66,7 +66,14 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
               <div className="x68k-splash-brand">
                 <span>PERSONAL WORKSTATION</span>
                 <span className="x68k-splash-logo">
-                  <strong>X68000</strong>
+                  <span className="x68k-splash-logo-crop">
+                    <img
+                      src={`${import.meta.env.BASE_URL}images/x68000-logo.jpg`}
+                      alt="SHARP X68000"
+                      width={285}
+                      height={100}
+                    />
+                  </span>
                   <small>PORTFOLIO</small>
                 </span>
               </div>

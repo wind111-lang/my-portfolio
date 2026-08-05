@@ -6,6 +6,7 @@ type FmPatch = {
   decay: number;
   peakGain: number;
   sustainGain: number;
+  release: number;
   vibratoRate?: number;
   vibratoCents?: number;
 };
@@ -18,6 +19,7 @@ const HARMONY_BEATS = 4;
 const GROOVE_BEATS = 96;
 const TRACK_BEATS = 104;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
+const LEAD_ECHO_DELAY = 0.1;
 
 const brassPatch: FmPatch = {
   algorithm: "dual",
@@ -27,6 +29,7 @@ const brassPatch: FmPatch = {
   decay: 0.28,
   peakGain: 0.022,
   sustainGain: 0.012,
+  release: 0.48,
 };
 
 const bassPatch: FmPatch = {
@@ -37,6 +40,7 @@ const bassPatch: FmPatch = {
   decay: 0.09,
   peakGain: 0.085,
   sustainGain: 0.035,
+  release: 0.16,
 };
 
 const leadPatch: FmPatch = {
@@ -45,10 +49,26 @@ const leadPatch: FmPatch = {
   modulation: [1.05, 0.48, 0.18],
   attack: 0.025,
   decay: 0.24,
-  peakGain: 0.044,
-  sustainGain: 0.026,
+  peakGain: 0.039,
+  sustainGain: 0.024,
+  release: 0.52,
   vibratoRate: 5.2,
   vibratoCents: 7,
+};
+
+// BPS版X68000「TETRIS」のMMLは、同じ@83音色を16分音符遅らせて
+// 左右に重ねている。その空間的な余韻だけを小音量で再現する。
+const leadEchoPatch: FmPatch = {
+  algorithm: "fan",
+  ratios: [1, 1, 2, 4],
+  modulation: [0.92, 0.4, 0.14],
+  attack: 0.032,
+  decay: 0.28,
+  peakGain: 0.021,
+  sustainGain: 0.012,
+  release: 0.62,
+  vibratoRate: 5,
+  vibratoCents: 5,
 };
 
 const arpeggioPatch: FmPatch = {
@@ -59,6 +79,7 @@ const arpeggioPatch: FmPatch = {
   decay: 0.11,
   peakGain: 0.012,
   sustainGain: 0.003,
+  release: 0.15,
 };
 
 const counterPatch: FmPatch = {
@@ -69,6 +90,7 @@ const counterPatch: FmPatch = {
   decay: 0.24,
   peakGain: 0.012,
   sustainGain: 0.007,
+  release: 0.42,
   vibratoRate: 4.8,
   vibratoCents: 4,
 };
@@ -81,6 +103,7 @@ const bellPatch: FmPatch = {
   decay: 0.08,
   peakGain: 0.019,
   sustainGain: 0.002,
+  release: 0.7,
 };
 
 const finalPatch: FmPatch = {
@@ -91,6 +114,7 @@ const finalPatch: FmPatch = {
   decay: 0.22,
   peakGain: 0.038,
   sustainGain: 0.021,
+  release: 0.86,
 };
 
 const harmonies = {
@@ -154,6 +178,7 @@ function createFmVoice(
   pan: number,
   patch: FmPatch,
 ): void {
+  const soundEnd = startAt + duration + patch.release;
   const operators = Array.from({ length: 4 }, () => context.createOscillator());
   const modulationDepths = Array.from({ length: 3 }, () => context.createGain());
   const envelope = context.createGain();
@@ -176,7 +201,7 @@ function createFmVoice(
     vibrato.connect(vibratoDepth);
     operators.forEach((operator) => vibratoDepth.connect(operator.detune));
     vibrato.start(startAt);
-    vibrato.stop(startAt + duration + 0.02);
+    vibrato.stop(soundEnd + 0.02);
     sources.push(vibrato);
   }
 
@@ -189,7 +214,8 @@ function createFmVoice(
   envelope.gain.setValueAtTime(0.0001, startAt);
   envelope.gain.exponentialRampToValueAtTime(patch.peakGain, attackEnd);
   envelope.gain.exponentialRampToValueAtTime(patch.sustainGain, decayEnd);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+  envelope.gain.setValueAtTime(patch.sustainGain, startAt + duration);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, soundEnd);
   panner.pan.setValueAtTime(pan, startAt);
 
   if (patch.algorithm === "dual") {
@@ -220,7 +246,7 @@ function createFmVoice(
 
   operators.forEach((operator) => {
     operator.start(startAt);
-    operator.stop(startAt + duration + 0.02);
+    operator.stop(soundEnd + 0.02);
     sources.push(operator);
   });
 }
@@ -418,15 +444,30 @@ export function playOpmTrack(context: AudioContext): () => void {
   });
 
   leadSequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
+    const noteStart = startAt + beatOffset * BEAT;
+    const noteDuration = durationInBeats * BEAT;
+    const leadPan = index % 2 === 0 ? -0.2 : 0.12;
+
     createFmVoice(
       context,
       fmBus,
       sources,
       midiToFrequency(midiNote),
-      startAt + beatOffset * BEAT,
-      durationInBeats * BEAT,
-      index % 2 === 0 ? -0.22 : 0.22,
+      noteStart,
+      noteDuration,
+      leadPan,
       leadPatch,
+    );
+
+    createFmVoice(
+      context,
+      fmBus,
+      sources,
+      midiToFrequency(midiNote),
+      noteStart + LEAD_ECHO_DELAY,
+      noteDuration,
+      leadPan < 0 ? 0.42 : -0.42,
+      leadEchoPatch,
     );
 
     if (beatOffset >= 64) {
@@ -435,8 +476,8 @@ export function playOpmTrack(context: AudioContext): () => void {
         fmBus,
         sources,
         midiToFrequency(midiNote - 12),
-        startAt + beatOffset * BEAT,
-        durationInBeats * BEAT,
+        noteStart,
+        noteDuration,
         index % 2 === 0 ? 0.36 : -0.36,
         counterPatch,
       );

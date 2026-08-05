@@ -20,8 +20,12 @@ export default function Header({ mode, onModeChange }: HeaderProps): React.React
   return (
     <header className="system-header">
       <div className="system-brand">
-        <strong>{mode === "command" ? "Human68k" : "SX-WINDOW"}</strong>
-        <small>{mode === "command" ? "version 3.02" : "version 3.1"}</small>
+        {mode === "gui" && (
+          <>
+            <strong>SX-WINDOW</strong>
+            <small>version 3.1</small>
+          </>
+        )}
       </div>
       <nav className="desktop-menu" aria-label="メインナビゲーション">
         <ul className="system-nav">

@@ -9,8 +9,9 @@ type FmPatch = {
 
 const BPM = 132;
 const BEAT = 60 / BPM;
-const TRACK_BEATS = 16;
-const TRACK_DURATION = TRACK_BEATS * BEAT + 0.35;
+const GROOVE_BEATS = 16;
+const TRACK_BEATS = 18;
+const TRACK_DURATION = TRACK_BEATS * BEAT;
 
 const brassPatch: FmPatch = {
   ratios: [1, 2, 3, 4],
@@ -37,6 +38,15 @@ const leadPatch: FmPatch = {
   decay: 0.11,
   peakGain: 0.07,
   sustainGain: 0.03,
+};
+
+const finalPatch: FmPatch = {
+  ratios: [1, 2, 3, 4],
+  modulation: [1.65, 0.95, 0.45],
+  attack: 0.014,
+  decay: 0.22,
+  peakGain: 0.056,
+  sustainGain: 0.032,
 };
 
 const chordProgression = [
@@ -195,8 +205,6 @@ export function playOpmTrack(context: AudioContext): () => void {
   let disconnected = false;
 
   master.gain.setValueAtTime(0.48, startAt);
-  master.gain.setValueAtTime(0.48, startAt + TRACK_DURATION - 0.45);
-  master.gain.exponentialRampToValueAtTime(0.0001, startAt + TRACK_DURATION);
   compressor.threshold.setValueAtTime(-18, startAt);
   compressor.knee.setValueAtTime(16, startAt);
   compressor.ratio.setValueAtTime(8, startAt);
@@ -258,7 +266,24 @@ export function playOpmTrack(context: AudioContext): () => void {
     );
   });
 
-  for (let beat = 0; beat < TRACK_BEATS; beat += 1) {
+  const finalStart = startAt + GROOVE_BEATS * BEAT;
+  const finalDuration = 1.55 * BEAT;
+  [261.63, 329.63, 392, 523.25].forEach((frequency, index) => {
+    createFmVoice(
+      context,
+      fmBus,
+      sources,
+      frequency,
+      finalStart,
+      finalDuration,
+      (index - 1.5) * 0.34,
+      finalPatch,
+    );
+  });
+  createFmVoice(context, fmBus, sources, 130.81, finalStart, finalDuration, 0, bassPatch);
+  createFmVoice(context, fmBus, sources, midiToFrequency(84), finalStart, finalDuration, 0.12, leadPatch);
+
+  for (let beat = 0; beat < GROOVE_BEATS; beat += 1) {
     createKick(context, percussionBus, sources, startAt + beat * BEAT);
 
     if (beat % 4 === 1 || beat % 4 === 3) {
@@ -266,7 +291,7 @@ export function playOpmTrack(context: AudioContext): () => void {
     }
   }
 
-  for (let step = 0; step < TRACK_BEATS * 2; step += 1) {
+  for (let step = 0; step < GROOVE_BEATS * 2; step += 1) {
     createNoiseHit(
       context,
       percussionBus,
@@ -279,6 +304,8 @@ export function playOpmTrack(context: AudioContext): () => void {
       "highpass",
     );
   }
+  createKick(context, percussionBus, sources, finalStart);
+  createNoiseHit(context, percussionBus, sources, noiseBuffer, finalStart, 0.18, 5200, 0.05, "highpass");
 
   const disconnectGraph = () => {
     if (disconnected) return;

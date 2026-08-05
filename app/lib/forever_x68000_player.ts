@@ -262,6 +262,25 @@ const sparklePatch: FmPatch = {
   release: 0.5,
 };
 
+const brilliancePatch: FmPatch = {
+  algorithm: "fan",
+  ratios: [1, 3.006, 5.01, 8.03],
+  modulation: [0.42, 0.23, 0.11],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.6, 1.1, -0.8, 1.7],
+  filterFrequency: 16800,
+  filterStartFrequency: 9200,
+  filterAttack: 0.024,
+  filterQ: 0.82,
+  pitchAttackCents: -12,
+  pitchAttackTime: 0.038,
+  attack: 0.003,
+  decay: 0.13,
+  peakGain: 0.0042,
+  sustainGain: 0.00055,
+  release: 0.42,
+};
+
 const guitarPatch: FmPatch = {
   algorithm: "serial",
   ratios: [1, 2.01, 3.99, 8.02],
@@ -642,6 +661,35 @@ function scheduleAirArpeggio(
   });
 }
 
+function scheduleBrillianceArpeggio(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  sequence: readonly NoteEvent[],
+  entryAt: number,
+  offset: number,
+  transpose: number,
+  stepUnits: number,
+): void {
+  const intervals = [43, 48, 55, 48] as const;
+  sequence.forEach(([start, note, length], noteIndex) => {
+    for (let position = 6; position < length; position += stepUnits) {
+      const step = Math.floor(position / stepUnits) + noteIndex;
+      createFmVoice(
+        context,
+        destination,
+        sources,
+        midiToFrequency(note + transpose + intervals[step % intervals.length]),
+        entryAt + (offset + start + position) * SIXTEENTH + 0.016,
+        1.45 * SIXTEENTH,
+        step % 2 === 0 ? -0.62 : 0.62,
+        brilliancePatch,
+        step % 2 === 0 ? -1.7 : 1.7,
+      );
+    }
+  });
+}
+
 function scheduleGuitarChops(
   context: AudioContext,
   destination: AudioNode,
@@ -724,6 +772,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const compressor = context.createDynamicsCompressor();
   const leadBus = context.createGain();
   const airBus = context.createGain();
+  const brillianceBus = context.createGain();
   const fmBus = context.createGain();
   const adpcmBus = context.createGain();
   const adpcmDry = context.createGain();
@@ -731,6 +780,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const toneFilter = context.createBiquadFilter();
   const presenceFilter = context.createBiquadFilter();
   const airFilter = context.createBiquadFilter();
+  const brillianceFilter = context.createBiquadFilter();
+  const brilliancePeak = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
   const softClip = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context, 0.7);
@@ -744,7 +795,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   compressor.attack.setValueAtTime(0.012, startAt);
   compressor.release.setValueAtTime(0.24, startAt);
   leadBus.gain.setValueAtTime(0.74, startAt);
-  airBus.gain.setValueAtTime(0.36, startAt);
+  airBus.gain.setValueAtTime(0.42, startAt);
+  brillianceBus.gain.setValueAtTime(0.38, startAt);
   fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
   adpcmDry.gain.setValueAtTime(0.78, startAt);
@@ -758,7 +810,14 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   presenceFilter.gain.setValueAtTime(2.4, startAt);
   airFilter.type = "highshelf";
   airFilter.frequency.setValueAtTime(4600, startAt);
-  airFilter.gain.setValueAtTime(3.2, startAt);
+  airFilter.gain.setValueAtTime(4.2, startAt);
+  brillianceFilter.type = "highpass";
+  brillianceFilter.frequency.setValueAtTime(3800, startAt);
+  brillianceFilter.Q.setValueAtTime(0.64, startAt);
+  brilliancePeak.type = "peaking";
+  brilliancePeak.frequency.setValueAtTime(6200, startAt);
+  brilliancePeak.Q.setValueAtTime(0.72, startAt);
+  brilliancePeak.gain.setValueAtTime(4.8, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
@@ -768,6 +827,9 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   presenceFilter.connect(softClip);
   airBus.connect(airFilter);
   airFilter.connect(softClip);
+  brillianceBus.connect(brillianceFilter);
+  brillianceFilter.connect(brilliancePeak);
+  brilliancePeak.connect(softClip);
   fmBus.connect(toneFilter);
   toneFilter.connect(softClip);
   adpcmBus.connect(adpcmDry);
@@ -859,6 +921,16 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       transpose,
       phrase >= 2 ? 8 : 16,
     );
+    scheduleBrillianceArpeggio(
+      context,
+      brillianceBus,
+      sources,
+      bassSequence,
+      entryAt,
+      offset,
+      transpose,
+      phrase >= 2 ? 8 : 16,
+    );
 
     const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
     scheduleSequence(
@@ -907,7 +979,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     if (phrase === 3) {
       scheduleSequence(
         context,
-        fmBus,
+        brillianceBus,
         sources,
         shortAccents,
         entryAt,
@@ -1058,6 +1130,17 @@ export function playForeverX68000Track(context: AudioContext): () => void {
         airLeadPatch,
         (1 - index) * 1.2,
       );
+      createFmVoice(
+        context,
+        brillianceBus,
+        sources,
+        midiToFrequency(note + 24),
+        finalResolutionStart + 0.085,
+        2.8,
+        (index - 1) * 0.32,
+        brilliancePatch,
+        (index - 1) * 1.4,
+      );
     });
     createKick(context, adpcmBus, sources, finalResolutionStart, 0.11);
     createMetalHit(context, adpcmBus, sources, finalResolutionStart, 1.4, 0.011);
@@ -1102,6 +1185,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     disconnected = true;
     leadBus.disconnect();
     airBus.disconnect();
+    brillianceBus.disconnect();
     fmBus.disconnect();
     adpcmBus.disconnect();
     adpcmDry.disconnect();
@@ -1109,6 +1193,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     toneFilter.disconnect();
     presenceFilter.disconnect();
     airFilter.disconnect();
+    brillianceFilter.disconnect();
+    brilliancePeak.disconnect();
     quantizer.disconnect();
     softClip.disconnect();
     master.disconnect();

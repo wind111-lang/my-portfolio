@@ -74,6 +74,43 @@ const bassPatch: FmPatch = {
   release: 0.18,
 };
 
+const subBassPatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 1.001, 2, 3],
+  modulation: [0.36, 0, 0],
+  operatorCount: 2,
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-0.8, 0.8, 0, 0],
+  filterFrequency: 760,
+  filterStartFrequency: 300,
+  filterAttack: 0.12,
+  filterQ: 0.58,
+  attack: 0.018,
+  decay: 0.22,
+  peakGain: 0.025,
+  sustainGain: 0.017,
+  release: 0.34,
+};
+
+const baritonePatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 2.002, 1.5, 3.01],
+  modulation: [0.54, 0, 0.24],
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.8, 0.8, 1.8, -0.8],
+  filterFrequency: 3200,
+  filterStartFrequency: 1250,
+  filterAttack: 0.055,
+  filterQ: 0.72,
+  pitchAttackCents: -7,
+  pitchAttackTime: 0.045,
+  attack: 0.016,
+  decay: 0.17,
+  peakGain: 0.0064,
+  sustainGain: 0.0028,
+  release: 0.28,
+};
+
 const leadPatch: FmPatch = {
   algorithm: "fan",
   ratios: [1, 1.998, 3.005, 4.01],
@@ -471,8 +508,10 @@ export function playOpmTrack(context: AudioContext): () => void {
   const compressor = context.createDynamicsCompressor();
   const leadBus = context.createGain();
   const fmBus = context.createGain();
+  const bassBus = context.createGain();
   const percussionBus = context.createGain();
   const toneFilter = context.createBiquadFilter();
+  const bassFilter = context.createBiquadFilter();
   const presenceFilter = context.createBiquadFilter();
   const percussionFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
@@ -488,10 +527,14 @@ export function playOpmTrack(context: AudioContext): () => void {
   compressor.release.setValueAtTime(0.28, startAt);
   leadBus.gain.setValueAtTime(0.72, startAt);
   fmBus.gain.setValueAtTime(0.68, startAt);
+  bassBus.gain.setValueAtTime(0.82, startAt);
   percussionBus.gain.setValueAtTime(0.2, startAt);
   toneFilter.type = "lowpass";
   toneFilter.frequency.setValueAtTime(5600, startAt);
   toneFilter.Q.setValueAtTime(0.68, startAt);
+  bassFilter.type = "lowpass";
+  bassFilter.frequency.setValueAtTime(1450, startAt);
+  bassFilter.Q.setValueAtTime(0.62, startAt);
   presenceFilter.type = "peaking";
   presenceFilter.frequency.setValueAtTime(720, startAt);
   presenceFilter.Q.setValueAtTime(0.92, startAt);
@@ -506,6 +549,8 @@ export function playOpmTrack(context: AudioContext): () => void {
   presenceFilter.connect(master);
   fmBus.connect(toneFilter);
   toneFilter.connect(master);
+  bassBus.connect(bassFilter);
+  bassFilter.connect(master);
   percussionBus.connect(percussionFilter);
   percussionFilter.connect(quantizer);
   quantizer.connect(master);
@@ -546,29 +591,44 @@ export function playOpmTrack(context: AudioContext): () => void {
       }
     });
 
-    const bassSteps = density === "intro" ? 1 : 2;
-    chord.bass.slice(0, bassSteps).forEach((frequency, step) => {
+    createFmVoice(
+      context,
+      bassBus,
+      sources,
+      chord.bass[0],
+      segmentStart,
+      7.72 * BEAT,
+      segmentIndex % 2 === 0 ? -0.04 : 0.04,
+      subBassPatch,
+    );
+
+    const bassStepCount = density === "intro" ? 2 : density === "light" ? 4 : 8;
+    const bassStepSize = HARMONY_BEATS / bassStepCount;
+    for (let step = 0; step < bassStepCount; step += 1) {
+      const frequency = chord.bass[step % chord.bass.length];
       createFmVoice(
         context,
-        fmBus,
+        bassBus,
         sources,
         frequency,
-        segmentStart + step * 4 * BEAT,
-        (density === "intro" ? 7.44 : 3.36) * BEAT,
+        segmentStart + step * bassStepSize * BEAT,
+        bassStepSize * 0.82 * BEAT,
         step % 2 === 0 ? -0.08 : 0.08,
         bassPatch,
       );
-      createFmVoice(
-        context,
-        fmBus,
-        sources,
-        frequency * 2,
-        segmentStart + step * 4 * BEAT,
-        1.44 * BEAT,
-        step % 2 === 0 ? 0.06 : -0.06,
-        bassAttackPatch,
-      );
-    });
+      if (step % 2 === 0) {
+        createFmVoice(
+          context,
+          fmBus,
+          sources,
+          frequency * 2,
+          segmentStart + step * bassStepSize * BEAT,
+          Math.min(1.44, bassStepSize * 0.72) * BEAT,
+          step % 4 === 0 ? 0.06 : -0.06,
+          bassAttackPatch,
+        );
+      }
+    }
 
     const arpeggioStep = density === "full" ? 1 : density === "light" ? 2 : 4;
     const arpeggioCount = Math.round(HARMONY_BEATS / arpeggioStep);
@@ -586,6 +646,19 @@ export function playOpmTrack(context: AudioContext): () => void {
         arpeggioPatch,
         step % 2 === 0 ? -2.8 : 2.8,
       );
+      if (density !== "intro" && step % 2 === 1) {
+        createFmVoice(
+          context,
+          fmBus,
+          sources,
+          frequency / 2,
+          segmentStart + step * arpeggioStep * BEAT + 0.018,
+          arpeggioStep * BEAT * 0.84,
+          step % 4 === 1 ? 0.34 : -0.34,
+          baritonePatch,
+          step % 4 === 1 ? 1.8 : -1.8,
+        );
+      }
       if (density === "full" && step % 4 === 2) {
         createFmVoice(
           context,
@@ -602,6 +675,17 @@ export function playOpmTrack(context: AudioContext): () => void {
     }
 
     if (density === "full") {
+      createFmVoice(
+        context,
+        fmBus,
+        sources,
+        chord.notes[0] * 2,
+        segmentStart + 0.03,
+        7.28 * BEAT,
+        segmentIndex % 2 === 0 ? -0.24 : 0.24,
+        baritonePatch,
+        segmentIndex % 2 === 0 ? -2.2 : 2.2,
+      );
       createFmVoice(
         context,
         fmBus,
@@ -863,8 +947,10 @@ export function playOpmTrack(context: AudioContext): () => void {
     disconnected = true;
     leadBus.disconnect();
     fmBus.disconnect();
+    bassBus.disconnect();
     percussionBus.disconnect();
     toneFilter.disconnect();
+    bassFilter.disconnect();
     presenceFilter.disconnect();
     percussionFilter.disconnect();
     quantizer.disconnect();

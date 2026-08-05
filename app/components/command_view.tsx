@@ -36,6 +36,7 @@ type CommandViewProps = {
   onModeChange: (mode: "command" | "gui") => void;
   isInitializing: boolean;
   onInitializationComplete: () => void;
+  isActive: boolean;
 };
 
 const startupMessages = [
@@ -227,8 +228,11 @@ export default function CommandView({
   onModeChange,
   isInitializing,
   onInitializationComplete,
+  isActive,
 }: CommandViewProps): React.ReactNode {
   const [input, setInput] = useState("");
+  const [inputHistory, setInputHistory] = useState<string[]>([]);
+  const [inputHistoryIndex, setInputHistoryIndex] = useState<number | null>(null);
   const [visibleStartupMessageCount, setVisibleStartupMessageCount] = useState(0);
   const [showInitialDirectory, setShowInitialDirectory] = useState(!isInitializing);
   const [history, setHistory] = useState<HistoryEntry[]>([
@@ -236,14 +240,25 @@ export default function CommandView({
   ]);
   const nextId = useRef(1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputDraftRef = useRef("");
+  const terminalEndRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const stopMusicRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (!isInitializing && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    if (
+      isActive
+      && !isInitializing
+      && window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ) {
       inputRef.current?.focus({ preventScroll: true });
     }
-  }, [isInitializing]);
+  }, [isActive, isInitializing]);
+
+  useEffect(() => {
+    if (!isActive || isInitializing) return;
+    terminalEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
+  }, [history, input, isActive, isInitializing]);
 
   useEffect(() => {
     if (!isInitializing) return;
@@ -297,8 +312,11 @@ export default function CommandView({
   const runCommand = (rawCommand: string) => {
     const command = rawCommand.trim().replace(/\s+/g, " ").toUpperCase();
     setInput("");
+    setInputHistoryIndex(null);
+    inputDraftRef.current = "";
 
     if (!command) return;
+    setInputHistory((entries) => [...entries, command]);
     if (command === "CLS") {
       setHistory([]);
       inputRef.current?.focus();
@@ -326,8 +344,34 @@ export default function CommandView({
     inputRef.current?.focus();
   };
 
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    if (inputHistory.length === 0) return;
+    event.preventDefault();
+
+    if (event.key === "ArrowUp") {
+      if (inputHistoryIndex === null) inputDraftRef.current = input;
+      const nextIndex = inputHistoryIndex === null
+        ? inputHistory.length - 1
+        : Math.max(0, inputHistoryIndex - 1);
+      setInputHistoryIndex(nextIndex);
+      setInput(inputHistory[nextIndex]);
+      return;
+    }
+
+    if (inputHistoryIndex === null) return;
+    const nextIndex = inputHistoryIndex + 1;
+    if (nextIndex >= inputHistory.length) {
+      setInputHistoryIndex(null);
+      setInput(inputDraftRef.current);
+      return;
+    }
+    setInputHistoryIndex(nextIndex);
+    setInput(inputHistory[nextIndex]);
+  };
+
   return (
-    <main className="terminal-screen" id="top">
+    <main className="terminal-screen" id="top" hidden={!isActive}>
       <div className="boot-message" aria-live="polite" aria-atomic="false">
         {startupMessages.slice(0, visibleStartupMessageCount).map((message, index) => (
           message
@@ -359,7 +403,13 @@ export default function CommandView({
               ref={inputRef}
               id="human68k-command"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => {
+                const nextInput = event.target.value;
+                setInput(nextInput);
+                setInputHistoryIndex(null);
+                inputDraftRef.current = nextInput;
+              }}
+              onKeyDown={handleInputKeyDown}
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck={false}
@@ -370,6 +420,7 @@ export default function CommandView({
           <p className="terminal-help" id="command-hint">HELP: コマンド一覧&nbsp;&nbsp; F1: COMMAND&nbsp;&nbsp; F2: SX-WINDOW</p>
         </>
       )}
+      <div ref={terminalEndRef} aria-hidden="true" />
     </main>
   );
 }

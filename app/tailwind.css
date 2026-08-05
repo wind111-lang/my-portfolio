@@ -32,8 +32,10 @@ body {
 }
 
 a,
-button {
+button,
+input {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 a:focus-visible,
@@ -1021,6 +1023,10 @@ button:focus-visible {
 
   .terminal-screen {
     padding-top: 1.5rem;
+  }
+
+  .terminal-input-row input {
+    font-size: 16px;
   }
 
   .terminal-output {

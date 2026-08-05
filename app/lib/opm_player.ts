@@ -1,4 +1,5 @@
 type FmPatch = {
+  algorithm: "serial" | "dual" | "fan";
   ratios: readonly [number, number, number, number];
   modulation: readonly [number, number, number];
   attack: number;
@@ -14,15 +15,17 @@ const TRACK_BEATS = 18;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
 
 const brassPatch: FmPatch = {
-  ratios: [1, 2, 3, 4],
-  modulation: [1.8, 1.1, 0.55],
+  algorithm: "dual",
+  ratios: [1, 3, 1, 2],
+  modulation: [2.4, 0, 1.1],
   attack: 0.014,
   decay: 0.16,
-  peakGain: 0.052,
-  sustainGain: 0.019,
+  peakGain: 0.034,
+  sustainGain: 0.014,
 };
 
 const bassPatch: FmPatch = {
+  algorithm: "serial",
   ratios: [1, 1, 2, 3],
   modulation: [1.35, 0.7, 0.25],
   attack: 0.008,
@@ -32,35 +35,37 @@ const bassPatch: FmPatch = {
 };
 
 const leadPatch: FmPatch = {
-  ratios: [1, 2, 4, 6],
-  modulation: [2.25, 1.45, 0.7],
+  algorithm: "fan",
+  ratios: [1, 2, 3, 4],
+  modulation: [2.4, 1.2, 0.7],
   attack: 0.009,
   decay: 0.11,
-  peakGain: 0.07,
-  sustainGain: 0.03,
+  peakGain: 0.027,
+  sustainGain: 0.012,
 };
 
 const finalPatch: FmPatch = {
-  ratios: [1, 2, 3, 4],
-  modulation: [1.65, 0.95, 0.45],
+  algorithm: "dual",
+  ratios: [1, 3, 1, 2],
+  modulation: [1.9, 0, 0.8],
   attack: 0.014,
   decay: 0.22,
-  peakGain: 0.056,
-  sustainGain: 0.032,
+  peakGain: 0.038,
+  sustainGain: 0.021,
 };
 
 const chordProgression = [
   { bass: 110, notes: [220, 261.63, 329.63] },
   { bass: 87.31, notes: [174.61, 220, 261.63] },
   { bass: 98, notes: [196, 246.94, 293.66] },
-  { bass: 130.81, notes: [261.63, 329.63, 392] },
+  { bass: 82.41, notes: [164.81, 207.65, 246.94, 293.66] },
 ] as const;
 
 const leadSequence = [
   [0.5, 72, 0.35], [1, 76, 0.35], [1.5, 81, 0.75], [2.5, 79, 0.35], [3, 76, 0.75],
   [4.5, 72, 0.35], [5, 77, 0.35], [5.5, 81, 0.75], [6.5, 79, 0.35], [7, 76, 0.75],
   [8, 74, 0.35], [8.5, 79, 0.35], [9, 83, 0.75], [10, 81, 0.35], [10.5, 79, 0.35], [11, 74, 0.75],
-  [12, 79, 0.35], [12.5, 76, 0.35], [13, 74, 0.35], [13.5, 72, 0.75], [14.5, 76, 0.35], [15, 79, 0.8],
+  [12, 80, 0.35], [12.5, 83, 0.35], [13, 81, 0.35], [13.5, 80, 0.75], [14.5, 76, 0.35], [15, 83, 0.8],
 ] as const;
 
 function midiToFrequency(note: number): number {
@@ -91,13 +96,6 @@ function createFmVoice(
     depth.gain.setValueAtTime(frequency * patch.modulation[index], startAt);
   });
 
-  operators[3].connect(modulationDepths[2]);
-  modulationDepths[2].connect(operators[2].frequency);
-  operators[2].connect(modulationDepths[1]);
-  modulationDepths[1].connect(operators[1].frequency);
-  operators[1].connect(modulationDepths[0]);
-  modulationDepths[0].connect(operators[0].frequency);
-
   const attackEnd = startAt + Math.min(patch.attack, duration * 0.2);
   const decayEnd = startAt + Math.min(patch.decay, duration * 0.55);
   envelope.gain.setValueAtTime(0.0001, startAt);
@@ -106,7 +104,29 @@ function createFmVoice(
   envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
   panner.pan.setValueAtTime(pan, startAt);
 
-  operators[0].connect(envelope);
+  if (patch.algorithm === "dual") {
+    operators[1].connect(modulationDepths[0]);
+    modulationDepths[0].connect(operators[0].frequency);
+    operators[3].connect(modulationDepths[2]);
+    modulationDepths[2].connect(operators[2].frequency);
+    operators[0].connect(envelope);
+    operators[2].connect(envelope);
+  } else if (patch.algorithm === "fan") {
+    operators.slice(0, 3).forEach((carrier, index) => {
+      operators[3].connect(modulationDepths[index]);
+      modulationDepths[index].connect(carrier.frequency);
+      carrier.connect(envelope);
+    });
+  } else {
+    operators[3].connect(modulationDepths[2]);
+    modulationDepths[2].connect(operators[2].frequency);
+    operators[2].connect(modulationDepths[1]);
+    modulationDepths[1].connect(operators[1].frequency);
+    operators[1].connect(modulationDepths[0]);
+    modulationDepths[0].connect(operators[0].frequency);
+    operators[0].connect(envelope);
+  }
+
   envelope.connect(panner);
   panner.connect(destination);
 
@@ -268,7 +288,7 @@ export function playOpmTrack(context: AudioContext): () => void {
 
   const finalStart = startAt + GROOVE_BEATS * BEAT;
   const finalDuration = 1.55 * BEAT;
-  [261.63, 329.63, 392, 523.25].forEach((frequency, index) => {
+  [220, 261.63, 329.63, 392].forEach((frequency, index) => {
     createFmVoice(
       context,
       fmBus,
@@ -280,8 +300,8 @@ export function playOpmTrack(context: AudioContext): () => void {
       finalPatch,
     );
   });
-  createFmVoice(context, fmBus, sources, 130.81, finalStart, finalDuration, 0, bassPatch);
-  createFmVoice(context, fmBus, sources, midiToFrequency(84), finalStart, finalDuration, 0.12, leadPatch);
+  createFmVoice(context, fmBus, sources, 110, finalStart, finalDuration, 0, bassPatch);
+  createFmVoice(context, fmBus, sources, midiToFrequency(81), finalStart, finalDuration, 0.12, leadPatch);
 
   for (let beat = 0; beat < GROOVE_BEATS; beat += 1) {
     createKick(context, percussionBus, sources, startAt + beat * BEAT);

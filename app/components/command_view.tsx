@@ -370,10 +370,15 @@ export default function CommandView({
     setInput(inputHistory[nextIndex]);
   };
 
+  const displayedStartupMessageCount = isInitializing
+    ? visibleStartupMessageCount
+    : startupMessages.length;
+  const shouldShowInitialDirectory = !isInitializing || showInitialDirectory;
+
   return (
     <main className="terminal-screen" id="top" hidden={!isActive}>
       <div className="boot-message" aria-live="polite" aria-atomic="false">
-        {startupMessages.slice(0, visibleStartupMessageCount).map((message, index) => (
+        {startupMessages.slice(0, displayedStartupMessageCount).map((message, index) => (
           message
             ? <p key={`${index}-${message}`}>{message}</p>
             : <br key={`space-${index}`} />
@@ -381,7 +386,7 @@ export default function CommandView({
       </div>
 
       <div className="command-history" aria-live="polite">
-        {showInitialDirectory && history.map((entry) => (
+        {shouldShowInitialDirectory && history.map((entry) => (
           <section className="command-entry" key={entry.id}>
             <p className="entered-command"><span>A:\&gt;</span>{entry.command}</p>
             <CommandOutput output={entry.output} command={entry.command} runCommand={runCommand} />

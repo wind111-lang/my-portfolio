@@ -13,55 +13,90 @@ const TRACK_DURATION = FM_ENTRY_SECONDS + TRACK_UNITS * SIXTEENTH + FINAL_TAIL_S
 const chordPatch: FmPatch = {
   algorithm: "serial",
   ratios: [1, 1, 2, 3],
-  modulation: [1.42, 0.68, 0.32],
-  attack: 0.009,
-  decay: 0.21,
-  peakGain: 0.034,
-  sustainGain: 0.02,
-  release: 0.2,
+  modulation: [1.18, 0.68, 0.32],
+  operatorCount: 2,
+  waveforms: ["sine", "sine", "sine", "sine"],
+  filterFrequency: 6400,
+  filterQ: 0.8,
+  attack: 0.014,
+  decay: 0.24,
+  peakGain: 0.028,
+  sustainGain: 0.016,
+  release: 0.32,
+};
+
+const brassPatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 2, 2, 3],
+  modulation: [0.72, 0.5, 0.2],
+  operatorCount: 2,
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  filterFrequency: 4200,
+  filterQ: 1.1,
+  attack: 0.045,
+  decay: 0.28,
+  peakGain: 0.022,
+  sustainGain: 0.016,
+  release: 0.42,
+  vibratoRate: 5.1,
+  vibratoCents: 2.5,
 };
 
 const bassPatch: FmPatch = {
   algorithm: "dual",
   ratios: [1, 2, 1, 3],
-  modulation: [1.75, 0, 0.62],
-  attack: 0.005,
-  decay: 0.11,
-  peakGain: 0.048,
-  sustainGain: 0.021,
-  release: 0.09,
+  modulation: [1.36, 0, 0.62],
+  operatorCount: 2,
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  filterFrequency: 2300,
+  filterQ: 0.72,
+  attack: 0.012,
+  decay: 0.16,
+  peakGain: 0.038,
+  sustainGain: 0.018,
+  release: 0.15,
 };
 
-const bassDoublePatch: FmPatch = {
+const padPatch: FmPatch = {
   algorithm: "serial",
-  ratios: [1, 1, 2, 4],
-  modulation: [1.18, 0.46, 0.2],
-  attack: 0.007,
-  decay: 0.14,
-  peakGain: 0.012,
-  sustainGain: 0.005,
-  release: 0.12,
+  ratios: [1, 1.01, 2, 4],
+  modulation: [0.28, 0.2, 0.08],
+  operatorCount: 2,
+  waveforms: ["sine", "triangle", "sine", "sine"],
+  filterFrequency: 3100,
+  filterQ: 0.6,
+  attack: 0.09,
+  decay: 0.42,
+  peakGain: 0.011,
+  sustainGain: 0.008,
+  release: 0.58,
 };
 
 const shimmerPatch: FmPatch = {
   algorithm: "fan",
   ratios: [1, 2, 3, 5],
-  modulation: [0.92, 0.44, 0.18],
-  attack: 0.008,
-  decay: 0.12,
-  peakGain: 0.009,
-  sustainGain: 0.0035,
-  release: 0.16,
+  modulation: [0.82, 0.36, 0.14],
+  waveforms: ["sine", "sine", "triangle", "sine"],
+  filterFrequency: 9200,
+  filterQ: 1.2,
+  attack: 0.006,
+  decay: 0.18,
+  peakGain: 0.0065,
+  sustainGain: 0.002,
+  release: 0.36,
 };
 
 const finalPatch: FmPatch = {
   algorithm: "fan",
   ratios: [1, 1, 2, 3],
   modulation: [1.12, 0.48, 0.2],
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  filterFrequency: 7200,
+  filterQ: 0.8,
   attack: 0.012,
   decay: 0.4,
-  peakGain: 0.035,
-  sustainGain: 0.017,
+  peakGain: 0.018,
+  sustainGain: 0.009,
   release: 1.35,
   vibratoRate: 4.9,
   vibratoCents: 4,
@@ -118,7 +153,8 @@ function createNoiseHit(
   filter.type = filterType;
   filter.frequency.setValueAtTime(frequency, startAt);
   filter.Q.setValueAtTime(filterType === "bandpass" ? 1.2 : 0.7, startAt);
-  envelope.gain.setValueAtTime(gain, startAt);
+  envelope.gain.setValueAtTime(0.0001, startAt);
+  envelope.gain.linearRampToValueAtTime(gain, startAt + Math.min(0.006, duration * 0.16));
   envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
   source.connect(filter);
   filter.connect(envelope);
@@ -140,7 +176,8 @@ function createKick(
   oscillator.type = "sine";
   oscillator.frequency.setValueAtTime(145, startAt);
   oscillator.frequency.exponentialRampToValueAtTime(42, startAt + 0.14);
-  envelope.gain.setValueAtTime(gain, startAt);
+  envelope.gain.setValueAtTime(0.0001, startAt);
+  envelope.gain.exponentialRampToValueAtTime(gain, startAt + 0.004);
   envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.18);
   oscillator.connect(envelope);
   envelope.connect(destination);
@@ -162,7 +199,8 @@ function createTom(
   oscillator.type = "triangle";
   oscillator.frequency.setValueAtTime(frequency, startAt);
   oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.62, startAt + 0.2);
-  envelope.gain.setValueAtTime(gain, startAt);
+  envelope.gain.setValueAtTime(0.0001, startAt);
+  envelope.gain.exponentialRampToValueAtTime(gain, startAt + 0.005);
   envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.25);
   oscillator.connect(envelope);
   envelope.connect(destination);
@@ -221,16 +259,17 @@ function schedulePulsedSequence(
   pan: number,
   patch: FmPatch,
   transpose = 0,
+  pulseUnits = 4,
 ): void {
   sequence.forEach(([start, note, length]) => {
-    for (let position = 0; position < length; position += 2) {
+    for (let position = 0; position < length; position += pulseUnits) {
       createFmVoice(
         context,
         destination,
         sources,
         midiToFrequency(note + transpose),
         entryAt + (offset + start + position) * SIXTEENTH,
-        1.72 * SIXTEENTH,
+        Math.min(length - position, pulseUnits - 0.22) * SIXTEENTH,
         pan,
         patch,
       );
@@ -247,6 +286,17 @@ function createFourBitCurve(): Float32Array {
   return curve;
 }
 
+function createSoftClipCurve(): Float32Array {
+  const curve = new Float32Array(1024);
+  const drive = 1.35;
+  const ceiling = Math.tanh(drive);
+  for (let index = 0; index < curve.length; index += 1) {
+    const input = index / (curve.length - 1) * 2 - 1;
+    curve[index] = Math.tanh(input * drive) / ceiling;
+  }
+  return curve;
+}
+
 export function playForeverX68000Track(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
   const entryAt = startAt + FM_ENTRY_SECONDS;
@@ -254,38 +304,58 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const compressor = context.createDynamicsCompressor();
   const fmBus = context.createGain();
   const adpcmBus = context.createGain();
+  const adpcmDry = context.createGain();
+  const adpcmCrushed = context.createGain();
+  const toneFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
+  const softClip = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context, 0.7);
   const sources: AudioScheduledSourceNode[] = [];
+  const scheduleTimers: number[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.46, startAt);
-  compressor.threshold.setValueAtTime(-18, startAt);
-  compressor.knee.setValueAtTime(15, startAt);
-  compressor.ratio.setValueAtTime(6, startAt);
-  compressor.attack.setValueAtTime(0.004, startAt);
-  compressor.release.setValueAtTime(0.18, startAt);
-  fmBus.gain.setValueAtTime(0.84, startAt);
-  adpcmBus.gain.setValueAtTime(0.34, startAt);
+  master.gain.setValueAtTime(0.68, startAt);
+  compressor.threshold.setValueAtTime(-16, startAt);
+  compressor.knee.setValueAtTime(18, startAt);
+  compressor.ratio.setValueAtTime(3.2, startAt);
+  compressor.attack.setValueAtTime(0.012, startAt);
+  compressor.release.setValueAtTime(0.26, startAt);
+  fmBus.gain.setValueAtTime(0.78, startAt);
+  adpcmBus.gain.setValueAtTime(0.3, startAt);
+  adpcmDry.gain.setValueAtTime(0.78, startAt);
+  adpcmCrushed.gain.setValueAtTime(0.12, startAt);
+  toneFilter.type = "lowpass";
+  toneFilter.frequency.setValueAtTime(11800, startAt);
+  toneFilter.Q.setValueAtTime(0.72, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
+  softClip.curve = createSoftClipCurve();
+  softClip.oversample = "4x";
 
-  fmBus.connect(master);
+  fmBus.connect(toneFilter);
+  toneFilter.connect(softClip);
+  adpcmBus.connect(adpcmDry);
+  adpcmDry.connect(softClip);
   adpcmBus.connect(quantizer);
-  quantizer.connect(master);
-  master.connect(compressor);
-  compressor.connect(context.destination);
+  quantizer.connect(adpcmCrushed);
+  adpcmCrushed.connect(softClip);
+  softClip.connect(compressor);
+  compressor.connect(master);
+  master.connect(context.destination);
 
   createAdpcmIntro(context, adpcmBus, sources, noiseBuffer, startAt);
 
-  for (let phrase = 0; phrase < 4; phrase += 1) {
+  const schedulePhrase = (phrase: number) => {
+    if (disconnected) return;
     const offset = phrase * PHRASE_UNITS;
     const transpose = phrase >= 2 ? 1 : 0;
     const chordPan = phrase % 2 === 0 ? -0.34 : 0.34;
+    const phrasePatch = phrase % 2 === 0 ? chordPatch : brassPatch;
 
-    scheduleSequence(context, fmBus, sources, chordSequence, entryAt, offset, chordPan, chordPatch, transpose);
-    schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, -0.18, bassPatch, transpose);
-    schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0.42, bassDoublePatch, transpose + 12);
+    scheduleSequence(context, fmBus, sources, chordSequence, entryAt, offset, chordPan, phrasePatch, transpose);
+    scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, -0.58, padPatch, transpose + 24);
+    scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0.58, padPatch, transpose + 31);
+    schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, bassPatch, transpose);
 
     if (phrase % 2 === 1) {
       const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
@@ -301,48 +371,68 @@ export function playForeverX68000Track(context: AudioContext): () => void {
         transpose + 12,
       );
     }
-  }
 
-  for (let unit = 0; unit < TRACK_UNITS; unit += 2) {
-    const hitAt = entryAt + unit * SIXTEENTH;
-    if (unit % 8 === 0 || unit % 32 === 20) {
-      createKick(context, adpcmBus, sources, hitAt, unit % PHRASE_UNITS === 0 ? 0.13 : 0.095);
+    for (let phraseUnit = 0; phraseUnit < PHRASE_UNITS; phraseUnit += 2) {
+      const unit = offset + phraseUnit;
+      const hitAt = entryAt + unit * SIXTEENTH;
+      if (phraseUnit % 8 === 0 || phraseUnit % 32 === 20) {
+        createKick(context, adpcmBus, sources, hitAt, phraseUnit === 0 ? 0.105 : 0.075);
+      }
+      if (phraseUnit % 8 === 4) {
+        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.17, 1750, 0.038);
+      }
+      createNoiseHit(
+        context,
+        adpcmBus,
+        sources,
+        noiseBuffer,
+        hitAt,
+        phraseUnit % 16 === 14 ? 0.1 : 0.045,
+        phraseUnit % 4 === 0 ? 7100 : 9300,
+        phraseUnit % 16 === 14 ? 0.012 : 0.006,
+        "highpass",
+      );
     }
-    if (unit % 8 === 4) {
-      createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.14, 1750, 0.052);
-    }
-    createNoiseHit(
-      context,
-      adpcmBus,
-      sources,
-      noiseBuffer,
-      hitAt,
-      unit % 16 === 14 ? 0.08 : 0.035,
-      unit % 4 === 0 ? 7100 : 9300,
-      unit % 16 === 14 ? 0.018 : 0.009,
-      "highpass",
-    );
-  }
+  };
 
   const finalStart = entryAt + TRACK_UNITS * SIXTEENTH;
-  [37, 49, 56, 61, 65].forEach((note, index) => {
-    createFmVoice(
-      context,
-      fmBus,
-      sources,
-      midiToFrequency(note),
-      finalStart,
-      3.75,
-      (index - 2) * 0.28,
-      finalPatch,
-    );
-  });
-  [0, 0.66, 1.34, 2.16].forEach((delay, index) => {
-    createTom(context, adpcmBus, sources, finalStart + delay, 215 - index * 23, 0.075 - index * 0.008);
-  });
-  createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart, 0.48, 4300, 0.065);
-  createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart + 2.1, 1.9, 1200, 0.028);
-  master.gain.setValueAtTime(0.46, finalStart + 0.7);
+  const scheduleFinal = () => {
+    if (disconnected) return;
+    [37, 49, 56, 61, 65].forEach((note, index) => {
+      createFmVoice(
+        context,
+        fmBus,
+        sources,
+        midiToFrequency(note),
+        finalStart,
+        3.75,
+        (index - 2) * 0.28,
+        finalPatch,
+      );
+    });
+    [0, 0.66, 1.34, 2.16].forEach((delay, index) => {
+      createTom(context, adpcmBus, sources, finalStart + delay, 215 - index * 23, 0.055 - index * 0.006);
+    });
+    createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart, 0.52, 4300, 0.045);
+    createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart + 2.1, 1.9, 1200, 0.018);
+  };
+
+  const scheduleAheadSeconds = 7;
+  const phraseDuration = PHRASE_UNITS * SIXTEENTH;
+  for (let phrase = 0; phrase < 4; phrase += 1) {
+    const delaySeconds = FM_ENTRY_SECONDS + phrase * phraseDuration - scheduleAheadSeconds;
+    if (delaySeconds <= 0) {
+      schedulePhrase(phrase);
+    } else {
+      scheduleTimers.push(window.setTimeout(() => schedulePhrase(phrase), delaySeconds * 1000));
+    }
+  }
+  scheduleTimers.push(window.setTimeout(
+    scheduleFinal,
+    (FM_ENTRY_SECONDS + TRACK_UNITS * SIXTEENTH - scheduleAheadSeconds) * 1000,
+  ));
+
+  master.gain.setValueAtTime(0.68, finalStart + 0.7);
   master.gain.exponentialRampToValueAtTime(0.0001, finalStart + FINAL_TAIL_SECONDS);
 
   const disconnectGraph = () => {
@@ -350,7 +440,11 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     disconnected = true;
     fmBus.disconnect();
     adpcmBus.disconnect();
+    adpcmDry.disconnect();
+    adpcmCrushed.disconnect();
+    toneFilter.disconnect();
     quantizer.disconnect();
+    softClip.disconnect();
     master.disconnect();
     compressor.disconnect();
   };
@@ -358,6 +452,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
 
   return () => {
     window.clearTimeout(cleanupTimer);
+    scheduleTimers.forEach((timer) => window.clearTimeout(timer));
     const stopAt = context.currentTime + 0.025;
     master.gain.cancelScheduledValues(context.currentTime);
     master.gain.setTargetAtTime(0.0001, context.currentTime, 0.008);

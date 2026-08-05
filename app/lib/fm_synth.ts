@@ -2,6 +2,10 @@ export type FmPatch = {
   algorithm: "serial" | "dual" | "fan";
   ratios: readonly [number, number, number, number];
   modulation: readonly [number, number, number];
+  operatorCount?: 2 | 4;
+  waveforms?: readonly [OscillatorType, OscillatorType, OscillatorType, OscillatorType];
+  filterFrequency?: number;
+  filterQ?: number;
   attack: number;
   decay: number;
   peakGain: number;
@@ -26,13 +30,15 @@ export function createFmVoice(
   patch: FmPatch,
 ): void {
   const soundEnd = startAt + duration + patch.release;
-  const operators = Array.from({ length: 4 }, () => context.createOscillator());
+  const operatorCount = patch.operatorCount ?? 4;
+  const operators = Array.from({ length: operatorCount }, () => context.createOscillator());
   const modulationDepths = Array.from({ length: 3 }, () => context.createGain());
   const envelope = context.createGain();
   const panner = context.createStereoPanner();
+  const filter = patch.filterFrequency ? context.createBiquadFilter() : null;
 
   operators.forEach((operator, index) => {
-    operator.type = "sine";
+    operator.type = patch.waveforms?.[index] ?? "sine";
     operator.frequency.setValueAtTime(frequency * patch.ratios[index], startAt);
   });
 
@@ -65,7 +71,11 @@ export function createFmVoice(
   envelope.gain.exponentialRampToValueAtTime(0.0001, soundEnd);
   panner.pan.setValueAtTime(pan, startAt);
 
-  if (patch.algorithm === "dual") {
+  if (operatorCount === 2) {
+    operators[1].connect(modulationDepths[0]);
+    modulationDepths[0].connect(operators[0].frequency);
+    operators[0].connect(envelope);
+  } else if (patch.algorithm === "dual") {
     operators[1].connect(modulationDepths[0]);
     modulationDepths[0].connect(operators[0].frequency);
     operators[3].connect(modulationDepths[2]);
@@ -88,7 +98,15 @@ export function createFmVoice(
     operators[0].connect(envelope);
   }
 
-  envelope.connect(panner);
+  if (filter) {
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(patch.filterFrequency ?? 12000, startAt);
+    filter.Q.setValueAtTime(patch.filterQ ?? 0.7, startAt);
+    envelope.connect(filter);
+    filter.connect(panner);
+  } else {
+    envelope.connect(panner);
+  }
   panner.connect(destination);
 
   operators.forEach((operator) => {

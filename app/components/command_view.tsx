@@ -311,6 +311,7 @@ export default function CommandView({
 
   const runCommand = (rawCommand: string) => {
     const command = rawCommand.trim().replace(/\s+/g, " ").toUpperCase();
+    const resolvedCommand = command === "FOREVER X68000" ? "FOREVERX68000" : command;
     setInput("");
     setInputHistoryIndex(null);
     inputDraftRef.current = "";
@@ -329,7 +330,7 @@ export default function CommandView({
     if (command === "OPM") {
       runMusicCommand(playOpmTrack);
     }
-    if (command === "FOREVERX68000" || command === "FOREVERX68K") {
+    if (resolvedCommand === "FOREVERX68000" || resolvedCommand === "FOREVERX68K") {
       runMusicCommand(playForeverX68000Track);
     }
 
@@ -338,7 +339,7 @@ export default function CommandView({
       {
         id: nextId.current++,
         command,
-        output: commandAliases[command] ?? "error",
+        output: commandAliases[resolvedCommand] ?? "error",
       },
     ]);
     inputRef.current?.focus();

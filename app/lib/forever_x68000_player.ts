@@ -7,7 +7,7 @@ const SIXTEENTH = 60 / BPM / 4;
 const FM_ENTRY_SECONDS = 1.855;
 const PHRASE_UNITS = 128;
 const TRACK_UNITS = PHRASE_UNITS * 4;
-const FINAL_TAIL_SECONDS = 5.2;
+const FINAL_TAIL_SECONDS = 10.8;
 const TRACK_DURATION = FM_ENTRY_SECONDS + TRACK_UNITS * SIXTEENTH + FINAL_TAIL_SECONDS;
 
 const chordPatch: FmPatch = {
@@ -222,6 +222,27 @@ const glassPatch: FmPatch = {
   release: 0.62,
 };
 
+const airLeadPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 5.01, 2.002, 8.03],
+  modulation: [0.48, 0, 0.26],
+  waveforms: ["sine", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-2.6, 1.1, 2.6, -1.1],
+  filterFrequency: 11800,
+  filterStartFrequency: 6100,
+  filterAttack: 0.055,
+  filterQ: 0.94,
+  pitchAttackCents: -14,
+  pitchAttackTime: 0.065,
+  attack: 0.014,
+  decay: 0.28,
+  peakGain: 0.0049,
+  sustainGain: 0.0023,
+  release: 0.68,
+  vibratoRate: 5.35,
+  vibratoCents: 3.2,
+};
+
 const guitarPatch: FmPatch = {
   algorithm: "serial",
   ratios: [1, 2.01, 3.99, 8.02],
@@ -318,6 +339,20 @@ const counterSequence: readonly NoteEvent[] = [
   [0, 76, 16], [16, 74, 16], [32, 72, 8], [40, 74, 8], [48, 79, 16],
   [64, 78, 8], [72, 75, 8], [80, 76, 8], [88, 73, 8],
   [96, 72, 16], [112, 69, 8], [120, 71, 8],
+];
+
+// 本編の転調先（C#）を一度上昇してから解決する終止フレーズ。
+// すぐにフェードせず、主旋律・上声・最終和音の順に着地させる。
+const endingLeadSequence: readonly NoteEvent[] = [
+  [0, 68, 4], [4, 73, 4], [8, 77, 4], [12, 80, 8],
+  [20, 77, 4], [24, 73, 4], [28, 68, 4], [32, 73, 8],
+];
+
+const endingHarmonySequence: readonly NoteEvent[] = [
+  [0, 61, 8], [0, 65, 8], [0, 68, 8],
+  [8, 61, 12], [8, 65, 12], [8, 68, 12],
+  [20, 61, 8], [20, 65, 8], [20, 68, 8],
+  [28, 56, 12], [28, 61, 12], [28, 65, 12],
 ];
 
 function createNoiseBuffer(context: AudioContext, seconds: number): AudioBuffer {
@@ -567,9 +602,10 @@ function scheduleGuitarChops(
   entryAt: number,
   offset: number,
   transpose: number,
+  stepUnits = 8,
 ): void {
   sequence.forEach(([start, note, length], noteIndex) => {
-    for (let position = 2; position < length; position += 8) {
+    for (let position = 2; position < length; position += stepUnits) {
       createFmVoice(
         context,
         destination,
@@ -715,7 +751,9 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, -0.58, padPatch, transpose + 24);
     scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0.58, padPatch, transpose + 31);
     schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, bassPatch, transpose);
-    scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, subBassPatch, transpose - 12);
+    if (phrase >= 1) {
+      scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, subBassPatch, transpose - 12);
+    }
     scheduleArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
 
     const leadHighlights = chordSequence.filter(([start, , length]) => length >= 7 || start % 16 === 0);
@@ -732,27 +770,29 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       -fineTune * 0.35,
     );
 
-    if (phrase >= 1) {
-      schedulePulsedSequence(
-        context,
-        fmBus,
-        sources,
-        harmonySequence,
-        entryAt,
-        offset + 1,
-        0.24,
-        electricPianoPatch,
-        transpose + 12,
-        8,
-      );
-      if (phrase % 2 === 1) {
-        scheduleGuitarChops(context, fmBus, sources, harmonySequence, entryAt, offset, transpose);
-      }
-    }
-
-    if (phrase >= 2) {
-      scheduleHighArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
-    }
+    schedulePulsedSequence(
+      context,
+      fmBus,
+      sources,
+      harmonySequence,
+      entryAt,
+      offset + 1,
+      0.24,
+      electricPianoPatch,
+      transpose + 12,
+      phrase === 0 ? 16 : 8,
+    );
+    scheduleGuitarChops(
+      context,
+      fmBus,
+      sources,
+      harmonySequence,
+      entryAt,
+      offset,
+      transpose,
+      phrase % 2 === 0 ? 16 : 8,
+    );
+    scheduleHighArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
 
     const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
     scheduleSequence(
@@ -766,6 +806,20 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       shimmerPatch,
       transpose + 12,
       -fineTune * 0.65,
+    );
+
+    const upperAccents = shortAccents.filter((_, index) => (index + phrase) % 3 === 0);
+    scheduleSequence(
+      context,
+      leadBus,
+      sources,
+      upperAccents,
+      entryAt,
+      offset + 1.2,
+      chordPan * 0.3,
+      airLeadPatch,
+      transpose + 24,
+      fineTune * 0.2,
     );
 
     if (phrase === 3) {
@@ -835,25 +889,98 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   };
 
   const finalStart = entryAt + TRACK_UNITS * SIXTEENTH;
+  const finalResolutionStart = finalStart + 40 * SIXTEENTH;
   const scheduleFinal = () => {
     if (disconnected) return;
-    [37, 49, 56, 61, 65].forEach((note, index) => {
+
+    scheduleSequence(
+      context,
+      leadBus,
+      sources,
+      endingLeadSequence,
+      finalStart,
+      0,
+      -0.12,
+      finalPatch,
+    );
+    scheduleSequence(
+      context,
+      leadBus,
+      sources,
+      endingLeadSequence,
+      finalStart,
+      0.18,
+      0.18,
+      airLeadPatch,
+      12,
+      2.2,
+    );
+    scheduleSequence(
+      context,
+      fmBus,
+      sources,
+      endingHarmonySequence,
+      finalStart,
+      0,
+      0,
+      electricPianoPatch,
+    );
+    [37, 49].forEach((note, index) => {
       createFmVoice(
         context,
         fmBus,
         sources,
         midiToFrequency(note),
         finalStart,
-        3.75,
-        (index - 2) * 0.28,
-        finalPatch,
+        40 * SIXTEENTH,
+        index === 0 ? -0.18 : 0.18,
+        index === 0 ? subBassPatch : padPatch,
       );
     });
     [0, 0.66, 1.34, 2.16].forEach((delay, index) => {
       createTom(context, adpcmBus, sources, finalStart + delay, 215 - index * 23, 0.055 - index * 0.006);
     });
-    createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart, 0.52, 4300, 0.045);
-    createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart + 2.1, 1.9, 1200, 0.018);
+    [37, 49, 56, 61, 65].forEach((note, index) => {
+      createFmVoice(
+        context,
+        fmBus,
+        sources,
+        midiToFrequency(note),
+        finalResolutionStart,
+        5.4,
+        (index - 2) * 0.25,
+        finalPatch,
+        (index - 2) * 1.2,
+      );
+    });
+    [56, 61, 65].forEach((note, index) => {
+      createFmVoice(
+        context,
+        leadBus,
+        sources,
+        midiToFrequency(note + 24),
+        finalResolutionStart + 0.025,
+        5.1,
+        (index - 1) * 0.24,
+        ensemblePatch,
+        (index - 1) * 1.6,
+      );
+      createFmVoice(
+        context,
+        leadBus,
+        sources,
+        midiToFrequency(note + 36),
+        finalResolutionStart + 0.055,
+        3.6,
+        (1 - index) * 0.28,
+        airLeadPatch,
+        (1 - index) * 1.2,
+      );
+    });
+    createKick(context, adpcmBus, sources, finalResolutionStart, 0.11);
+    createMetalHit(context, adpcmBus, sources, finalResolutionStart, 1.4, 0.011);
+    createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalResolutionStart, 0.72, 4300, 0.045);
+    createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalResolutionStart + 2.1, 2.4, 1200, 0.016);
   };
 
   // 8秒先までをAudioContextの絶対時刻へ予約する。通常のタイマーは
@@ -885,7 +1012,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   schedulePendingEvents();
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
-  master.gain.setValueAtTime(0.53, finalStart + 0.7);
+  master.gain.setValueAtTime(0.53, finalResolutionStart + 2.5);
   master.gain.exponentialRampToValueAtTime(0.0001, finalStart + FINAL_TAIL_SECONDS);
 
   const disconnectGraph = () => {

@@ -211,6 +211,14 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.x68k-splash-secret {
+  margin-top: 0.34rem !important;
+  font-size: clamp(0.4rem, 1.08vw, 0.62rem);
+  letter-spacing: 0.08em;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .x68k-boot-console {
   width: min(1120px, 100%);
   min-height: 100%;

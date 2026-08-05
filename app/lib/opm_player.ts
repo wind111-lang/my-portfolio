@@ -17,19 +17,24 @@ const FINAL_CHORD_BEAT = 384;
 const TRACK_BEATS = 394;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
 const LEAD_ECHO_DELAY = BEAT / 4;
-const SCHEDULE_AHEAD_SECONDS = 18;
+const SCHEDULE_AHEAD_SECONDS = 8;
 
 const brassPatch: FmPatch = {
   algorithm: "dual",
   ratios: [1, 2.002, 1.003, 3.01],
   modulation: [1.06, 0, 0.58],
   waveforms: ["triangle", "sine", "sine", "sine"],
-  filterFrequency: 5600,
+  operatorDetuneCents: [-2.2, 1.1, 2.2, -1.1],
+  filterFrequency: 5200,
+  filterStartFrequency: 2200,
+  filterAttack: 0.11,
   filterQ: 0.82,
+  pitchAttackCents: -9,
+  pitchAttackTime: 0.07,
   attack: 0.04,
   decay: 0.3,
-  peakGain: 0.014,
-  sustainGain: 0.008,
+  peakGain: 0.01,
+  sustainGain: 0.0055,
   release: 0.5,
 };
 
@@ -38,12 +43,15 @@ const stringPatch: FmPatch = {
   ratios: [1, 2, 3, 4.005],
   modulation: [0.32, 0.14, 0.06],
   waveforms: ["sine", "sine", "triangle", "sine"],
-  filterFrequency: 3900,
+  operatorDetuneCents: [-4.2, -1.3, 4.2, 1.3],
+  filterFrequency: 3300,
+  filterStartFrequency: 1500,
+  filterAttack: 0.2,
   filterQ: 0.56,
   attack: 0.11,
   decay: 0.52,
-  peakGain: 0.0056,
-  sustainGain: 0.0042,
+  peakGain: 0.0048,
+  sustainGain: 0.0035,
   release: 0.78,
 };
 
@@ -53,12 +61,15 @@ const bassPatch: FmPatch = {
   modulation: [1.2, 0.62, 0.22],
   operatorCount: 2,
   waveforms: ["triangle", "sine", "sine", "sine"],
-  filterFrequency: 2200,
+  operatorDetuneCents: [-1.2, 1.2, 0, 0],
+  filterFrequency: 1800,
+  filterStartFrequency: 650,
+  filterAttack: 0.055,
   filterQ: 0.74,
   attack: 0.008,
   decay: 0.1,
-  peakGain: 0.052,
-  sustainGain: 0.022,
+  peakGain: 0.04,
+  sustainGain: 0.018,
   release: 0.18,
 };
 
@@ -67,12 +78,17 @@ const leadPatch: FmPatch = {
   ratios: [1, 1.998, 3.005, 4.01],
   modulation: [0.98, 0.44, 0.17],
   waveforms: ["triangle", "sine", "sine", "sine"],
-  filterFrequency: 7600,
+  operatorDetuneCents: [-2.6, 1.1, 2.6, -1.1],
+  filterFrequency: 6500,
+  filterStartFrequency: 3400,
+  filterAttack: 0.065,
   filterQ: 0.92,
+  pitchAttackCents: -10,
+  pitchAttackTime: 0.055,
   attack: 0.022,
   decay: 0.24,
-  peakGain: 0.025,
-  sustainGain: 0.014,
+  peakGain: 0.018,
+  sustainGain: 0.01,
   release: 0.58,
   vibratoRate: 5.15,
   vibratoCents: 6,
@@ -83,12 +99,17 @@ const softLeadPatch: FmPatch = {
   ratios: [1, 2.003, 1.004, 3.01],
   modulation: [0.62, 0, 0.28],
   waveforms: ["sine", "triangle", "sine", "sine"],
-  filterFrequency: 5400,
+  operatorDetuneCents: [-2, 0.8, 2, -0.8],
+  filterFrequency: 4800,
+  filterStartFrequency: 2500,
+  filterAttack: 0.09,
   filterQ: 0.7,
+  pitchAttackCents: -6,
+  pitchAttackTime: 0.06,
   attack: 0.035,
   decay: 0.3,
-  peakGain: 0.012,
-  sustainGain: 0.007,
+  peakGain: 0.01,
+  sustainGain: 0.006,
   release: 0.66,
   vibratoRate: 5.05,
   vibratoCents: 4.2,
@@ -99,12 +120,15 @@ const leadEchoPatch: FmPatch = {
   ratios: [1, 2.004, 2.997, 4.02],
   modulation: [0.78, 0.34, 0.12],
   waveforms: ["sine", "sine", "triangle", "sine"],
-  filterFrequency: 6400,
+  operatorDetuneCents: [1.8, -0.8, -1.8, 0.8],
+  filterFrequency: 5200,
+  filterStartFrequency: 2800,
+  filterAttack: 0.08,
   filterQ: 0.68,
   attack: 0.032,
   decay: 0.3,
-  peakGain: 0.0095,
-  sustainGain: 0.0052,
+  peakGain: 0.0074,
+  sustainGain: 0.004,
   release: 0.68,
   vibratoRate: 5,
   vibratoCents: 4.5,
@@ -115,12 +139,15 @@ const arpeggioPatch: FmPatch = {
   ratios: [1, 2.01, 3.002, 5.01],
   modulation: [0.76, 0, 0.44],
   waveforms: ["sine", "sine", "triangle", "sine"],
-  filterFrequency: 9100,
+  operatorDetuneCents: [-1.4, 0.7, 1.4, -0.7],
+  filterFrequency: 5200,
+  filterStartFrequency: 7400,
+  filterAttack: 0.035,
   filterQ: 1.05,
   attack: 0.006,
   decay: 0.1,
-  peakGain: 0.0068,
-  sustainGain: 0.0018,
+  peakGain: 0.0058,
+  sustainGain: 0.0012,
   release: 0.18,
 };
 
@@ -129,12 +156,15 @@ const counterPatch: FmPatch = {
   ratios: [1, 2.002, 3, 4.008],
   modulation: [0.68, 0.3, 0.13],
   waveforms: ["sine", "triangle", "sine", "sine"],
-  filterFrequency: 6200,
+  operatorDetuneCents: [-3.2, -1, 3.2, 1],
+  filterFrequency: 4800,
+  filterStartFrequency: 2200,
+  filterAttack: 0.13,
   filterQ: 0.72,
   attack: 0.038,
   decay: 0.26,
-  peakGain: 0.0085,
-  sustainGain: 0.0046,
+  peakGain: 0.0068,
+  sustainGain: 0.0038,
   release: 0.48,
   vibratoRate: 4.85,
   vibratoCents: 3.4,
@@ -145,11 +175,11 @@ const bellPatch: FmPatch = {
   ratios: [1, 2.5, 4.01, 7.02],
   modulation: [1.56, 0, 1.82],
   waveforms: ["sine", "sine", "sine", "sine"],
-  filterFrequency: 11200,
+  filterFrequency: 6200,
   filterQ: 1.1,
   attack: 0.003,
   decay: 0.08,
-  peakGain: 0.01,
+  peakGain: 0.0065,
   sustainGain: 0.001,
   release: 0.82,
 };
@@ -159,13 +189,95 @@ const finalPatch: FmPatch = {
   ratios: [1, 3.002, 1.004, 2.01],
   modulation: [1.42, 0, 0.66],
   waveforms: ["triangle", "sine", "sine", "sine"],
-  filterFrequency: 6800,
+  operatorDetuneCents: [-3.4, -1, 3.4, 1],
+  filterFrequency: 5400,
+  filterStartFrequency: 2400,
+  filterAttack: 0.15,
   filterQ: 0.76,
   attack: 0.018,
   decay: 0.28,
   peakGain: 0.019,
   sustainGain: 0.011,
   release: 1.25,
+};
+
+const accordionPatch: FmPatch = {
+  algorithm: "fan",
+  ratios: [1, 2.002, 3.001, 1.004],
+  modulation: [0.52, 0.22, 0.08],
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [-3.8, -1.1, 3.8, 1.1],
+  filterFrequency: 4400,
+  filterStartFrequency: 2100,
+  filterAttack: 0.1,
+  filterQ: 0.78,
+  pitchAttackCents: -7,
+  pitchAttackTime: 0.065,
+  attack: 0.035,
+  decay: 0.28,
+  peakGain: 0.0068,
+  sustainGain: 0.0042,
+  release: 0.5,
+  vibratoRate: 4.8,
+  vibratoCents: 2.8,
+};
+
+const octaveLeadPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 3.01, 1.003, 5.02],
+  modulation: [0.62, 0, 0.31],
+  waveforms: ["sine", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-2.1, 0.9, 2.1, -0.9],
+  filterFrequency: 5600,
+  filterStartFrequency: 2700,
+  filterAttack: 0.075,
+  filterQ: 0.82,
+  pitchAttackCents: -13,
+  pitchAttackTime: 0.06,
+  attack: 0.012,
+  decay: 0.24,
+  peakGain: 0.0075,
+  sustainGain: 0.0038,
+  release: 0.52,
+  vibratoRate: 5.2,
+  vibratoCents: 4.2,
+};
+
+const lowCounterPatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 2.003, 2, 3],
+  modulation: [0.48, 0, 0],
+  operatorCount: 2,
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.4, 1.4, 0, 0],
+  filterFrequency: 1800,
+  filterStartFrequency: 850,
+  filterAttack: 0.08,
+  filterQ: 0.58,
+  attack: 0.025,
+  decay: 0.25,
+  peakGain: 0.012,
+  sustainGain: 0.0065,
+  release: 0.45,
+};
+
+const bassAttackPatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 2.01, 2, 3],
+  modulation: [1.18, 0, 0],
+  operatorCount: 2,
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  filterFrequency: 2600,
+  filterStartFrequency: 900,
+  filterAttack: 0.04,
+  filterQ: 0.86,
+  pitchAttackCents: 12,
+  pitchAttackTime: 0.045,
+  attack: 0.004,
+  decay: 0.1,
+  peakGain: 0.016,
+  sustainGain: 0.0018,
+  release: 0.18,
 };
 
 const harmonies = {
@@ -335,31 +447,45 @@ export function playOpmTrack(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
+  const leadBus = context.createGain();
   const fmBus = context.createGain();
   const percussionBus = context.createGain();
   const toneFilter = context.createBiquadFilter();
+  const presenceFilter = context.createBiquadFilter();
+  const percussionFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context);
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.46, startAt);
-  compressor.threshold.setValueAtTime(-15, startAt);
+  master.gain.setValueAtTime(0.45, startAt);
+  compressor.threshold.setValueAtTime(-12, startAt);
   compressor.knee.setValueAtTime(18, startAt);
-  compressor.ratio.setValueAtTime(3.1, startAt);
+  compressor.ratio.setValueAtTime(2.2, startAt);
   compressor.attack.setValueAtTime(0.009, startAt);
-  compressor.release.setValueAtTime(0.24, startAt);
-  fmBus.gain.setValueAtTime(0.82, startAt);
-  percussionBus.gain.setValueAtTime(0.31, startAt);
+  compressor.release.setValueAtTime(0.28, startAt);
+  leadBus.gain.setValueAtTime(0.72, startAt);
+  fmBus.gain.setValueAtTime(0.68, startAt);
+  percussionBus.gain.setValueAtTime(0.2, startAt);
   toneFilter.type = "lowpass";
-  toneFilter.frequency.setValueAtTime(12200, startAt);
+  toneFilter.frequency.setValueAtTime(5600, startAt);
   toneFilter.Q.setValueAtTime(0.68, startAt);
+  presenceFilter.type = "peaking";
+  presenceFilter.frequency.setValueAtTime(720, startAt);
+  presenceFilter.Q.setValueAtTime(0.92, startAt);
+  presenceFilter.gain.setValueAtTime(2.6, startAt);
+  percussionFilter.type = "lowpass";
+  percussionFilter.frequency.setValueAtTime(5200, startAt);
+  percussionFilter.Q.setValueAtTime(0.66, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
 
+  leadBus.connect(presenceFilter);
+  presenceFilter.connect(master);
   fmBus.connect(toneFilter);
   toneFilter.connect(master);
-  percussionBus.connect(quantizer);
+  percussionBus.connect(percussionFilter);
+  percussionFilter.connect(quantizer);
   quantizer.connect(master);
   master.connect(compressor);
   compressor.connect(context.destination);
@@ -369,7 +495,6 @@ export function playOpmTrack(context: AudioContext): () => void {
     const segmentStart = startAt + beatOffset * BEAT;
     const chord = chordProgression[segmentIndex % chordProgression.length];
     const density = getDensity(beatOffset);
-    const chordPatch = density === "full" ? brassPatch : stringPatch;
     const noteDuration = (density === "intro" ? 3.88 : 3.62) * BEAT;
 
     chord.notes.forEach((frequency, noteIndex) => {
@@ -380,10 +505,23 @@ export function playOpmTrack(context: AudioContext): () => void {
         frequency,
         segmentStart,
         noteDuration,
-        (noteIndex - (chord.notes.length - 1) / 2) * 0.27,
-        chordPatch,
+        (noteIndex - (chord.notes.length - 1) / 2) * 0.2,
+        stringPatch,
         noteIndex % 2 === 0 ? -2.2 : 2.2,
       );
+      if (density !== "intro") {
+        createFmVoice(
+          context,
+          fmBus,
+          sources,
+          frequency * 2,
+          segmentStart + 0.025,
+          noteDuration * 0.94,
+          (noteIndex - (chord.notes.length - 1) / 2) * -0.24,
+          density === "full" ? brassPatch : accordionPatch,
+          noteIndex % 2 === 0 ? 2.8 : -2.8,
+        );
+      }
     });
 
     const bassSteps = density === "intro" ? 1 : 2;
@@ -398,12 +536,23 @@ export function playOpmTrack(context: AudioContext): () => void {
         step % 2 === 0 ? -0.08 : 0.08,
         bassPatch,
       );
+      createFmVoice(
+        context,
+        fmBus,
+        sources,
+        frequency * 2,
+        segmentStart + step * 2 * BEAT,
+        0.72 * BEAT,
+        step % 2 === 0 ? 0.06 : -0.06,
+        bassAttackPatch,
+      );
     });
 
     const arpeggioStep = density === "full" ? 0.5 : density === "light" ? 1 : 2;
     const arpeggioCount = Math.round(HARMONY_BEATS / arpeggioStep);
     for (let step = 0; step < arpeggioCount; step += 1) {
-      const frequency = chord.arpeggio[step % chord.arpeggio.length];
+      const register = density === "intro" ? 1 : 2;
+      const frequency = chord.arpeggio[step % chord.arpeggio.length] * register;
       createFmVoice(
         context,
         fmBus,
@@ -422,7 +571,7 @@ export function playOpmTrack(context: AudioContext): () => void {
         context,
         fmBus,
         sources,
-        chord.notes[1] * 2,
+        chord.notes[1] * 4,
         segmentStart,
         3.7 * BEAT,
         segmentIndex % 2 === 0 ? 0.32 : -0.32,
@@ -455,7 +604,7 @@ export function playOpmTrack(context: AudioContext): () => void {
       const leadPan = index % 2 === 0 ? -0.18 : 0.12;
       createFmVoice(
         context,
-        fmBus,
+        leadBus,
         sources,
         midiToFrequency(midiNote),
         noteStart,
@@ -465,7 +614,7 @@ export function playOpmTrack(context: AudioContext): () => void {
       );
       createFmVoice(
         context,
-        fmBus,
+        leadBus,
         sources,
         midiToFrequency(midiNote),
         noteStart + LEAD_ECHO_DELAY,
@@ -474,7 +623,20 @@ export function playOpmTrack(context: AudioContext): () => void {
         leadEchoPatch,
         leadPan < 0 ? 4.2 : -4.2,
       );
-      if (full && beatOffset >= 32) {
+      if (full || durationInBeats >= 2 || index % 4 === 0) {
+        createFmVoice(
+          context,
+          leadBus,
+          sources,
+          midiToFrequency(midiNote + 12),
+          noteStart + 0.018,
+          noteDuration * 0.94,
+          leadPan < 0 ? 0.24 : -0.24,
+          octaveLeadPatch,
+          index % 2 === 0 ? -2.4 : 2.4,
+        );
+      }
+      if (full && beatOffset >= 32 && durationInBeats >= 2) {
         createFmVoice(
           context,
           fmBus,
@@ -483,7 +645,7 @@ export function playOpmTrack(context: AudioContext): () => void {
           noteStart,
           noteDuration,
           index % 2 === 0 ? 0.3 : -0.3,
-          counterPatch,
+          lowCounterPatch,
           index % 2 === 0 ? -2 : 2,
         );
       }
@@ -514,18 +676,21 @@ export function playOpmTrack(context: AudioContext): () => void {
       if (halfBeat % 8 === 4) {
         createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.16, 1450, 0.044, "bandpass");
         createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt + 0.01, 0.1, 3700, 0.014, "bandpass");
+        createTom(context, percussionBus, sources, hitAt, 178, 0.022);
       }
-      createNoiseHit(
-        context,
-        percussionBus,
-        sources,
-        noiseBuffer,
-        hitAt,
-        halfBeat % 8 === 6 ? 0.11 : 0.045,
-        halfBeat % 4 === 0 ? 7200 : 10100,
-        halfBeat % 8 === 6 ? 0.008 : 0.0045,
-        "highpass",
-      );
+      if (halfBeat % 2 === 0) {
+        createNoiseHit(
+          context,
+          percussionBus,
+          sources,
+          noiseBuffer,
+          hitAt,
+          halfBeat % 8 === 6 ? 0.1 : 0.04,
+          halfBeat % 4 === 0 ? 3900 : 5100,
+          halfBeat % 8 === 6 ? 0.0065 : 0.0035,
+          "highpass",
+        );
+      }
     }
     if (blockIndex % 4 === 3) {
       [158, 126, 98].forEach((frequency, index) => {
@@ -561,6 +726,19 @@ export function playOpmTrack(context: AudioContext): () => void {
         finalPatch,
         (index - 2) * 1.6,
       );
+      if (index >= 1) {
+        createFmVoice(
+          context,
+          leadBus,
+          sources,
+          midiToFrequency(note + 12),
+          finalStart + 0.035,
+          7.5 * BEAT,
+          (2 - index) * 0.2,
+          octaveLeadPatch,
+          (2 - index) * 1.2,
+        );
+      }
     });
     createKick(context, percussionBus, sources, finalStart, 0.09);
     createNoiseHit(context, percussionBus, sources, noiseBuffer, finalStart, 0.45, 4900, 0.035, "highpass");
@@ -623,15 +801,18 @@ export function playOpmTrack(context: AudioContext): () => void {
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
   const fadeStart = startAt + (TRACK_BEATS - 12) * BEAT;
-  master.gain.setValueAtTime(0.46, fadeStart);
+  master.gain.setValueAtTime(0.45, fadeStart);
   master.gain.exponentialRampToValueAtTime(0.0001, startAt + TRACK_DURATION);
 
   const disconnectGraph = () => {
     if (disconnected) return;
     disconnected = true;
+    leadBus.disconnect();
     fmBus.disconnect();
     percussionBus.disconnect();
     toneFilter.disconnect();
+    presenceFilter.disconnect();
+    percussionFilter.disconnect();
     quantizer.disconnect();
     master.disconnect();
     compressor.disconnect();

@@ -62,70 +62,6 @@ button:focus-visible {
   user-select: none;
 }
 
-.x68k-boot-screen[data-phase="logo"] {
-  color: #151714;
-  background: #d8d8d0;
-}
-
-.x68k-boot-logo {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(36rem, calc(100% - 3rem));
-  text-align: center;
-  transform: translate(-50%, -54%);
-  animation: x68k-screen-on 90ms steps(2, end) both;
-}
-
-.x68k-human-label,
-.x68k-version-label,
-.x68k-sharp-label {
-  margin: 0;
-  letter-spacing: 0.08em;
-}
-
-.x68k-human-label {
-  font-size: clamp(1rem, 3.2vw, 1.55rem);
-  font-weight: 700;
-}
-
-.x68k-version-label {
-  margin-top: 0.1rem;
-  font-size: clamp(0.7rem, 2vw, 0.9rem);
-}
-
-.x68k-wordmark {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  margin: clamp(1.5rem, 6vh, 3.3rem) 0 clamp(1.2rem, 4vh, 2.5rem);
-  color: #070807;
-  font-family: Arial, Helvetica, sans-serif;
-  font-style: italic;
-  line-height: 0.75;
-  letter-spacing: -0.09em;
-}
-
-.x68k-wordmark span {
-  margin-right: 0.04em;
-  font-size: clamp(6rem, 24vw, 13rem);
-  font-weight: 900;
-  transform: scaleX(0.74);
-}
-
-.x68k-wordmark strong {
-  font-size: clamp(3.3rem, 13vw, 7.2rem);
-  font-weight: 900;
-  transform: scaleX(0.82);
-  transform-origin: left center;
-}
-
-.x68k-sharp-label {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: clamp(0.9rem, 2.4vw, 1.15rem);
-  font-weight: 800;
-}
-
 .x68k-boot-console {
   width: min(1120px, 100%);
   min-height: 100%;
@@ -1306,7 +1242,6 @@ button:focus-visible {
 
   .cursor,
   .block-cursor,
-  .x68k-boot-logo,
   .x68k-boot-console,
   .x68k-boot-cursor,
   .x68k-drive-status > span.is-active {

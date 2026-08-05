@@ -28,6 +28,7 @@ export function createFmVoice(
   duration: number,
   pan: number,
   patch: FmPatch,
+  detuneCents = 0,
 ): void {
   const soundEnd = startAt + duration + patch.release;
   const operatorCount = patch.operatorCount ?? 4;
@@ -40,6 +41,7 @@ export function createFmVoice(
   operators.forEach((operator, index) => {
     operator.type = patch.waveforms?.[index] ?? "sine";
     operator.frequency.setValueAtTime(frequency * patch.ratios[index], startAt);
+    operator.detune.setValueAtTime(detuneCents, startAt);
   });
 
   if (patch.vibratoRate && patch.vibratoCents) {

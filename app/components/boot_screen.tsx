@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-type BootPhase = "blank" | "logo" | "system";
-
 type BootScreenProps = {
   onComplete: () => void;
 };
@@ -21,7 +19,6 @@ const systemMessages = [
 ] as const;
 
 export default function BootScreen({ onComplete }: BootScreenProps): React.ReactNode {
-  const [phase, setPhase] = useState<BootPhase>("blank");
   const [visibleMessageCount, setVisibleMessageCount] = useState(0);
 
   useEffect(() => {
@@ -42,12 +39,10 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
     window.addEventListener("keydown", blockInput, true);
 
-    schedule(() => setPhase("logo"), 280);
-    schedule(() => setPhase("system"), 1500);
     systemMessages.forEach((_, index) => {
-      schedule(() => setVisibleMessageCount(index + 1), 1640 + index * 170);
+      schedule(() => setVisibleMessageCount(index + 1), 180 + index * 150);
     });
-    schedule(onComplete, 4050);
+    schedule(onComplete, 2300);
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -57,31 +52,18 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
   }, [onComplete]);
 
   return (
-    <main className="x68k-boot-screen" data-phase={phase} aria-label="X68000 起動中">
-      {phase === "logo" && (
-        <section className="x68k-boot-logo" aria-live="polite">
-          <p className="x68k-human-label">Human68k</p>
-          <p className="x68k-version-label">version 3.02</p>
-          <div className="x68k-wordmark" aria-label="X68000">
-            <span>X</span><strong>68000</strong>
-          </div>
-          <p className="x68k-sharp-label">SHARP</p>
-        </section>
-      )}
-
-      {phase === "system" && (
-        <section className="x68k-boot-console" aria-live="polite" aria-atomic="false">
-          {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
-            message
-              ? <p key={`${index}-${message}`}>{message}</p>
-              : <br key={`space-${index}`} />
-          ))}
-          <span className="x68k-boot-cursor" aria-hidden="true" />
-        </section>
-      )}
+    <main className="x68k-boot-screen" aria-label="X68000 起動中">
+      <section className="x68k-boot-console" aria-live="polite" aria-atomic="false">
+        {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
+          message
+            ? <p key={`${index}-${message}`}>{message}</p>
+            : <br key={`space-${index}`} />
+        ))}
+        <span className="x68k-boot-cursor" aria-hidden="true" />
+      </section>
 
       <div className="x68k-drive-status" aria-hidden="true">
-        <span className={phase === "system" ? "is-active" : ""} />
+        <span className="is-active" />
         <small>FDD 0</small>
       </div>
       <p

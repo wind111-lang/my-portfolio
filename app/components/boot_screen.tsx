@@ -5,15 +5,12 @@ type BootScreenProps = {
 };
 
 const systemMessages = [
-  "Human68k for X680x0 version 3.02",
-  "Copyright 1987-93 SHARP/Hudson",
-  "",
   "Printer driver version 1.00",
   "RS-232C driver version 2.02",
   "Floating Point Package version 2.03 (IEEE format)",
   "Japanese Front-end Processor ASK68k version 3.02",
   "Console/Graphic IOCS version 1.50",
-  "History DRIVER for X68000 version 1.10",
+  "History DRIVER version 1.10",
   "Command version 3.00",
   "PORTFOLIO DEVICE DRIVER version 1.01",
 ] as const;
@@ -42,7 +39,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     systemMessages.forEach((_, index) => {
       schedule(() => setVisibleMessageCount(index + 1), 180 + index * 150);
     });
-    schedule(onComplete, 2300);
+    schedule(onComplete, 1850);
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -52,7 +49,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
   }, [onComplete]);
 
   return (
-    <main className="x68k-boot-screen" aria-label="X68000 起動中">
+    <main className="x68k-boot-screen" aria-label="システム起動中">
       <section className="x68k-boot-console" aria-live="polite" aria-atomic="false">
         {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
           message

@@ -3,9 +3,10 @@ import React from "react";
 type HeaderProps = {
   mode: "command" | "gui";
   onModeChange: (mode: "command" | "gui") => void;
+  disabled?: boolean;
 };
 
-export default function Header({ mode, onModeChange }: HeaderProps): React.ReactNode {
+export default function Header({ mode, onModeChange, disabled = false }: HeaderProps): React.ReactNode {
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     sectionId: string
@@ -47,6 +48,7 @@ export default function Header({ mode, onModeChange }: HeaderProps): React.React
       <div className="mode-switcher" aria-label="表示モード">
         <button
           type="button"
+          disabled={disabled}
           aria-pressed={mode === "command"}
           onClick={() => onModeChange("command")}
           title="F1キーでも切り替えられます"
@@ -55,6 +57,7 @@ export default function Header({ mode, onModeChange }: HeaderProps): React.React
         </button>
         <button
           type="button"
+          disabled={disabled}
           aria-pressed={mode === "gui"}
           onClick={() => onModeChange("gui")}
           title="F2キーでも切り替えられます"

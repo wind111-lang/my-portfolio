@@ -38,14 +38,18 @@ export const meta: MetaFunction = () => [
 
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
-  const [isBooting, setIsBooting] = useState(true);
+  const [startupPhase, setStartupPhase] = useState<"system" | "command" | "ready">("system");
 
-  const completeBoot = React.useCallback(() => {
-    setIsBooting(false);
+  const beginCommandStartup = React.useCallback(() => {
+    setStartupPhase("command");
+  }, []);
+
+  const completeStartup = React.useCallback(() => {
+    setStartupPhase("ready");
   }, []);
 
   useEffect(() => {
-    if (isBooting) return;
+    if (startupPhase !== "ready") return;
 
     const handleFunctionKey = (event: KeyboardEvent) => {
       if (event.key === "F1") {
@@ -60,17 +64,21 @@ export default function Index(): React.ReactNode {
 
     window.addEventListener("keydown", handleFunctionKey);
     return () => window.removeEventListener("keydown", handleFunctionKey);
-  }, [isBooting]);
+  }, [startupPhase]);
 
-  if (isBooting) {
-    return <BootScreen onComplete={completeBoot} />;
+  if (startupPhase === "system") {
+    return <BootScreen onComplete={beginCommandStartup} />;
   }
 
   return (
     <div className="site-shell" data-mode={mode}>
-      <Header mode={mode} onModeChange={setMode} />
+      <Header mode={mode} onModeChange={setMode} disabled={startupPhase !== "ready"} />
       {mode === "command" ? (
-        <CommandView onModeChange={setMode} />
+        <CommandView
+          onModeChange={setMode}
+          isInitializing={startupPhase === "command"}
+          onInitializationComplete={completeStartup}
+        />
       ) : (
         <div className="sx-workspace">
           <aside className="sx-icon-rail" aria-label="SX-WINDOW デスクトップ">

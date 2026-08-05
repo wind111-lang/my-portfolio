@@ -34,7 +34,18 @@ type HistoryEntry = {
 
 type CommandViewProps = {
   onModeChange: (mode: "command" | "gui") => void;
+  isInitializing: boolean;
+  onInitializationComplete: () => void;
 };
+
+const startupMessages = [
+  "Human68k for X680x0 version 3.02",
+  "Copyright 1987-93 SHARP/Hudson",
+  "",
+  "Command version 3.00",
+  "PORTFOLIO DEVICE DRIVER version 1.01",
+  "プロフィール情報を表示できます",
+] as const;
 
 const commandAliases: Record<string, OutputName> = {
   "?": "help",
@@ -212,8 +223,14 @@ function CommandOutput({
   );
 }
 
-export default function CommandView({ onModeChange }: CommandViewProps): React.ReactNode {
+export default function CommandView({
+  onModeChange,
+  isInitializing,
+  onInitializationComplete,
+}: CommandViewProps): React.ReactNode {
   const [input, setInput] = useState("");
+  const [visibleStartupMessageCount, setVisibleStartupMessageCount] = useState(0);
+  const [showInitialDirectory, setShowInitialDirectory] = useState(!isInitializing);
   const [history, setHistory] = useState<HistoryEntry[]>([
     { id: 0, command: "DIR", output: "dir" },
   ]);
@@ -223,10 +240,31 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
   const stopMusicRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    if (!isInitializing && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       inputRef.current?.focus({ preventScroll: true });
     }
+  }, [isInitializing]);
 
+  useEffect(() => {
+    if (!isInitializing) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const scale = reducedMotion ? 0.3 : 1;
+    const timers: number[] = [];
+    const schedule = (callback: () => void, delay: number) => {
+      timers.push(window.setTimeout(callback, delay * scale));
+    };
+
+    startupMessages.forEach((_, index) => {
+      schedule(() => setVisibleStartupMessageCount(index + 1), 120 + index * 155);
+    });
+    schedule(() => setShowInitialDirectory(true), 1250);
+    schedule(onInitializationComplete, 1800);
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [isInitializing, onInitializationComplete]);
+
+  useEffect(() => {
     return () => {
       stopMusicRef.current?.();
       if (audioContextRef.current?.state !== "closed") {
@@ -290,17 +328,16 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
 
   return (
     <main className="terminal-screen" id="top">
-      <div className="boot-message" aria-label="Human68k 起動メッセージ">
-        <p>Human68k for X680x0 version 3.02</p>
-        <p>Copyright 1987-93 SHARP/Hudson</p>
-        <br />
-        <p>Command version 3.00</p>
-        <p>PORTFOLIO DEVICE DRIVER version 1.01</p>
-        <p>プロフィール情報を表示できます</p>
+      <div className="boot-message" aria-live="polite" aria-atomic="false">
+        {startupMessages.slice(0, visibleStartupMessageCount).map((message, index) => (
+          message
+            ? <p key={`${index}-${message}`}>{message}</p>
+            : <br key={`space-${index}`} />
+        ))}
       </div>
 
       <div className="command-history" aria-live="polite">
-        {history.map((entry) => (
+        {showInitialDirectory && history.map((entry) => (
           <section className="command-entry" key={entry.id}>
             <p className="entered-command"><span>A:\&gt;</span>{entry.command}</p>
             <CommandOutput output={entry.output} command={entry.command} runCommand={runCommand} />
@@ -308,27 +345,31 @@ export default function CommandView({ onModeChange }: CommandViewProps): React.R
         ))}
       </div>
 
-      <form
-        className="terminal-input-row"
-        onSubmit={(event) => {
-          event.preventDefault();
-          runCommand(input);
-        }}
-      >
-        <label htmlFor="human68k-command">A:\&gt;</label>
-        <input
-          ref={inputRef}
-          id="human68k-command"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-          aria-describedby="command-hint"
-        />
-        <button type="submit">RETURN</button>
-      </form>
-      <p className="terminal-help" id="command-hint">HELP: コマンド一覧&nbsp;&nbsp; F1: COMMAND&nbsp;&nbsp; F2: SX-WINDOW</p>
+      {!isInitializing && (
+        <>
+          <form
+            className="terminal-input-row"
+            onSubmit={(event) => {
+              event.preventDefault();
+              runCommand(input);
+            }}
+          >
+            <label htmlFor="human68k-command">A:\&gt;</label>
+            <input
+              ref={inputRef}
+              id="human68k-command"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-describedby="command-hint"
+            />
+            <button type="submit">RETURN</button>
+          </form>
+          <p className="terminal-help" id="command-hint">HELP: コマンド一覧&nbsp;&nbsp; F1: COMMAND&nbsp;&nbsp; F2: SX-WINDOW</p>
+        </>
+      )}
     </main>
   );
 }

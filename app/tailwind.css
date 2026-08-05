@@ -48,6 +48,157 @@ button:focus-visible {
   min-height: 100vh;
 }
 
+/* X68000 power-on sequence */
+.x68k-boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  min-width: 320px;
+  min-height: 100dvh;
+  color: #d7ded9;
+  background: #000;
+  cursor: wait;
+  overflow: hidden;
+  user-select: none;
+}
+
+.x68k-boot-screen[data-phase="logo"] {
+  color: #151714;
+  background: #d8d8d0;
+}
+
+.x68k-boot-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(36rem, calc(100% - 3rem));
+  text-align: center;
+  transform: translate(-50%, -54%);
+  animation: x68k-screen-on 90ms steps(2, end) both;
+}
+
+.x68k-human-label,
+.x68k-version-label,
+.x68k-sharp-label {
+  margin: 0;
+  letter-spacing: 0.08em;
+}
+
+.x68k-human-label {
+  font-size: clamp(1rem, 3.2vw, 1.55rem);
+  font-weight: 700;
+}
+
+.x68k-version-label {
+  margin-top: 0.1rem;
+  font-size: clamp(0.7rem, 2vw, 0.9rem);
+}
+
+.x68k-wordmark {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin: clamp(1.5rem, 6vh, 3.3rem) 0 clamp(1.2rem, 4vh, 2.5rem);
+  color: #070807;
+  font-family: Arial, Helvetica, sans-serif;
+  font-style: italic;
+  line-height: 0.75;
+  letter-spacing: -0.09em;
+}
+
+.x68k-wordmark span {
+  margin-right: 0.04em;
+  font-size: clamp(6rem, 24vw, 13rem);
+  font-weight: 900;
+  transform: scaleX(0.74);
+}
+
+.x68k-wordmark strong {
+  font-size: clamp(3.3rem, 13vw, 7.2rem);
+  font-weight: 900;
+  transform: scaleX(0.82);
+  transform-origin: left center;
+}
+
+.x68k-sharp-label {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(0.9rem, 2.4vw, 1.15rem);
+  font-weight: 800;
+}
+
+.x68k-boot-console {
+  width: min(1120px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 3rem) 5rem;
+  font-size: clamp(0.77rem, 1.65vw, 1.02rem);
+  line-height: 1.55;
+  text-shadow: 0 0 7px rgb(190 255 218 / 24%);
+  animation: x68k-screen-on 70ms steps(2, end) both;
+}
+
+.x68k-boot-console p {
+  min-height: 1.55em;
+  margin: 0;
+}
+
+.x68k-boot-cursor {
+  display: inline-block;
+  width: 0.65em;
+  height: 1.05em;
+  margin-top: 0.15rem;
+  background: #d7ded9;
+  vertical-align: text-bottom;
+  animation: blink 0.42s steps(1, end) infinite;
+}
+
+.x68k-drive-status {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #737a75;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.x68k-drive-status > span {
+  width: 0.62rem;
+  height: 0.62rem;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.x68k-drive-status > span.is-active {
+  color: #e3312d;
+  background: currentcolor;
+  box-shadow: 0 0 0.55rem currentcolor;
+  animation: drive-access 0.28s steps(1, end) infinite;
+}
+
+.x68k-boot-status {
+  position: fixed;
+  bottom: 1rem;
+  left: 1.1rem;
+  margin: 0;
+  color: #69716c;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+@keyframes x68k-screen-on {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drive-access {
+  0%, 45% { opacity: 1; }
+  46%, 100% { opacity: 0.18; }
+}
+
 /* Human68k / common control strip */
 .system-header {
   position: sticky;
@@ -1154,7 +1305,11 @@ button:focus-visible {
   }
 
   .cursor,
-  .block-cursor {
+  .block-cursor,
+  .x68k-boot-logo,
+  .x68k-boot-console,
+  .x68k-boot-cursor,
+  .x68k-drive-status > span.is-active {
     animation: none;
   }
 }

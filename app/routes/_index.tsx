@@ -9,6 +9,7 @@ import Footer from "~/components/footer";
 import ScrollToTop from "~/components/scroll_to_top";
 import SpeakSection from "~/components/speak_section";
 import CommandView from "~/components/command_view";
+import BootScreen from "~/components/boot_screen";
 import type { MetaFunction } from "@remix-run/node";
 
 export const meta: MetaFunction = () => [
@@ -37,8 +38,15 @@ export const meta: MetaFunction = () => [
 
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
+  const [isBooting, setIsBooting] = useState(true);
+
+  const completeBoot = React.useCallback(() => {
+    setIsBooting(false);
+  }, []);
 
   useEffect(() => {
+    if (isBooting) return;
+
     const handleFunctionKey = (event: KeyboardEvent) => {
       if (event.key === "F1") {
         event.preventDefault();
@@ -52,7 +60,11 @@ export default function Index(): React.ReactNode {
 
     window.addEventListener("keydown", handleFunctionKey);
     return () => window.removeEventListener("keydown", handleFunctionKey);
-  }, []);
+  }, [isBooting]);
+
+  if (isBooting) {
+    return <BootScreen onComplete={completeBoot} />;
+  }
 
   return (
     <div className="site-shell" data-mode={mode}>

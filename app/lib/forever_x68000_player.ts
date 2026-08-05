@@ -15,8 +15,13 @@ const chordPatch: FmPatch = {
   ratios: [1, 2.002, 1.003, 3.01],
   modulation: [0.96, 0, 0.52],
   waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.7, 0.8, 2.1, -0.6],
   filterFrequency: 7200,
+  filterStartFrequency: 4100,
+  filterAttack: 0.075,
   filterQ: 0.92,
+  pitchAttackCents: -8,
+  pitchAttackTime: 0.045,
   attack: 0.014,
   decay: 0.24,
   peakGain: 0.017,
@@ -31,8 +36,13 @@ const brassPatch: FmPatch = {
   ratios: [1, 1.997, 0.999, 2.996],
   modulation: [0.82, 0, 0.44],
   waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [-2, 1.2, 2.4, -1],
   filterFrequency: 5100,
+  filterStartFrequency: 2500,
+  filterAttack: 0.12,
   filterQ: 1.1,
+  pitchAttackCents: -12,
+  pitchAttackTime: 0.08,
   attack: 0.045,
   decay: 0.28,
   peakGain: 0.015,
@@ -48,7 +58,10 @@ const shadowPatch: FmPatch = {
   modulation: [0.58, 0.22, 0.08],
   operatorCount: 2,
   waveforms: ["sine", "triangle", "sine", "sine"],
+  operatorDetuneCents: [1.8, -1.4, 0, 0],
   filterFrequency: 5800,
+  filterStartFrequency: 3200,
+  filterAttack: 0.09,
   filterQ: 0.68,
   attack: 0.028,
   decay: 0.3,
@@ -65,7 +78,10 @@ const bassPatch: FmPatch = {
   modulation: [1.36, 0, 0.62],
   operatorCount: 2,
   waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [0, 3.5, 0, 0],
   filterFrequency: 2300,
+  filterStartFrequency: 850,
+  filterAttack: 0.045,
   filterQ: 0.72,
   attack: 0.012,
   decay: 0.16,
@@ -79,6 +95,7 @@ const padPatch: FmPatch = {
   ratios: [1, 2.003, 1.004, 4.01],
   modulation: [0.34, 0, 0.16],
   waveforms: ["sine", "triangle", "sine", "sine"],
+  operatorDetuneCents: [-3.8, 1.4, 3.8, -1.4],
   filterFrequency: 3600,
   filterQ: 0.6,
   attack: 0.09,
@@ -93,6 +110,7 @@ const harmonyPatch: FmPatch = {
   ratios: [1, 2, 3, 4.01],
   modulation: [0.3, 0.12, 0.055],
   waveforms: ["sine", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-2.4, 0.8, 2.4, -0.8],
   filterFrequency: 4300,
   filterQ: 0.54,
   attack: 0.12,
@@ -128,6 +146,117 @@ const shimmerPatch: FmPatch = {
   peakGain: 0.0065,
   sustainGain: 0.002,
   release: 0.36,
+};
+
+const leadEdgePatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 2.003, 3.01, 7.01],
+  modulation: [0.76, 0.42, 0.16],
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.4, 1.2, -0.8, 1.8],
+  filterFrequency: 10500,
+  filterStartFrequency: 2800,
+  filterAttack: 0.045,
+  filterQ: 1.05,
+  pitchAttackCents: -18,
+  pitchAttackTime: 0.055,
+  attack: 0.004,
+  decay: 0.17,
+  peakGain: 0.0088,
+  sustainGain: 0.0036,
+  release: 0.34,
+  vibratoRate: 5.25,
+  vibratoCents: 2.8,
+};
+
+const electricPianoPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 7.01, 2.002, 14.03],
+  modulation: [0.54, 0, 0.32],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.2, 0.7, 1.2, -0.7],
+  filterFrequency: 9400,
+  filterStartFrequency: 5200,
+  filterAttack: 0.024,
+  filterQ: 0.92,
+  pitchAttackCents: 7,
+  pitchAttackTime: 0.035,
+  attack: 0.003,
+  decay: 0.24,
+  peakGain: 0.0076,
+  sustainGain: 0.0009,
+  release: 0.55,
+};
+
+const ensemblePatch: FmPatch = {
+  algorithm: "fan",
+  ratios: [1, 2.002, 3.998, 1.006],
+  modulation: [0.24, 0.1, 0.045],
+  waveforms: ["sine", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-5.2, -1.6, 4.8, 1.4],
+  filterFrequency: 5200,
+  filterStartFrequency: 2600,
+  filterAttack: 0.18,
+  filterQ: 0.58,
+  attack: 0.14,
+  decay: 0.48,
+  peakGain: 0.0038,
+  sustainGain: 0.0027,
+  release: 0.82,
+  vibratoRate: 4.35,
+  vibratoCents: 3.5,
+};
+
+const glassPatch: FmPatch = {
+  algorithm: "dual",
+  ratios: [1, 6.98, 2.01, 12.02],
+  modulation: [0.9, 0, 0.58],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.5, 1.1, 1.5, -1.1],
+  filterFrequency: 11800,
+  filterQ: 1.16,
+  attack: 0.002,
+  decay: 0.12,
+  peakGain: 0.0058,
+  sustainGain: 0.0007,
+  release: 0.62,
+};
+
+const guitarPatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 2.01, 3.99, 8.02],
+  modulation: [1.12, 0.46, 0.13],
+  waveforms: ["triangle", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1, 0.8, -0.6, 1.2],
+  filterFrequency: 7600,
+  filterStartFrequency: 10800,
+  filterAttack: 0.035,
+  filterQ: 0.9,
+  pitchAttackCents: -22,
+  pitchAttackTime: 0.045,
+  attack: 0.002,
+  decay: 0.14,
+  peakGain: 0.0085,
+  sustainGain: 0.0014,
+  release: 0.25,
+};
+
+const subBassPatch: FmPatch = {
+  algorithm: "serial",
+  ratios: [1, 2.003, 2, 3],
+  modulation: [0.42, 0, 0],
+  operatorCount: 2,
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.2, 1.2, 0, 0],
+  filterFrequency: 1050,
+  filterStartFrequency: 520,
+  filterAttack: 0.055,
+  filterQ: 0.62,
+  attack: 0.018,
+  decay: 0.2,
+  peakGain: 0.021,
+  sustainGain: 0.011,
+  release: 0.24,
 };
 
 const finalPatch: FmPatch = {
@@ -181,6 +310,14 @@ const harmonySequence: readonly NoteEvent[] = [
   [96, 48, 16], [96, 51, 16], [96, 55, 16],
   [112, 45, 8], [112, 48, 8], [112, 52, 8],
   [120, 47, 8], [120, 51, 8], [120, 54, 8],
+];
+
+// 各コードの根音を3オクターブ上へ移した、ゆっくり動く上声。
+// 主旋律とは別の音色で鳴らし、参照音源に残るE5〜E6付近の層を補う。
+const counterSequence: readonly NoteEvent[] = [
+  [0, 76, 16], [16, 74, 16], [32, 72, 8], [40, 74, 8], [48, 79, 16],
+  [64, 78, 8], [72, 75, 8], [80, 76, 8], [88, 73, 8],
+  [96, 72, 16], [112, 69, 8], [120, 71, 8],
 ];
 
 function createNoiseBuffer(context: AudioContext, seconds: number): AudioBuffer {
@@ -269,6 +406,60 @@ function createTom(
   sources.push(oscillator);
 }
 
+function createSnareBody(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  startAt: number,
+  gain: number,
+): void {
+  const oscillator = context.createOscillator();
+  const envelope = context.createGain();
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(205, startAt);
+  oscillator.frequency.exponentialRampToValueAtTime(112, startAt + 0.105);
+  envelope.gain.setValueAtTime(0.0001, startAt);
+  envelope.gain.exponentialRampToValueAtTime(gain, startAt + 0.003);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.13);
+  oscillator.connect(envelope);
+  envelope.connect(destination);
+  oscillator.start(startAt);
+  oscillator.stop(startAt + 0.145);
+  sources.push(oscillator);
+}
+
+function createMetalHit(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  startAt: number,
+  duration: number,
+  gain: number,
+): void {
+  const filter = context.createBiquadFilter();
+  const envelope = context.createGain();
+  const frequencies = [421, 563, 719, 907] as const;
+  filter.type = "highpass";
+  filter.frequency.setValueAtTime(3300, startAt);
+  filter.Q.setValueAtTime(0.72, startAt);
+  envelope.gain.setValueAtTime(0.0001, startAt);
+  envelope.gain.exponentialRampToValueAtTime(gain, startAt + 0.003);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+  filter.connect(envelope);
+  envelope.connect(destination);
+
+  frequencies.forEach((frequency, index) => {
+    const oscillator = context.createOscillator();
+    oscillator.type = index % 2 === 0 ? "square" : "triangle";
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    oscillator.detune.setValueAtTime((index - 1.5) * 2.8, startAt);
+    oscillator.connect(filter);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration + 0.02);
+    sources.push(oscillator);
+  });
+}
+
 function createAdpcmIntro(
   context: AudioContext,
   destination: AudioNode,
@@ -282,6 +473,7 @@ function createAdpcmIntro(
     createNoiseHit(context, destination, sources, noiseBuffer, hitAt, 0.13, 1500 + index * 720, 0.025);
   });
   createNoiseHit(context, destination, sources, noiseBuffer, startAt + 1.67, 0.19, 7600, 0.044, "highpass");
+  createMetalHit(context, destination, sources, startAt + 1.67, 0.42, 0.0085);
 }
 
 function scheduleSequence(
@@ -334,6 +526,60 @@ function scheduleArpeggio(
         step % 2 === 0 ? -0.48 : 0.48,
         pluckPatch,
         step % 2 === 0 ? -2.5 : 2.5,
+      );
+    }
+  });
+}
+
+function scheduleHighArpeggio(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  sequence: readonly NoteEvent[],
+  entryAt: number,
+  offset: number,
+  transpose: number,
+): void {
+  const intervals = [36, 43, 48, 43] as const;
+  sequence.forEach(([start, note, length]) => {
+    for (let position = 2; position < length; position += 8) {
+      const step = Math.floor(position / 8);
+      createFmVoice(
+        context,
+        destination,
+        sources,
+        midiToFrequency(note + transpose + intervals[step % intervals.length]),
+        entryAt + (offset + start + position) * SIXTEENTH,
+        1.35 * SIXTEENTH,
+        step % 2 === 0 ? -0.38 : 0.38,
+        glassPatch,
+        step % 2 === 0 ? -1.8 : 1.8,
+      );
+    }
+  });
+}
+
+function scheduleGuitarChops(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  sequence: readonly NoteEvent[],
+  entryAt: number,
+  offset: number,
+  transpose: number,
+): void {
+  sequence.forEach(([start, note, length], noteIndex) => {
+    for (let position = 2; position < length; position += 8) {
+      createFmVoice(
+        context,
+        destination,
+        sources,
+        midiToFrequency(note + transpose + 12),
+        entryAt + (offset + start + position) * SIXTEENTH,
+        1.45 * SIXTEENTH,
+        noteIndex % 2 === 0 ? -0.22 : 0.22,
+        guitarPatch,
+        noteIndex % 3 === 0 ? -1.4 : 1.4,
       );
     }
   });
@@ -392,35 +638,44 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const entryAt = startAt + FM_ENTRY_SECONDS;
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
+  const leadBus = context.createGain();
   const fmBus = context.createGain();
   const adpcmBus = context.createGain();
   const adpcmDry = context.createGain();
   const adpcmCrushed = context.createGain();
   const toneFilter = context.createBiquadFilter();
+  const presenceFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
   const softClip = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context, 0.7);
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.56, startAt);
-  compressor.threshold.setValueAtTime(-14, startAt);
+  master.gain.setValueAtTime(0.53, startAt);
+  compressor.threshold.setValueAtTime(-12, startAt);
   compressor.knee.setValueAtTime(18, startAt);
-  compressor.ratio.setValueAtTime(2.6, startAt);
+  compressor.ratio.setValueAtTime(2.2, startAt);
   compressor.attack.setValueAtTime(0.012, startAt);
-  compressor.release.setValueAtTime(0.3, startAt);
-  fmBus.gain.setValueAtTime(0.7, startAt);
+  compressor.release.setValueAtTime(0.24, startAt);
+  leadBus.gain.setValueAtTime(0.74, startAt);
+  fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
   adpcmDry.gain.setValueAtTime(0.78, startAt);
   adpcmCrushed.gain.setValueAtTime(0.12, startAt);
   toneFilter.type = "lowpass";
   toneFilter.frequency.setValueAtTime(12400, startAt);
   toneFilter.Q.setValueAtTime(0.72, startAt);
+  presenceFilter.type = "peaking";
+  presenceFilter.frequency.setValueAtTime(2700, startAt);
+  presenceFilter.Q.setValueAtTime(0.84, startAt);
+  presenceFilter.gain.setValueAtTime(2.4, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
   softClip.oversample = "4x";
 
+  leadBus.connect(presenceFilter);
+  presenceFilter.connect(softClip);
   fmBus.connect(toneFilter);
   toneFilter.connect(softClip);
   adpcmBus.connect(adpcmDry);
@@ -442,10 +697,10 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     const phrasePatch = phrase % 2 === 0 ? chordPatch : brassPatch;
     const fineTune = phrase % 2 === 0 ? -4.5 : 4.5;
 
-    scheduleSequence(context, fmBus, sources, chordSequence, entryAt, offset, chordPan, phrasePatch, transpose);
+    scheduleSequence(context, leadBus, sources, chordSequence, entryAt, offset, chordPan, phrasePatch, transpose);
     scheduleSequence(
       context,
-      fmBus,
+      leadBus,
       sources,
       chordSequence,
       entryAt,
@@ -456,10 +711,48 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       fineTune,
     );
     scheduleSequence(context, fmBus, sources, harmonySequence, entryAt, offset, -0.12, harmonyPatch, transpose);
+    scheduleSequence(context, fmBus, sources, counterSequence, entryAt, offset, 0.18, ensemblePatch, transpose);
     scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, -0.58, padPatch, transpose + 24);
     scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0.58, padPatch, transpose + 31);
     schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, bassPatch, transpose);
+    scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, subBassPatch, transpose - 12);
     scheduleArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
+
+    const leadHighlights = chordSequence.filter(([start, , length]) => length >= 7 || start % 16 === 0);
+    scheduleSequence(
+      context,
+      leadBus,
+      sources,
+      leadHighlights,
+      entryAt,
+      offset + 0.03,
+      -chordPan * 0.4,
+      leadEdgePatch,
+      transpose,
+      -fineTune * 0.35,
+    );
+
+    if (phrase >= 1) {
+      schedulePulsedSequence(
+        context,
+        fmBus,
+        sources,
+        harmonySequence,
+        entryAt,
+        offset + 1,
+        0.24,
+        electricPianoPatch,
+        transpose + 12,
+        8,
+      );
+      if (phrase % 2 === 1) {
+        scheduleGuitarChops(context, fmBus, sources, harmonySequence, entryAt, offset, transpose);
+      }
+    }
+
+    if (phrase >= 2) {
+      scheduleHighArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
+    }
 
     const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
     scheduleSequence(
@@ -475,6 +768,30 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       -fineTune * 0.65,
     );
 
+    if (phrase === 3) {
+      scheduleSequence(
+        context,
+        fmBus,
+        sources,
+        shortAccents,
+        entryAt,
+        offset + 1.5,
+        chordPan * 0.45,
+        glassPatch,
+        transpose + 24,
+        fineTune * 0.25,
+      );
+    }
+
+    createMetalHit(
+      context,
+      adpcmBus,
+      sources,
+      entryAt + offset * SIXTEENTH,
+      phrase === 2 ? 0.72 : 0.48,
+      phrase === 2 ? 0.009 : 0.006,
+    );
+
     for (let phraseUnit = 0; phraseUnit < PHRASE_UNITS; phraseUnit += 2) {
       const unit = offset + phraseUnit;
       const hitAt = entryAt + unit * SIXTEENTH;
@@ -484,6 +801,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       if (phraseUnit % 8 === 4) {
         createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.17, 1750, 0.038);
         createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt + 0.009, 0.11, 3600, 0.014);
+        createSnareBody(context, adpcmBus, sources, hitAt, 0.027);
       }
       createNoiseHit(
         context,
@@ -499,7 +817,21 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       if (phraseUnit % 16 === 6 || phraseUnit % 16 === 14) {
         createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.13, 11200, 0.0055, "highpass");
       }
+      if (phraseUnit % 16 === 14) {
+        createMetalHit(context, adpcmBus, sources, hitAt, 0.085, 0.0018);
+      }
     }
+
+    [120, 124, 126].forEach((phraseUnit, index) => {
+      createTom(
+        context,
+        adpcmBus,
+        sources,
+        entryAt + (offset + phraseUnit) * SIXTEENTH,
+        184 - index * 28,
+        0.044 - index * 0.004,
+      );
+    });
   };
 
   const finalStart = entryAt + TRACK_UNITS * SIXTEENTH;
@@ -524,10 +856,10 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalStart + 2.1, 1.9, 1200, 0.018);
   };
 
-  // 18秒先までをAudioContextの絶対時刻へ予約する。通常のタイマーは
+  // 8秒先までをAudioContextの絶対時刻へ予約する。通常のタイマーは
   // 予約を補充するだけにして、フレーズ境界そのものは音声クロックへ揃える。
   const phraseDuration = PHRASE_UNITS * SIXTEENTH;
-  const scheduleAheadSeconds = 18;
+  const scheduleAheadSeconds = 8;
   let nextPhrase = 0;
   let finalScheduled = false;
   let schedulerTimer: number | null = null;
@@ -553,17 +885,19 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   schedulePendingEvents();
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
-  master.gain.setValueAtTime(0.56, finalStart + 0.7);
+  master.gain.setValueAtTime(0.53, finalStart + 0.7);
   master.gain.exponentialRampToValueAtTime(0.0001, finalStart + FINAL_TAIL_SECONDS);
 
   const disconnectGraph = () => {
     if (disconnected) return;
     disconnected = true;
+    leadBus.disconnect();
     fmBus.disconnect();
     adpcmBus.disconnect();
     adpcmDry.disconnect();
     adpcmCrushed.disconnect();
     toneFilter.disconnect();
+    presenceFilter.disconnect();
     quantizer.disconnect();
     softClip.disconnect();
     master.disconnect();

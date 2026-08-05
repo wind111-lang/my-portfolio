@@ -37,11 +37,11 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
     window.addEventListener("keydown", blockInput, true);
 
-    schedule(() => setStage("drivers"), 5000);
+    schedule(() => setStage("drivers"), 2500);
     systemMessages.forEach((_, index) => {
-      schedule(() => setVisibleMessageCount(index + 1), 5180 + index * 150);
+      schedule(() => setVisibleMessageCount(index + 1), 2680 + index * 150);
     });
-    schedule(onComplete, 6850);
+    schedule(onComplete, 4350);
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -63,9 +63,13 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
               <span className="pad" />
             </div>
             <div className="x68k-splash-copy">
-              <p className="x68k-splash-title">
-                PERSONAL WORKSTATION <strong>X68000</strong> PORTFOLIO
-              </p>
+              <div className="x68k-splash-brand">
+                <span>PERSONAL WORKSTATION</span>
+                <span className="x68k-splash-logo">
+                  <strong>X68000</strong>
+                  <small>PORTFOLIO</small>
+                </span>
+              </div>
               <p className="x68k-splash-clock">- HIGH CLOCK -</p>
               <dl className="x68k-splash-specs">
                 <div><dt>HOSTNAME:</dt><dd>PORTFOLIO</dd></div>

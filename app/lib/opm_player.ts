@@ -146,6 +146,39 @@ const leadPatch: FmPatch = {
   vibratoCents: 6,
 };
 
+// Troikaの公開VGMで高音主旋律に割り当てられているCON=2を近似する。
+// M1/C1/M2/C2の倍率2/9/1/1と、C2だけをキャリアにすることで、
+// 音程を重ねずにサビで不足していた上側のFM倍音を戻す。
+const highChorusLeadPatch: FmPatch = {
+  algorithm: 2,
+  ratios: [2, 9, 1, 1],
+  modulation: [0, 0, 0],
+  operatorModulation: [0.82, 1.42, 0.52, 0],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.6, 1.1, -0.7, 0.5],
+  carrierGains: [0, 0, 0, 1],
+  filterFrequency: 11800,
+  filterStartFrequency: 5200,
+  filterAttack: 0.035,
+  filterQ: 0.78,
+  pitchAttackCents: -8,
+  pitchAttackTime: 0.045,
+  attack: 0.018,
+  decay: 0.24,
+  peakGain: 0.019,
+  sustainGain: 0.0105,
+  release: 0.5,
+  vibratoRate: 5.15,
+  vibratoCents: 6,
+};
+
+const highChorusEchoPatch: FmPatch = {
+  ...highChorusLeadPatch,
+  peakGain: 0.0072,
+  sustainGain: 0.004,
+  release: 0.56,
+};
+
 const softLeadPatch: FmPatch = {
   algorithm: "dual",
   ratios: [1, 2.003, 1.004, 3.01],
@@ -624,7 +657,10 @@ export function playOpmTrack(context: AudioContext): () => void {
       // 上声の長音も譜面どおり次の発音位置まで保ち、短いゲート切れを作らない。
       const noteDuration = durationInBeats * BEAT;
       const leadPan = voicing === "upper" ? 0.34 : index % 2 === 0 ? -0.2 : 0.14;
-      const mainPatch = voicing === "soft"
+      const usesHighChorusPatch = voicing === "bright" && midiNote >= 80;
+      const mainPatch = usesHighChorusPatch
+        ? highChorusLeadPatch
+        : voicing === "soft"
         ? softLeadPatch
         : voicing === "bright"
           ? leadPatch
@@ -650,7 +686,7 @@ export function playOpmTrack(context: AudioContext): () => void {
           noteStart + LEAD_ECHO_DELAY,
           noteDuration,
           leadPan < 0 ? 0.42 : -0.42,
-          leadEchoPatch,
+          usesHighChorusPatch ? highChorusEchoPatch : leadEchoPatch,
           leadPan < 0 ? 4.2 : -4.2,
         );
       }

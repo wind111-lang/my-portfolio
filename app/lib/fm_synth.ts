@@ -1,7 +1,8 @@
 export type FmPatch = {
-  algorithm: "serial" | "dual" | "fan";
+  algorithm: "serial" | "dual" | "fan" | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   ratios: readonly [number, number, number, number];
   modulation: readonly [number, number, number];
+  operatorModulation?: readonly [number, number, number, number];
   operatorCount?: 2 | 4;
   waveforms?: readonly [OscillatorType, OscillatorType, OscillatorType, OscillatorType];
   operatorDetuneCents?: readonly [number, number, number, number];
@@ -53,7 +54,7 @@ export function createFmVoice(
   const soundEnd = startAt + duration + patch.release;
   const operatorCount = patch.operatorCount ?? 4;
   const operators = Array.from({ length: operatorCount }, () => context.createOscillator());
-  const modulationDepths = Array.from({ length: 3 }, () => context.createGain());
+  const modulationDepths: GainNode[] = [];
   const carrierLevels: GainNode[] = [];
   const envelope = context.createGain();
   const panner = context.createStereoPanner();
@@ -92,16 +93,20 @@ export function createFmVoice(
     trackScheduledSource(sources, vibrato);
   }
 
-  modulationDepths.forEach((depth, index) => {
-    depth.gain.setValueAtTime(frequency * patch.modulation[index], startAt);
-  });
-
   const connectCarrier = (operatorIndex: number) => {
     const level = context.createGain();
     level.gain.setValueAtTime(patch.carrierGains?.[operatorIndex] ?? 1, startAt);
     operators[operatorIndex].connect(level);
     level.connect(envelope);
     carrierLevels.push(level);
+  };
+
+  const connectModulator = (sourceIndex: number, destinationIndex: number, depthRatio: number) => {
+    const depth = context.createGain();
+    depth.gain.setValueAtTime(frequency * depthRatio, startAt);
+    operators[sourceIndex].connect(depth);
+    depth.connect(operators[destinationIndex].frequency);
+    modulationDepths.push(depth);
   };
 
   const attackEnd = startAt + Math.min(patch.attack, duration * 0.2);
@@ -114,30 +119,81 @@ export function createFmVoice(
   panner.pan.setValueAtTime(pan, startAt);
 
   if (operatorCount === 2) {
-    operators[1].connect(modulationDepths[0]);
-    modulationDepths[0].connect(operators[0].frequency);
+    connectModulator(1, 0, patch.modulation[0]);
     connectCarrier(0);
   } else if (patch.algorithm === "dual") {
-    operators[1].connect(modulationDepths[0]);
-    modulationDepths[0].connect(operators[0].frequency);
-    operators[3].connect(modulationDepths[2]);
-    modulationDepths[2].connect(operators[2].frequency);
+    connectModulator(1, 0, patch.modulation[0]);
+    connectModulator(3, 2, patch.modulation[2]);
     connectCarrier(0);
     connectCarrier(2);
   } else if (patch.algorithm === "fan") {
-    operators.slice(0, 3).forEach((carrier, index) => {
-      operators[3].connect(modulationDepths[index]);
-      modulationDepths[index].connect(carrier.frequency);
+    operators.slice(0, 3).forEach((_, index) => {
+      connectModulator(3, index, patch.modulation[index]);
       connectCarrier(index);
     });
-  } else {
-    operators[3].connect(modulationDepths[2]);
-    modulationDepths[2].connect(operators[2].frequency);
-    operators[2].connect(modulationDepths[1]);
-    modulationDepths[1].connect(operators[1].frequency);
-    operators[1].connect(modulationDepths[0]);
-    modulationDepths[0].connect(operators[0].frequency);
+  } else if (patch.algorithm === "serial") {
+    connectModulator(3, 2, patch.modulation[2]);
+    connectModulator(2, 1, patch.modulation[1]);
+    connectModulator(1, 0, patch.modulation[0]);
     connectCarrier(0);
+  } else {
+    // YM2151のM1/C1/M2/C2順。数値指定では実機の8種類の
+    // コネクションをそのままWeb AudioのFM経路へ置き換える。
+    const depths = patch.operatorModulation ?? [
+      patch.modulation[0],
+      patch.modulation[1],
+      patch.modulation[2],
+      0,
+    ];
+    switch (patch.algorithm) {
+      case 0:
+        connectModulator(0, 1, depths[0]);
+        connectModulator(1, 2, depths[1]);
+        connectModulator(2, 3, depths[2]);
+        connectCarrier(3);
+        break;
+      case 1:
+        connectModulator(0, 2, depths[0]);
+        connectModulator(1, 2, depths[1]);
+        connectModulator(2, 3, depths[2]);
+        connectCarrier(3);
+        break;
+      case 2:
+        connectModulator(0, 3, depths[0]);
+        connectModulator(1, 2, depths[1]);
+        connectModulator(2, 3, depths[2]);
+        connectCarrier(3);
+        break;
+      case 3:
+        connectModulator(0, 1, depths[0]);
+        connectModulator(1, 3, depths[1]);
+        connectModulator(2, 3, depths[2]);
+        connectCarrier(3);
+        break;
+      case 4:
+        connectModulator(0, 1, depths[0]);
+        connectModulator(2, 3, depths[2]);
+        connectCarrier(1);
+        connectCarrier(3);
+        break;
+      case 5:
+        connectModulator(0, 1, depths[0]);
+        connectModulator(0, 2, depths[0]);
+        connectModulator(0, 3, depths[0]);
+        connectCarrier(1);
+        connectCarrier(2);
+        connectCarrier(3);
+        break;
+      case 6:
+        connectModulator(0, 1, depths[0]);
+        connectCarrier(1);
+        connectCarrier(2);
+        connectCarrier(3);
+        break;
+      case 7:
+        operators.forEach((_, index) => connectCarrier(index));
+        break;
+    }
   }
 
   if (filter) {

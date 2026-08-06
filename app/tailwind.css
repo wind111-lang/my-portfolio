@@ -315,38 +315,12 @@ button:focus-visible {
   margin: 0;
 }
 
-.x68k-system-halted,
 .x68k-poweroff {
   position: absolute;
   inset: 0;
   display: grid;
   place-content: center;
-  gap: 0.65rem;
-  text-align: center;
-}
-
-.x68k-system-halted strong {
-  font-size: clamp(1rem, 3vw, 1.55rem);
-  letter-spacing: 0.18em;
-  text-shadow: 0 0 9px rgb(190 255 218 / 35%);
-}
-
-.x68k-system-halted span {
-  color: #737a75;
-  font-size: clamp(0.68rem, 1.7vw, 0.86rem);
-}
-
-.x68k-poweroff {
   isolation: isolate;
-}
-
-.x68k-poweroff strong {
-  z-index: 1;
-  color: #737a75;
-  font-size: clamp(0.72rem, 1.8vw, 0.92rem);
-  letter-spacing: 0.2em;
-  opacity: 0;
-  animation: x68k-poweroff-label 0.65s 0.32s steps(1, end) forwards;
 }
 
 .x68k-poweroff-beam {
@@ -363,10 +337,6 @@ button:focus-visible {
   58% { opacity: 0.9; transform: scale(1, 0.012); }
   82% { opacity: 1; transform: scale(0.16, 0.012); }
   100% { opacity: 0; transform: scale(0, 0.012); }
-}
-
-@keyframes x68k-poweroff-label {
-  to { opacity: 1; }
 }
 
 @keyframes x68k-screen-on {

@@ -7,6 +7,7 @@ import {
 } from "~/lib/fm_synth";
 
 type NoteEvent = readonly [start: number, note: number, length: number];
+type DrumEvent = readonly [start: number, midiNote: number, velocity: number];
 
 const BPM = 132;
 const SIXTEENTH = 60 / BPM / 4;
@@ -244,8 +245,8 @@ const airLeadPatch: FmPatch = {
   pitchAttackTime: 0.065,
   attack: 0.01,
   decay: 0.28,
-  peakGain: 0.0052,
-  sustainGain: 0.0025,
+  peakGain: 0.0062,
+  sustainGain: 0.0031,
   release: 0.68,
   vibratoRate: 5.35,
   vibratoCents: 3.2,
@@ -364,6 +365,41 @@ const bassSequence: readonly NoteEvent[] = [
   [96, 36, 16], [112, 33, 8], [120, 35, 8],
 ];
 
+// Demucsのother stemをさらに700〜5200 Hzへ絞って再採譜した上声。
+// 冒頭の打音直後からG5〜D6へ上がり、後半はF#5〜B5を刻む。
+const highMelodySequence: readonly NoteEvent[] = [
+  [6, 79, 2], [9, 81, 3], [12, 83, 4],
+  [20, 81, 3], [22, 83, 3], [25, 84, 3], [28, 86, 4],
+  [35, 86, 2], [37, 86, 1], [38, 84, 2], [46, 84, 2], [52, 83, 8],
+  [64, 81, 1], [68, 81, 2], [70, 78, 2], [72, 83, 2], [76, 81, 6],
+  [84, 79, 2], [86, 78, 2], [89, 79, 4], [96, 81, 1], [99, 79, 2],
+  [103, 78, 1], [104, 79, 5], [113, 81, 2], [119, 81, 1], [120, 83, 3],
+];
+
+const phraseTwoHighAccents: readonly NoteEvent[] = [
+  [8, 80, 2], [10, 82, 2], [16, 80, 1], [17, 89, 1], [21, 94, 1],
+  [23, 77, 1], [24, 84, 1], [27, 85, 1], [33, 77, 1], [36, 87, 2],
+  [39, 77, 1], [48, 84, 2], [77, 84, 1], [81, 94, 2], [90, 89, 2],
+  [96, 94, 2], [105, 89, 2], [113, 91, 1], [120, 89, 3],
+];
+
+const phraseThreeHighAccents: readonly NoteEvent[] = [
+  [0, 89, 2], [21, 94, 1], [29, 99, 2], [107, 77, 1],
+];
+
+const ADPCM_HIGH_CHIME_BASE_MIDI = 84;
+
+// Demucsで分離したドラムstemのオンセットを16分音符へ量子化したADPCMイベント。
+// MIDIドラムノートは36=Kick、38=Snare、39=Clap、42/46=Hi-hat、45/47/50=Tom。
+const adpcmDrumSequence: readonly DrumEvent[] = [
+  ...Array.from({ length: 14 }, (_, index) => [index * 8, 36, index % 4 === 0 ? 1 : 0.82] as const),
+  ...Array.from({ length: 14 }, (_, index) => [index * 8 + 4, 38, index % 4 === 3 ? 0.94 : 0.86] as const),
+  ...Array.from({ length: 55 }, (_, index) => [index * 2 + 2, 42, index % 4 === 2 ? 0.56 : 0.38] as const),
+  ...[14, 30, 46, 62, 78, 94, 110].map((start) => [start, 46, 0.68] as const),
+  [112, 45, 0.82], [114, 47, 0.74], [116, 50, 0.86], [118, 47, 0.76],
+  [120, 45, 0.9], [122, 47, 0.82], [124, 50, 0.94], [126, 39, 0.78],
+];
+
 // 原曲で主旋律の下に残っている和音を16分音符グリッドへ戻した内声。
 // 主旋律だけを鳴らしたときに欠けていた3度・5度を補う。
 const harmonySequence: readonly NoteEvent[] = [
@@ -387,6 +423,16 @@ const counterSequence: readonly NoteEvent[] = [
   [64, 78, 8], [72, 75, 8], [80, 76, 8], [88, 73, 8],
   [96, 72, 16], [112, 69, 8], [120, 71, 8],
 ];
+
+// 分離したother stemで主旋律の背後に持続していた上声。
+// harmonySequenceの最上音だけを残し、E5〜D6帯の輪郭を濁らせず補う。
+const backgroundHighSequence: readonly NoteEvent[] = [
+  [0, 83, 16], [16, 81, 16], [32, 79, 16], [48, 86, 16],
+  [64, 85, 8], [72, 78, 8], [80, 83, 8], [88, 79, 8],
+  [96, 79, 16], [112, 76, 8], [120, 78, 8],
+];
+
+const backgroundHighAccents = backgroundHighSequence.filter(([, , length]) => length <= 8);
 
 // 本編の転調先（C#）を一度上昇してから解決する終止フレーズ。
 // すぐにフェードせず、主旋律・上声・最終和音の順に着地させる。
@@ -548,22 +594,6 @@ function createMetalHit(
   });
 }
 
-function createAdpcmIntro(
-  context: AudioContext,
-  destination: AudioNode,
-  sources: AudioScheduledSourceNode[],
-  noiseBuffer: AudioBuffer,
-  startAt: number,
-): void {
-  [112, 148, 186, 132, 214].forEach((frequency, index) => {
-    const hitAt = startAt + index * 0.34;
-    createTom(context, destination, sources, hitAt, frequency, 0.055 + index * 0.004);
-    createNoiseHit(context, destination, sources, noiseBuffer, hitAt, 0.13, 1500 + index * 720, 0.025);
-  });
-  createNoiseHit(context, destination, sources, noiseBuffer, startAt + 1.67, 0.19, 7600, 0.044, "highpass");
-  createMetalHit(context, destination, sources, startAt + 1.67, 0.42, 0.0085);
-}
-
 function scheduleSequence(
   context: AudioContext,
   destination: AudioNode,
@@ -588,6 +618,50 @@ function scheduleSequence(
       patch,
       detuneCents,
     );
+  });
+}
+
+function schedulePitchedAdpcmSequence(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  sample: AudioBuffer,
+  sequence: readonly NoteEvent[],
+  entryAt: number,
+  offset: number,
+  transpose: number,
+): void {
+  sequence.forEach(([start, note, length], index) => {
+    const targetNote = note + transpose;
+    const playbackRate = 2 ** ((targetNote - ADPCM_HIGH_CHIME_BASE_MIDI) / 12);
+    scheduleAdpcmSample(
+      context,
+      destination,
+      sources,
+      sample,
+      entryAt + (offset + start) * SIXTEENTH,
+      {
+        gain: targetNote >= 84 ? 0.07 : 0.052,
+        pan: index % 2 === 0 ? -0.34 : 0.34,
+        playbackRate,
+      },
+    );
+
+    // 長い音はFMの持続部に加え、ADPCMの倍音を弱くもう一度だけ重ねる。
+    if (length >= 4) {
+      scheduleAdpcmSample(
+        context,
+        destination,
+        sources,
+        sample,
+        entryAt + (offset + start + Math.min(2.5, length * 0.45)) * SIXTEENTH,
+        {
+          gain: targetNote >= 84 ? 0.028 : 0.021,
+          pan: index % 2 === 0 ? 0.2 : -0.2,
+          playbackRate,
+        },
+      );
+    }
   });
 }
 
@@ -804,15 +878,15 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.53, startAt);
+  master.gain.setValueAtTime(0.66, startAt);
   compressor.threshold.setValueAtTime(-12, startAt);
   compressor.knee.setValueAtTime(18, startAt);
   compressor.ratio.setValueAtTime(2.2, startAt);
   compressor.attack.setValueAtTime(0.012, startAt);
   compressor.release.setValueAtTime(0.24, startAt);
   leadBus.gain.setValueAtTime(0.74, startAt);
-  airBus.gain.setValueAtTime(0.42, startAt);
-  brillianceBus.gain.setValueAtTime(0.38, startAt);
+  airBus.gain.setValueAtTime(0.5, startAt);
+  brillianceBus.gain.setValueAtTime(0.44, startAt);
   fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
   adpcmDry.gain.setValueAtTime(0.82, startAt);
@@ -857,7 +931,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   compressor.connect(master);
   master.connect(context.destination);
 
-  createAdpcmIntro(context, adpcmBus, sources, noiseBuffer, startAt);
   [1.08, 0.98, 0.86, 1.16, 0.76].forEach((playbackRate, index) => {
     scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, startAt + index * 0.34, {
       gain: 0.065 + index * 0.006,
@@ -866,11 +939,15 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     });
   });
   scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.orchestraHit, startAt, {
-    gain: 0.075,
+    gain: 0.062,
     pan: -0.16,
   });
+  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.snare, startAt + 0.012, {
+    gain: 0.13,
+    pan: 0.12,
+  });
   scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, startAt + 1.67, {
-    gain: 0.08,
+    gain: 0.055,
     pan: 0.24,
     playbackRate: 1.08,
   });
@@ -898,6 +975,32 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     );
     scheduleSequence(context, fmBus, sources, harmonySequence, entryAt, offset, -0.12, harmonyPatch, transpose);
     scheduleSequence(context, fmBus, sources, counterSequence, entryAt, offset, 0.18, ensemblePatch, transpose);
+    scheduleSequence(
+      context,
+      airBus,
+      sources,
+      backgroundHighSequence,
+      entryAt,
+      offset + 0.22,
+      phrase % 2 === 0 ? -0.3 : 0.3,
+      ensemblePatch,
+      transpose,
+      phrase % 2 === 0 ? -3.2 : 3.2,
+    );
+    if (phrase >= 1) {
+      scheduleSequence(
+        context,
+        brillianceBus,
+        sources,
+        backgroundHighAccents,
+        entryAt,
+        offset + 0.34,
+        phrase % 2 === 0 ? 0.42 : -0.42,
+        sparklePatch,
+        transpose + 12,
+        phrase % 2 === 0 ? 1.8 : -1.8,
+      );
+    }
     scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, -0.58, padPatch, transpose + 24);
     scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0.58, padPatch, transpose + 31);
     schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, bassPatch, transpose);
@@ -963,6 +1066,39 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       transpose,
       phrase >= 2 ? 8 : 16,
     );
+    scheduleSequence(
+      context,
+      airBus,
+      sources,
+      highMelodySequence,
+      entryAt,
+      offset,
+      phrase % 2 === 0 ? -0.16 : 0.16,
+      airLeadPatch,
+      transpose,
+    );
+    schedulePitchedAdpcmSequence(
+      context,
+      adpcmBus,
+      sources,
+      adpcmSamples.highChime,
+      highMelodySequence,
+      entryAt,
+      offset,
+      transpose,
+    );
+    if (phrase >= 2) {
+      scheduleSequence(
+        context,
+        brillianceBus,
+        sources,
+        phrase === 2 ? phraseTwoHighAccents : phraseThreeHighAccents,
+        entryAt,
+        offset,
+        phrase % 2 === 0 ? 0.46 : -0.46,
+        brilliancePatch,
+      );
+    }
 
     const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
     scheduleSequence(
@@ -1037,7 +1173,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
         playbackRate: phrase === 3 ? 1.06 : 1,
       });
     }
-
     createMetalHit(
       context,
       adpcmBus,
@@ -1047,69 +1182,81 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       phrase === 2 ? 0.009 : 0.006,
     );
 
-    for (let phraseUnit = 0; phraseUnit < PHRASE_UNITS; phraseUnit += 2) {
-      const unit = offset + phraseUnit;
-      const hitAt = entryAt + unit * SIXTEENTH;
-      if (phraseUnit % 8 === 0 || phraseUnit % 32 === 20) {
-        createKick(context, adpcmBus, sources, hitAt, phraseUnit === 0 ? 0.065 : 0.045);
+    adpcmDrumSequence.forEach(([phraseUnit, midiNote, velocity], eventIndex) => {
+      const hitAt = entryAt + (offset + phraseUnit) * SIXTEENTH;
+      const phraseGain = phrase === 3 ? 1.08 : 1;
+      const pan = eventIndex % 2 === 0 ? -0.08 : 0.08;
+
+      if (midiNote === 36) {
+        createKick(context, adpcmBus, sources, hitAt, 0.052 * velocity * phraseGain);
         scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.kick, hitAt, {
-          gain: phraseUnit === 0 ? 0.19 : 0.145,
-          pan: phraseUnit % 16 === 0 ? -0.04 : 0.04,
+          gain: 0.18 * velocity * phraseGain,
+          pan,
         });
+        return;
       }
-      if (phraseUnit % 8 === 4) {
-        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.15, 1750, 0.022);
-        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt + 0.009, 0.09, 3600, 0.008);
-        createSnareBody(context, adpcmBus, sources, hitAt, 0.016);
+
+      if (midiNote === 38) {
+        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.15, 1750, 0.022 * velocity);
+        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt + 0.009, 0.09, 3600, 0.008 * velocity);
+        createSnareBody(context, adpcmBus, sources, hitAt, 0.018 * velocity);
         scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.snare, hitAt, {
-          gain: 0.17,
-          pan: phraseUnit % 16 === 4 ? -0.1 : 0.1,
+          gain: 0.19 * velocity * phraseGain,
+          pan,
         });
         if (phraseUnit % 32 === 28) {
           scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.clap, hitAt + 0.012, {
-            gain: 0.085,
-            pan: phrase % 2 === 0 ? 0.38 : -0.38,
+            gain: 0.075 * velocity,
+            pan: phrase % 2 === 0 ? 0.34 : -0.34,
           });
         }
+        return;
       }
-      createNoiseHit(
-        context,
-        adpcmBus,
-        sources,
-        noiseBuffer,
-        hitAt,
-        phraseUnit % 16 === 14 ? 0.1 : 0.045,
-        phraseUnit % 4 === 0 ? 7100 : 9300,
-        phraseUnit % 16 === 14 ? 0.012 : 0.006,
-        "highpass",
-      );
-      if (phraseUnit % 16 === 6 || phraseUnit % 16 === 14) {
-        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.13, 11200, 0.0055, "highpass");
-      }
-      if (phraseUnit % 16 === 14) {
-        createMetalHit(context, adpcmBus, sources, hitAt, 0.085, 0.0018);
-        scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, hitAt, {
-          gain: 0.028,
-          pan: phrase % 2 === 0 ? -0.5 : 0.5,
-          playbackRate: 1.8,
-        });
-      }
-    }
 
-    [120, 124, 126].forEach((phraseUnit, index) => {
-      const tomAt = entryAt + (offset + phraseUnit) * SIXTEENTH;
+      if (midiNote === 42 || midiNote === 46) {
+        const isOpen = midiNote === 46;
+        createNoiseHit(
+          context,
+          adpcmBus,
+          sources,
+          noiseBuffer,
+          hitAt,
+          isOpen ? 0.13 : 0.045,
+          isOpen ? 7600 : 9300,
+          (isOpen ? 0.014 : 0.006) * velocity,
+          "highpass",
+        );
+        if (isOpen) {
+          scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, hitAt, {
+            gain: 0.026 * velocity,
+            pan: phraseUnit % 32 === 14 ? -0.46 : 0.46,
+            playbackRate: 1.82,
+          });
+        }
+        return;
+      }
+
+      if (midiNote === 39) {
+        scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.clap, hitAt, {
+          gain: 0.13 * velocity * phraseGain,
+          pan: phrase % 2 === 0 ? 0.4 : -0.4,
+        });
+        return;
+      }
+
+      const tomPlaybackRate = midiNote === 45 ? 0.72 : midiNote === 47 ? 0.9 : 1.12;
       createTom(
         context,
         adpcmBus,
         sources,
-        tomAt,
-        184 - index * 28,
-        0.026 - index * 0.003,
+        hitAt,
+        midiToFrequency(midiNote - 12),
+        0.032 * velocity * phraseGain,
       );
-      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, tomAt, {
-        gain: 0.12 - index * 0.01,
-        pan: (index - 1) * 0.3,
-        playbackRate: [1.08, 0.84, 0.64][index],
+      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, hitAt, {
+        gain: 0.14 * velocity * phraseGain,
+        pan: (eventIndex % 5 - 2) * 0.2,
+        playbackRate: tomPlaybackRate,
       });
     });
   };
@@ -1232,6 +1379,11 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       pan: 0.18,
       playbackRate: 0.82,
     });
+    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.highChime, finalResolutionStart + 0.035, {
+      gain: 0.052,
+      pan: -0.22,
+      playbackRate: 2 ** ((85 - ADPCM_HIGH_CHIME_BASE_MIDI) / 12),
+    });
     createMetalHit(context, adpcmBus, sources, finalResolutionStart, 1.4, 0.011);
     createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalResolutionStart, 0.72, 4300, 0.045);
     createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalResolutionStart + 2.1, 2.4, 1200, 0.016);
@@ -1266,7 +1418,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   schedulePendingEvents();
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
-  master.gain.setValueAtTime(0.53, finalResolutionStart + 2.5);
+  master.gain.setValueAtTime(0.66, finalResolutionStart + 2.5);
   master.gain.exponentialRampToValueAtTime(0.0001, finalStart + FINAL_TAIL_SECONDS);
 
   const disconnectGraph = () => {

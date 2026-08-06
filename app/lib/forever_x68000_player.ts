@@ -25,6 +25,7 @@ const chordPatch: FmPatch = {
   modulation: [0.96, 0, 0.52],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-1.7, 0.8, 2.1, -0.6],
+  carrierGains: [1, 0, 0.56, 0],
   filterFrequency: 7200,
   filterStartFrequency: 4100,
   filterAttack: 0.075,
@@ -46,6 +47,7 @@ const brassPatch: FmPatch = {
   modulation: [0.82, 0, 0.44],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-2, 1.2, 2.4, -1],
+  carrierGains: [1, 0, 0.5, 0],
   filterFrequency: 5100,
   filterStartFrequency: 2500,
   filterAttack: 0.12,
@@ -59,26 +61,6 @@ const brassPatch: FmPatch = {
   release: 0.46,
   vibratoRate: 5.1,
   vibratoCents: 3.2,
-};
-
-const shadowPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.004, 2, 3],
-  modulation: [0.58, 0.22, 0.08],
-  operatorCount: 2,
-  waveforms: ["sine", "triangle", "sine", "sine"],
-  operatorDetuneCents: [1.8, -1.4, 0, 0],
-  filterFrequency: 5800,
-  filterStartFrequency: 3200,
-  filterAttack: 0.09,
-  filterQ: 0.68,
-  attack: 0.028,
-  decay: 0.3,
-  peakGain: 0.0062,
-  sustainGain: 0.0038,
-  release: 0.52,
-  vibratoRate: 4.95,
-  vibratoCents: 2.4,
 };
 
 const bassPatch: FmPatch = {
@@ -105,6 +87,7 @@ const padPatch: FmPatch = {
   modulation: [0.34, 0, 0.16],
   waveforms: ["sine", "triangle", "sine", "sine"],
   operatorDetuneCents: [-3.8, 1.4, 3.8, -1.4],
+  carrierGains: [1, 0, 0.42, 0],
   filterFrequency: 3600,
   filterQ: 0.6,
   attack: 0.09,
@@ -120,6 +103,7 @@ const harmonyPatch: FmPatch = {
   modulation: [0.3, 0.12, 0.055],
   waveforms: ["sine", "sine", "triangle", "sine"],
   operatorDetuneCents: [-2.4, 0.8, 2.4, -0.8],
+  carrierGains: [1, 0.3, 0.12, 0],
   filterFrequency: 4300,
   filterQ: 0.54,
   attack: 0.12,
@@ -144,28 +128,14 @@ const pluckPatch: FmPatch = {
   release: 0.18,
 };
 
-const shimmerPatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 2, 3, 5],
-  modulation: [0.82, 0.36, 0.14],
-  operatorCount: 2,
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  filterFrequency: 9200,
-  filterQ: 1.2,
-  attack: 0.006,
-  decay: 0.18,
-  peakGain: 0.0065,
-  sustainGain: 0.002,
-  release: 0.36,
-};
-
 const leadEdgePatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.003, 3.01, 7.01],
-  modulation: [0.76, 0.42, 0.16],
+  algorithm: "fan",
+  ratios: [1, 2.003, 3.01, 4.01],
+  modulation: [0.62, 0.22, 0.07],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-1.4, 1.2, -0.8, 1.8],
-  filterFrequency: 10500,
+  carrierGains: [1, 0.34, 0.13, 0],
+  filterFrequency: 9200,
   filterStartFrequency: 2800,
   filterAttack: 0.045,
   filterQ: 1.05,
@@ -182,12 +152,13 @@ const leadEdgePatch: FmPatch = {
 
 const electricPianoPatch: FmPatch = {
   algorithm: "dual",
-  ratios: [1, 7.01, 2.002, 14.03],
-  modulation: [0.54, 0, 0.32],
+  ratios: [1, 3.01, 2.002, 6.02],
+  modulation: [0.6, 0, 0.24],
   waveforms: ["sine", "sine", "sine", "sine"],
   operatorDetuneCents: [-1.2, 0.7, 1.2, -0.7],
-  filterFrequency: 9400,
-  filterStartFrequency: 5200,
+  carrierGains: [1, 0, 0.36, 0],
+  filterFrequency: 8200,
+  filterStartFrequency: 4600,
   filterAttack: 0.024,
   filterQ: 0.92,
   pitchAttackCents: 7,
@@ -200,119 +171,75 @@ const electricPianoPatch: FmPatch = {
 };
 
 const ensemblePatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.002, 3, 4],
-  modulation: [0.18, 0, 0],
-  operatorCount: 2,
+  algorithm: "fan",
+  ratios: [1, 2.002, 3.003, 4.008],
+  modulation: [0.28, 0.12, 0.05],
   waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.8, 1.8, 0, 0],
-  filterFrequency: 6800,
+  operatorDetuneCents: [-2.4, -0.8, 2.4, 0.8],
+  carrierGains: [1, 0.3, 0.11, 0],
+  filterFrequency: 6200,
   filterStartFrequency: 3200,
   filterAttack: 0.28,
   filterQ: 0.48,
-  attack: 0.2,
-  decay: 0.62,
-  peakGain: 0.0044,
-  sustainGain: 0.0037,
-  release: 2.1,
+  attack: 0.16,
+  decay: 0.58,
+  peakGain: 0.0046,
+  sustainGain: 0.0035,
+  release: 1.55,
   vibratoRate: 4.1,
   vibratoCents: 1.6,
 };
 
-const airLeadPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.004, 3, 4],
-  modulation: [0.44, 0, 0],
-  operatorCount: 2,
-  waveforms: ["sine", "triangle", "sine", "sine"],
-  operatorDetuneCents: [-1.7, 1.7, 0, 0],
-  filterFrequency: 14800,
-  filterStartFrequency: 7200,
-  filterAttack: 0.055,
-  filterQ: 0.72,
-  pitchAttackCents: -7,
-  pitchAttackTime: 0.045,
-  attack: 0.008,
-  decay: 0.22,
-  peakGain: 0.007,
-  sustainGain: 0.0032,
-  release: 0.56,
-  vibratoRate: 5.2,
-  vibratoCents: 2.1,
-};
-
-const brilliancePatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.006, 3, 4],
-  modulation: [0.34, 0, 0],
-  operatorCount: 2,
-  waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.1, 1.1, 0, 0],
-  filterFrequency: 17600,
-  filterStartFrequency: 9800,
-  filterAttack: 0.018,
-  filterQ: 0.7,
-  pitchAttackCents: -5,
-  pitchAttackTime: 0.025,
-  attack: 0.002,
-  decay: 0.11,
-  peakGain: 0.0045,
-  sustainGain: 0.00065,
-  release: 0.34,
-};
-
-const guitarPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.01, 3.99, 8.02],
-  modulation: [1.12, 0.46, 0.13],
-  operatorCount: 2,
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1, 0.8, -0.6, 1.2],
-  filterFrequency: 7600,
-  filterStartFrequency: 10800,
-  filterAttack: 0.035,
-  filterQ: 0.9,
-  pitchAttackCents: -22,
-  pitchAttackTime: 0.045,
-  attack: 0.002,
-  decay: 0.14,
-  peakGain: 0.0085,
-  sustainGain: 0.0014,
-  release: 0.25,
-};
-
-const subBassPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.003, 2, 3],
-  modulation: [0.42, 0, 0],
-  operatorCount: 2,
-  waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.2, 1.2, 0, 0],
-  filterFrequency: 1050,
-  filterStartFrequency: 520,
-  filterAttack: 0.055,
-  filterQ: 0.62,
-  attack: 0.018,
-  decay: 0.2,
-  peakGain: 0.021,
-  sustainGain: 0.011,
-  release: 0.24,
-};
-
-// 参照音源の132 BPMグリッドから採譜した1フレーズ分のキーイベント。
+// side成分の基音を短い解析窓で132 BPMの16分音符中央へ再量子化した主旋律。
+// 長い解析窓で均されていた短い経過音を戻し、高域に並ぶFM倍音は別MIDI
+// ノートとして重ねない。
 // [開始位置（16分音符）, MIDIノート, 長さ（16分音符）]
-const chordSequence: readonly NoteEvent[] = [
-  [0, 64, 35], [0, 67, 3], [3, 66, 3], [6, 67, 3], [9, 66, 3],
-  [12, 67, 2], [14, 66, 2], [16, 67, 3], [19, 66, 3], [22, 67, 3],
-  [25, 66, 3], [28, 67, 2], [30, 66, 2], [32, 67, 3], [35, 62, 3],
-  [35, 66, 3], [38, 60, 2], [38, 64, 2], [40, 62, 3], [40, 66, 3],
-  [43, 64, 3], [43, 67, 3], [46, 66, 3], [46, 69, 2], [48, 71, 16],
-  [49, 67, 15], [64, 66, 19], [64, 69, 9], [73, 71, 7], [80, 69, 3],
-  [83, 64, 3], [83, 67, 3], [86, 63, 2], [86, 66, 3], [88, 64, 8],
-  [89, 67, 7], [96, 66, 3], [96, 69, 3], [99, 64, 3], [99, 67, 3],
-  [102, 63, 2], [102, 66, 3], [104, 64, 17], [105, 67, 7], [112, 69, 9],
-  [121, 66, 7], [121, 71, 7],
+const transcribedLeadSequence: readonly NoteEvent[] = [
+  [0, 64, 31], [31, 66, 1], [32, 67, 4], [36, 62, 3],
+  [39, 60, 2], [41, 62, 2], [43, 64, 3], [46, 69, 3],
+  [49, 71, 15], [64, 69, 9], [73, 71, 7], [80, 69, 3],
+  [83, 67, 4], [87, 66, 2], [89, 67, 7], [96, 69, 3],
+  [99, 67, 4], [103, 66, 2], [105, 67, 7], [112, 69, 9],
+  [121, 71, 7], [128, 64, 4], [132, 66, 3], [135, 67, 2],
+  [137, 66, 4], [141, 64, 20], [161, 67, 3], [164, 66, 3],
+  [167, 64, 2], [169, 62, 2], [171, 64, 3], [174, 69, 3],
+  [177, 71, 15], [192, 69, 9], [201, 71, 7], [208, 66, 2],
+  [210, 69, 2], [212, 64, 3], [215, 66, 2], [217, 64, 3],
+  [220, 67, 4], [224, 69, 4], [228, 67, 3], [231, 66, 2],
+  [233, 64, 3], [236, 67, 4], [240, 69, 9], [249, 71, 5],
+  [254, 66, 2], [256, 65, 4], [260, 67, 2], [262, 65, 2],
+  [264, 68, 2], [266, 65, 6], [272, 67, 1], [273, 68, 3],
+  [276, 65, 8], [284, 67, 1], [285, 68, 2], [287, 67, 2],
+  [289, 68, 3], [292, 67, 3], [295, 65, 2], [297, 67, 2],
+  [299, 68, 4], [303, 67, 2], [305, 68, 4], [309, 72, 4],
+  [313, 68, 4], [317, 72, 3], [320, 70, 9], [329, 72, 7],
+  [336, 67, 4], [340, 68, 3], [343, 67, 2], [345, 68, 8],
+  [353, 67, 3], [356, 68, 3], [359, 67, 2], [361, 65, 7],
+  [368, 67, 8], [376, 65, 5], [381, 63, 4], [385, 65, 2],
+  [387, 67, 3], [390, 68, 3], [393, 67, 3], [396, 68, 7],
+  [403, 67, 3], [406, 68, 3], [409, 70, 3], [412, 72, 4],
+  [416, 68, 4], [420, 67, 3], [423, 65, 2], [425, 67, 2],
+  [427, 68, 4], [431, 67, 2], [433, 68, 4], [437, 72, 4],
+  [441, 68, 4], [445, 72, 3], [448, 70, 9], [457, 72, 8],
+  [465, 70, 1], [466, 67, 2], [468, 68, 3], [471, 67, 2],
+  [473, 68, 8], [481, 67, 3], [484, 68, 3], [487, 67, 2],
+  [489, 65, 8], [497, 63, 8], [505, 65, 4], [509, 63, 3],
 ];
+
+const leadSequences: readonly (readonly NoteEvent[])[] = Array.from(
+  { length: 4 },
+  (_, phrase) => {
+    const phraseStart = phrase * PHRASE_UNITS;
+    const phraseEnd = phraseStart + PHRASE_UNITS;
+    return transcribedLeadSequence.flatMap(([start, note, length]) => {
+      const clippedStart = Math.max(start, phraseStart);
+      const clippedEnd = Math.min(start + length, phraseEnd);
+      return clippedStart < clippedEnd
+        ? [[clippedStart - phraseStart, note, clippedEnd - clippedStart] as const]
+        : [];
+    });
+  },
+);
 
 const bassSequence: readonly NoteEvent[] = [
   [0, 40, 16], [16, 38, 16], [32, 36, 8], [40, 38, 8], [48, 43, 16],
@@ -320,72 +247,19 @@ const bassSequence: readonly NoteEvent[] = [
   [96, 36, 16], [112, 33, 8], [120, 35, 8],
 ];
 
-// 参照MP3のother stemと高域抽出を独立にMIDIイベント化し、両方で
-// 確認できた発音をフレーズ別に採用する。同一列の反復・自動移調は行わない。
-// [開始位置（16分音符）, MIDIノート, 長さ（16分音符）]
-const upperLeadSequences: readonly (readonly NoteEvent[])[] = [
-  [
-    [6, 79, 2], [9, 81, 3], [12, 83, 4],
-    [19, 81, 3], [22, 83, 3], [25, 84, 3], [28, 86, 4],
-    [35, 86, 3], [38, 84, 2], [46, 84, 2], [52, 83, 8],
-    [64, 81, 1], [67, 78, 2], [68, 81, 1], [70, 78, 1],
-    [71, 81, 1], [72, 83, 2], [76, 81, 4],
-    [84, 79, 2], [86, 78, 2], [89, 79, 5],
-    [96, 81, 1], [99, 79, 2], [102, 78, 2], [104, 79, 5],
-    [113, 81, 2], [116, 81, 2], [119, 81, 1], [120, 83, 3],
-  ],
-  [
-    [9, 81, 1], [16, 79, 2], [25, 84, 2], [32, 84, 2],
-    [36, 86, 1], [47, 84, 1],
-    [64, 81, 2], [67, 81, 1], [70, 81, 1], [72, 83, 3],
-    [76, 81, 2], [80, 81, 1],
-    [83, 79, 2], [86, 78, 2], [88, 79, 4],
-    [96, 81, 3], [99, 79, 1], [102, 78, 1], [104, 79, 3],
-    [109, 79, 1], [112, 81, 2], [115, 81, 2], [118, 81, 2],
-    [120, 83, 2],
-  ],
-  [
-    // 30.95〜45.49秒のside成分を16分音符へ量子化した上昇列。
-    [0, 77, 4], [4, 79, 2], [6, 80, 4], [10, 82, 3], [13, 84, 3],
-    [16, 80, 4], [20, 82, 3], [23, 84, 3],
-    [26, 73, 3], [29, 75, 3], [32, 73, 4], [36, 75, 3],
-    [39, 77, 2], [41, 79, 3], [44, 80, 3], [47, 82, 2],
-    [49, 84, 15], [64, 82, 8], [72, 79, 8],
-    [80, 82, 4], [84, 80, 2], [86, 79, 3], [89, 77, 7],
-    [96, 82, 4], [100, 80, 2], [102, 79, 3], [105, 77, 7],
-    [112, 79, 8], [120, 77, 4], [124, 75, 4],
-  ],
-  [
-    // 45.49秒以降は短い上昇列の後、E5〜G#5の応答へ移る。
-    [0, 77, 3], [3, 79, 3], [6, 80, 3], [9, 82, 3], [12, 84, 4],
-    [16, 80, 3], [19, 82, 3], [22, 84, 2],
-    [24, 72, 2], [26, 73, 3], [29, 72, 4],
-    [33, 77, 3], [36, 75, 3], [39, 77, 2], [41, 79, 3],
-    [44, 80, 3], [47, 79, 2], [49, 72, 16],
-    [65, 77, 9], [74, 72, 7], [81, 79, 3], [84, 80, 3],
-    [87, 79, 2], [89, 80, 7], [96, 79, 4], [100, 80, 3],
-    [103, 79, 2], [105, 80, 7], [112, 79, 8],
-    [120, 77, 1], [121, 72, 4], [125, 75, 3],
-  ],
-];
-
-// 5〜8 kHz帯で基音を確認できたベル状の上声だけを別トラックにする。
-// 低い旋律から機械的に作ったオクターブ音は含めない。
-const crystalSequences: readonly (readonly NoteEvent[])[] = [
+// 5 kHz以上で独立したアタックを確認できた位置だけをMSM6258へ渡す。
+// FM倍音の連続線はMIDIノート化せず、短いベル状サンプルだけに限定する。
+const adpcmChimeSequences: readonly (readonly NoteEvent[])[] = [
   [],
   [],
   [
-    [0, 89, 4], [4, 91, 2], [6, 92, 4], [10, 94, 3], [13, 96, 3],
-    [16, 92, 4], [20, 94, 3], [23, 96, 3],
-    [39, 89, 2], [41, 91, 3], [44, 92, 3], [47, 94, 2],
-    [49, 96, 15], [64, 94, 8], [72, 91, 8],
-    [80, 94, 4], [84, 92, 2], [86, 91, 3], [89, 89, 7],
-    [96, 94, 4], [100, 92, 2], [102, 91, 3], [105, 89, 7],
-    [112, 91, 8], [120, 89, 4],
+    [7, 92, 1], [10, 94, 1], [17, 89, 1], [21, 94, 1],
+    [65, 94, 1], [67, 94, 1], [69, 94, 1], [81, 94, 2],
+    [89, 89, 3], [96, 94, 3], [104, 89, 1], [107, 89, 2],
+    [113, 91, 1], [120, 89, 2],
   ],
   [
-    [0, 89, 3], [3, 91, 3], [6, 92, 3], [9, 94, 3], [12, 96, 4],
-    [16, 92, 3], [19, 94, 3], [22, 96, 2],
+    [0, 89, 2], [7, 92, 1], [17, 92, 2], [21, 94, 1], [29, 99, 2],
   ],
 ];
 
@@ -402,20 +276,12 @@ const adpcmDrumSequence: readonly DrumEvent[] = [
   [120, 45, 0.9], [122, 47, 0.82], [124, 50, 0.94], [126, 39, 0.78],
 ];
 
-// 原曲で主旋律の下に残っている和音を16分音符グリッドへ戻した内声。
-// 主旋律だけを鳴らしたときに欠けていた3度・5度を補う。
-const harmonySequence: readonly NoteEvent[] = [
-  [0, 52, 16], [0, 55, 16], [0, 59, 16],
-  [16, 50, 16], [16, 54, 16], [16, 57, 16],
-  [32, 48, 16], [32, 52, 16], [32, 55, 16],
-  [48, 55, 16], [48, 59, 16], [48, 62, 16],
-  [64, 54, 8], [64, 57, 8], [64, 61, 8],
-  [72, 47, 8], [72, 51, 8], [72, 54, 8],
-  [80, 52, 8], [80, 55, 8], [80, 59, 8],
-  [88, 49, 8], [88, 52, 8], [88, 55, 8],
-  [96, 48, 16], [96, 51, 16], [96, 55, 16],
-  [112, 45, 8], [112, 48, 8], [112, 52, 8],
-  [120, 47, 8], [120, 51, 8], [120, 54, 8],
+// 和音の全構成音を重ねず、mid成分で最も連続していた上側の内声だけを採用する。
+// これで主旋律と倍音を圧迫せず、OPM 8ch相当の同時発音数へ収める。
+const innerVoiceSequence: readonly NoteEvent[] = [
+  [0, 59, 16], [16, 57, 16], [32, 55, 16], [48, 62, 16],
+  [64, 61, 8], [72, 54, 8], [80, 59, 8], [88, 55, 8],
+  [96, 55, 16], [112, 52, 8], [120, 54, 8],
 ];
 
 // 各コードの根音を3オクターブ上へ移した、ゆっくり動く上声。
@@ -636,26 +502,21 @@ function schedulePitchedAdpcmSequence(
   offset: number,
   transpose: number,
 ): void {
-  sequence.forEach(([start, note, length], index) => {
+  sequence.forEach(([start, note], index) => {
     const targetNote = note + transpose;
     const playbackRate = 2 ** ((targetNote - ADPCM_HIGH_CHIME_BASE_MIDI) / 12);
-    // 長い高音も先頭の一打だけで消えないよう、約0.45秒ごとに
-    // 弱い追撃を入れてMSM6258由来のきらめきを保つ。
-    const pulseCount = Math.max(1, Math.ceil(length / 4));
-    for (let pulse = 0; pulse < pulseCount; pulse += 1) {
-      scheduleAdpcmSample(
-        context,
-        destination,
-        sources,
-        sample,
-        entryAt + (offset + start + pulse * 4) * SIXTEENTH,
-        {
-          gain: (targetNote >= 92 ? 0.082 : 0.068) * (pulse === 0 ? 1 : 0.58),
-          pan: (index + pulse) % 2 === 0 ? -0.3 : 0.3,
-          playbackRate,
-        },
-      );
-    }
+    scheduleAdpcmSample(
+      context,
+      destination,
+      sources,
+      sample,
+      entryAt + (offset + start) * SIXTEENTH,
+      {
+        gain: targetNote >= 92 ? 0.055 : 0.045,
+        pan: index % 2 === 0 ? -0.3 : 0.3,
+        playbackRate,
+      },
+    );
   });
 }
 
@@ -682,33 +543,6 @@ function scheduleArpeggio(
         step % 2 === 0 ? -0.48 : 0.48,
         pluckPatch,
         step % 2 === 0 ? -2.5 : 2.5,
-      );
-    }
-  });
-}
-
-function scheduleGuitarChops(
-  context: AudioContext,
-  destination: AudioNode,
-  sources: AudioScheduledSourceNode[],
-  sequence: readonly NoteEvent[],
-  entryAt: number,
-  offset: number,
-  transpose: number,
-  stepUnits = 8,
-): void {
-  sequence.forEach(([start, note, length], noteIndex) => {
-    for (let position = 2; position < length; position += stepUnits) {
-      createFmVoice(
-        context,
-        destination,
-        sources,
-        midiToFrequency(note + transpose + 12),
-        entryAt + (offset + start + position) * SIXTEENTH,
-        1.45 * SIXTEENTH,
-        noteIndex % 2 === 0 ? -0.22 : 0.22,
-        guitarPatch,
-        noteIndex % 3 === 0 ? -1.4 : 1.4,
       );
     }
   });
@@ -768,8 +602,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
   const leadBus = context.createGain();
-  const airBus = context.createGain();
-  const brillianceBus = context.createGain();
   const fmBus = context.createGain();
   const adpcmBus = context.createGain();
   const adpcmHighBus = context.createGain();
@@ -777,9 +609,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const adpcmCrushed = context.createGain();
   const toneFilter = context.createBiquadFilter();
   const presenceFilter = context.createBiquadFilter();
-  const airFilter = context.createBiquadFilter();
-  const brillianceFilter = context.createBiquadFilter();
-  const brilliancePeak = context.createBiquadFilter();
   const adpcmHighPass = context.createBiquadFilter();
   const adpcmHighShelf = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
@@ -795,37 +624,25 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   compressor.ratio.setValueAtTime(2.2, startAt);
   compressor.attack.setValueAtTime(0.012, startAt);
   compressor.release.setValueAtTime(0.24, startAt);
-  leadBus.gain.setValueAtTime(0.74, startAt);
-  airBus.gain.setValueAtTime(0.57, startAt);
-  brillianceBus.gain.setValueAtTime(0.51, startAt);
-  fmBus.gain.setValueAtTime(0.64, startAt);
-  adpcmBus.gain.setValueAtTime(0.27, startAt);
-  adpcmHighBus.gain.setValueAtTime(0.48, startAt);
+  leadBus.gain.setValueAtTime(0.76, startAt);
+  fmBus.gain.setValueAtTime(0.58, startAt);
+  adpcmBus.gain.setValueAtTime(0.3, startAt);
+  adpcmHighBus.gain.setValueAtTime(0.38, startAt);
   adpcmDry.gain.setValueAtTime(0.82, startAt);
   adpcmCrushed.gain.setValueAtTime(0.07, startAt);
   toneFilter.type = "lowpass";
-  toneFilter.frequency.setValueAtTime(12400, startAt);
+  toneFilter.frequency.setValueAtTime(10800, startAt);
   toneFilter.Q.setValueAtTime(0.72, startAt);
   presenceFilter.type = "peaking";
   presenceFilter.frequency.setValueAtTime(2700, startAt);
   presenceFilter.Q.setValueAtTime(0.84, startAt);
   presenceFilter.gain.setValueAtTime(2.4, startAt);
-  airFilter.type = "highshelf";
-  airFilter.frequency.setValueAtTime(4600, startAt);
-  airFilter.gain.setValueAtTime(4.2, startAt);
-  brillianceFilter.type = "highpass";
-  brillianceFilter.frequency.setValueAtTime(2400, startAt);
-  brillianceFilter.Q.setValueAtTime(0.64, startAt);
-  brilliancePeak.type = "peaking";
-  brilliancePeak.frequency.setValueAtTime(5400, startAt);
-  brilliancePeak.Q.setValueAtTime(0.72, startAt);
-  brilliancePeak.gain.setValueAtTime(4.2, startAt);
   adpcmHighPass.type = "highpass";
   adpcmHighPass.frequency.setValueAtTime(1850, startAt);
   adpcmHighPass.Q.setValueAtTime(0.62, startAt);
   adpcmHighShelf.type = "highshelf";
   adpcmHighShelf.frequency.setValueAtTime(4700, startAt);
-  adpcmHighShelf.gain.setValueAtTime(5.4, startAt);
+  adpcmHighShelf.gain.setValueAtTime(3.8, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
@@ -833,11 +650,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
 
   leadBus.connect(presenceFilter);
   presenceFilter.connect(softClip);
-  airBus.connect(airFilter);
-  airFilter.connect(softClip);
-  brillianceBus.connect(brillianceFilter);
-  brillianceFilter.connect(brilliancePeak);
-  brilliancePeak.connect(softClip);
   fmBus.connect(toneFilter);
   toneFilter.connect(softClip);
   adpcmBus.connect(adpcmDry);
@@ -854,19 +666,24 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   compressor.connect(master);
   master.connect(context.destination);
 
-  [1.08, 0.98, 0.86, 1.16, 0.76].forEach((playbackRate, index) => {
-    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, startAt + index * 0.34, {
-      gain: 0.065 + index * 0.006,
+  // 冒頭1.85秒のonsetを50 ms単位で再解析した位置へ分散する。
+  // 複数サンプルを0秒へ同時投入していたノイズ状のピークを作らない。
+  const introTomHits = [
+    [0.15, 1.08], [0.5, 0.98], [0.7, 0.86], [1.05, 1.16], [1.4, 0.76],
+  ] as const;
+  introTomHits.forEach(([offset, playbackRate], index) => {
+    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, startAt + offset, {
+      gain: 0.055 + index * 0.005,
       pan: (index - 2) * 0.18,
       playbackRate,
     });
   });
-  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.orchestraHit, startAt, {
-    gain: 0.062,
+  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.orchestraHit, startAt + 0.04, {
+    gain: 0.052,
     pan: -0.16,
   });
-  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.snare, startAt + 0.012, {
-    gain: 0.13,
+  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.snare, startAt + 0.05, {
+    gain: 0.105,
     pan: 0.12,
   });
   scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, startAt + 1.67, {
@@ -882,21 +699,10 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     const chordPan = phrase % 2 === 0 ? -0.34 : 0.34;
     const phrasePatch = phrase % 2 === 0 ? chordPatch : brassPatch;
     const fineTune = phrase % 2 === 0 ? -4.5 : 4.5;
+    const leadSequence = leadSequences[phrase];
 
-    scheduleSequence(context, leadBus, sources, chordSequence, entryAt, offset, chordPan, phrasePatch, transpose);
-    scheduleSequence(
-      context,
-      leadBus,
-      sources,
-      chordSequence,
-      entryAt,
-      offset + 0.14,
-      -chordPan,
-      shadowPatch,
-      transpose,
-      fineTune,
-    );
-    scheduleSequence(context, fmBus, sources, harmonySequence, entryAt, offset, -0.12, harmonyPatch, transpose);
+    scheduleSequence(context, leadBus, sources, leadSequence, entryAt, offset, chordPan, phrasePatch);
+    scheduleSequence(context, fmBus, sources, innerVoiceSequence, entryAt, offset, -0.12, harmonyPatch, transpose);
     scheduleSustainedSequence(
       context,
       fmBus,
@@ -915,28 +721,15 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       bassSequence,
       entryAt,
       offset,
-      -0.58,
+      -0.28,
       padPatch,
       transpose + 24,
     );
-    scheduleSustainedSequence(
-      context,
-      fmBus,
-      sources,
-      bassSequence,
-      entryAt,
-      offset,
-      0.58,
-      padPatch,
-      transpose + 31,
-    );
     schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, bassPatch, transpose);
-    if (phrase >= 1) {
-      scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, subBassPatch, transpose - 12);
-    }
     scheduleArpeggio(context, fmBus, sources, bassSequence, entryAt, offset, transpose);
 
-    const leadHighlights = chordSequence.filter(([start, , length]) => length >= 7 || start % 16 === 0);
+    // 基音とは別の高音MIDIを作らず、長音の一部だけへ明るいFM倍音を加える。
+    const leadHighlights = leadSequence.filter(([start, , length]) => length >= 8 || start % 32 === 0);
     scheduleSequence(
       context,
       leadBus,
@@ -946,79 +739,35 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       offset + 0.03,
       -chordPan * 0.4,
       leadEdgePatch,
-      transpose,
+      0,
       -fineTune * 0.35,
     );
 
-    schedulePulsedSequence(
-      context,
-      fmBus,
-      sources,
-      harmonySequence,
-      entryAt,
-      offset + 1,
-      0.24,
-      electricPianoPatch,
-      transpose + 12,
-      phrase === 0 ? 16 : 8,
-    );
-    scheduleGuitarChops(
-      context,
-      fmBus,
-      sources,
-      harmonySequence,
-      entryAt,
-      offset,
-      transpose,
-      phrase % 2 === 0 ? 16 : 8,
-    );
+    if (phrase >= 2) {
+      schedulePulsedSequence(
+        context,
+        fmBus,
+        sources,
+        innerVoiceSequence,
+        entryAt,
+        offset + 1,
+        0.24,
+        electricPianoPatch,
+        transpose + 12,
+        16,
+      );
+    }
 
-    const upperLeadSequence = upperLeadSequences[phrase];
-    scheduleSequence(
-      context,
-      airBus,
-      sources,
-      upperLeadSequence,
-      entryAt,
-      offset,
-      phrase % 2 === 0 ? -0.16 : 0.16,
-      airLeadPatch,
-    );
-
-    const crystalSequence = crystalSequences[phrase];
-    scheduleSequence(
-      context,
-      brillianceBus,
-      sources,
-      crystalSequence,
-      entryAt,
-      offset,
-      phrase % 2 === 0 ? 0.4 : -0.4,
-      brilliancePatch,
-    );
+    const chimeSequence = adpcmChimeSequences[phrase];
     schedulePitchedAdpcmSequence(
       context,
       adpcmHighBus,
       sources,
       adpcmSamples.highChime,
-      crystalSequence,
+      chimeSequence,
       entryAt,
       offset,
       0,
-    );
-
-    const shortAccents = chordSequence.filter(([, , length]) => length <= 3);
-    scheduleSequence(
-      context,
-      fmBus,
-      sources,
-      shortAccents,
-      entryAt,
-      offset + (phrase % 2 === 0 ? 0.5 : 1),
-      -chordPan,
-      shimmerPatch,
-      transpose + 12,
-      -fineTune * 0.65,
     );
 
     const phraseStartAt = entryAt + offset * SIXTEENTH;
@@ -1157,8 +906,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     if (disconnected) return;
     disconnected = true;
     leadBus.disconnect();
-    airBus.disconnect();
-    brillianceBus.disconnect();
     fmBus.disconnect();
     adpcmBus.disconnect();
     adpcmHighBus.disconnect();
@@ -1166,9 +913,6 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     adpcmCrushed.disconnect();
     toneFilter.disconnect();
     presenceFilter.disconnect();
-    airFilter.disconnect();
-    brillianceFilter.disconnect();
-    brilliancePeak.disconnect();
     adpcmHighPass.disconnect();
     adpcmHighShelf.disconnect();
     quantizer.disconnect();

@@ -214,18 +214,18 @@ function createMetalSample(context: AudioContext): AudioBuffer {
 }
 
 function createHighChimeSample(context: AudioContext): AudioBuffer {
-  // C6（MIDI 84）を基音にした有音程のADPCM素材。ランダムノイズは混ぜず、
-  // playbackRateで採譜済みの高音列を鳴らせるよう倍音をナイキスト内へ収める。
+  // C6（MIDI 84）を基音にした有音程のADPCM素材。最高音（MIDI 99）へ
+  // playbackRateを上げてもMSM6258の7.8 kHzナイキストを越えない比率だけを使う。
   const baseFrequency = 1046.5;
-  const ratios = [1, 2.001, 3.997, 5.01, 6.015] as const;
+  const ratios = [1, 1.501, 2.003, 2.407] as const;
   const frequencies = ratios.map((ratio) => baseFrequency * ratio);
   const phases = frequencies.map(() => 0);
   return createBuffer(context, 0.54, (time) => {
     let partials = 0;
     frequencies.forEach((frequency, voiceIndex) => {
       phases[voiceIndex] += Math.PI * 2 * frequency / ADPCM_SAMPLE_RATE;
-      const decay = Math.exp(-time * (4.6 + voiceIndex * 0.82));
-      partials += Math.sin(phases[voiceIndex]) * decay * (0.34 / (voiceIndex + 1));
+      const decay = Math.exp(-time * (4.8 + voiceIndex * 0.9));
+      partials += Math.sin(phases[voiceIndex]) * decay * (0.36 / (voiceIndex + 1));
     });
     const attack = Math.min(1, time * 190);
     return partials * attack;

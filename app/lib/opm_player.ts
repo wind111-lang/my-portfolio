@@ -1,3 +1,4 @@
+import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
 import {
   createFmVoice,
   midiToFrequency,
@@ -16,10 +17,8 @@ const BPM = 150;
 const BEAT = 60 / BPM / 2;
 const OUTPUT_GAIN = 0.8;
 // 提供音源の伴奏・和音は6.4秒単位で切り替わり、12.8秒から
-// 4音のピックアップ、13.6秒から主旋律が始まる。伴奏と主旋律の
-// 起点を混ぜると全区間で0.8秒ずれるため、別の定数として扱う。
+// 採譜した主旋律のMIDIイベントが始まる。
 const FIRST_ARRANGEMENT_BEAT = 64;
-const FIRST_THEME_BEAT = 68;
 const FIRST_FULL_BEAT = 128;
 const INTERLUDE_BEAT = 352;
 const SECOND_FULL_BEAT = 416;
@@ -37,6 +36,7 @@ const brassPatch: FmPatch = {
   modulation: [1.06, 0, 0.58],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-2.2, 1.1, 2.2, -1.1],
+  carrierGains: [1, 0, 0.54, 0],
   filterFrequency: 5200,
   filterStartFrequency: 2200,
   filterAttack: 0.11,
@@ -56,6 +56,7 @@ const stringPatch: FmPatch = {
   modulation: [0.32, 0.14, 0.06],
   waveforms: ["sine", "sine", "triangle", "sine"],
   operatorDetuneCents: [-4.2, -1.3, 4.2, 1.3],
+  carrierGains: [1, 0.3, 0.12, 0],
   filterFrequency: 3300,
   filterStartFrequency: 1500,
   filterAttack: 0.2,
@@ -109,6 +110,7 @@ const baritonePatch: FmPatch = {
   modulation: [0.54, 0, 0.24],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-1.8, 0.8, 1.8, -0.8],
+  carrierGains: [1, 0, 0.28, 0],
   filterFrequency: 3200,
   filterStartFrequency: 1250,
   filterAttack: 0.055,
@@ -128,6 +130,7 @@ const leadPatch: FmPatch = {
   modulation: [0.98, 0.44, 0.17],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-2.6, 1.1, 2.6, -1.1],
+  carrierGains: [1, 0.38, 0.16, 0],
   filterFrequency: 6500,
   filterStartFrequency: 3400,
   filterAttack: 0.065,
@@ -149,6 +152,7 @@ const softLeadPatch: FmPatch = {
   modulation: [0.62, 0, 0.28],
   waveforms: ["sine", "triangle", "sine", "sine"],
   operatorDetuneCents: [-2, 0.8, 2, -0.8],
+  carrierGains: [1, 0, 0.5, 0],
   filterFrequency: 4800,
   filterStartFrequency: 2500,
   filterAttack: 0.09,
@@ -170,6 +174,7 @@ const reedLeadPatch: FmPatch = {
   modulation: [1.12, 0.36, 0.14],
   waveforms: ["triangle", "sine", "triangle", "sine"],
   operatorDetuneCents: [-3.1, -0.9, 3.1, 0.9],
+  carrierGains: [1, 0.32, 0.13, 0],
   filterFrequency: 5900,
   filterStartFrequency: 2850,
   filterAttack: 0.055,
@@ -191,6 +196,7 @@ const leadEchoPatch: FmPatch = {
   modulation: [0.78, 0.34, 0.12],
   waveforms: ["sine", "sine", "triangle", "sine"],
   operatorDetuneCents: [1.8, -0.8, -1.8, 0.8],
+  carrierGains: [1, 0.26, 0.09, 0],
   filterFrequency: 5200,
   filterStartFrequency: 2800,
   filterAttack: 0.08,
@@ -210,6 +216,7 @@ const arpeggioPatch: FmPatch = {
   modulation: [0.76, 0, 0.44],
   waveforms: ["sine", "sine", "triangle", "sine"],
   operatorDetuneCents: [-1.4, 0.7, 1.4, -0.7],
+  carrierGains: [1, 0, 0.3, 0],
   filterFrequency: 5200,
   filterStartFrequency: 7400,
   filterAttack: 0.035,
@@ -227,6 +234,7 @@ const accordionPatch: FmPatch = {
   modulation: [0.52, 0.22, 0.08],
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-3.8, -1.1, 3.8, 1.1],
+  carrierGains: [1, 0.3, 0.11, 0],
   filterFrequency: 4400,
   filterStartFrequency: 2100,
   filterAttack: 0.1,
@@ -279,65 +287,53 @@ const bassAttackPatch: FmPatch = {
   release: 0.18,
 };
 
-// 再提供されたOGGを帯域分離してMIDIイベント化すると、12.8秒から
-// E5の4連打が入り、13.6秒から6.4秒単位のA-B-A-B-C-D-C-D-終止へ進む。
+// OGGのside成分を短い解析窓で150 BPMの八分音符中央へ再量子化し、
+// 2回のフル区間で完全に一致した主旋律だけを採用する。長い解析窓で
+// 1拍遅れていた速い経過音と、高域へ入る直前の音程もここで補正する。
 // [開始位置（八分音符単位）, MIDIノート, 長さ]
-const pickupSequence: readonly NoteEvent[] = [
-  [0, 76, 1], [1, 76, 1], [2, 76, 1], [3, 76, 1],
+const fullLeadSequence: readonly NoteEvent[] = [
+  [0, 76, 4], [4, 72, 4], [8, 74, 4], [12, 71, 4],
+  [16, 72, 1], [17, 68, 1], [18, 69, 1], [19, 71, 1],
+  [20, 72, 1], [21, 69, 1], [22, 71, 1], [23, 72, 1],
+  [24, 74, 4], [28, 68, 4], [32, 76, 5], [37, 69, 1],
+  [38, 71, 1], [39, 72, 1], [40, 74, 6], [46, 72, 1],
+  [47, 71, 1], [48, 69, 4], [52, 68, 4], [56, 69, 4],
+  [60, 66, 1], [61, 68, 1], [62, 69, 1], [63, 71, 1],
+  [64, 81, 8], [72, 83, 3], [75, 80, 1], [76, 76, 4],
+  [80, 84, 2], [82, 81, 2], [84, 72, 2], [86, 74, 2],
+  [88, 76, 8],
+  [96, 81, 3], [99, 83, 3], [102, 81, 1], [103, 76, 1],
+  [104, 74, 3], [107, 77, 1], [108, 81, 4], [112, 76, 5],
+  [117, 74, 1], [118, 71, 1], [119, 72, 1], [120, 69, 7],
+  [127, 76, 1], [128, 81, 8], [136, 83, 3], [139, 80, 1],
+  [140, 76, 4], [144, 84, 2], [146, 81, 2], [148, 72, 2],
+  [150, 74, 2], [152, 76, 8], [160, 81, 3], [163, 83, 3],
+  [166, 81, 1], [167, 76, 1], [168, 74, 3], [171, 77, 1],
+  [172, 81, 4],
+  [176, 76, 5], [181, 74, 1], [182, 71, 1], [183, 72, 1],
+  [184, 69, 7], [191, 76, 1], [192, 81, 3], [195, 83, 3],
+  [198, 81, 1], [199, 76, 1], [200, 74, 3], [203, 77, 1],
+  [204, 81, 4], [208, 76, 5], [213, 74, 1], [214, 71, 1],
+  [215, 72, 1], [216, 69, 8],
 ];
 
-const themeASequence: readonly NoteEvent[] = [
-  [0, 72, 4], [4, 74, 4], [8, 71, 4],
-  [12, 72, 1], [13, 68, 1], [14, 69, 1], [15, 71, 1],
-  [16, 72, 1], [17, 69, 1], [18, 71, 1], [19, 72, 1],
-  [20, 74, 4], [24, 68, 4], [28, 76, 4],
+const lightLeadSequence: readonly NoteEvent[] = [
+  [0, 76, 4], [4, 72, 4], [8, 74, 4], [12, 71, 4],
+  [16, 72, 1], [17, 68, 1], [18, 69, 1], [19, 71, 1],
+  [20, 72, 1], [21, 69, 1], [22, 71, 1], [23, 72, 1],
+  [24, 74, 4], [28, 68, 4], [32, 76, 5], [37, 69, 1],
+  [38, 71, 1], [39, 72, 1], [40, 74, 6], [46, 72, 1],
+  [47, 71, 1], [48, 69, 4], [52, 68, 4], [56, 69, 4],
+  [60, 66, 1], [61, 68, 1], [62, 69, 1], [63, 71, 1],
 ];
 
-const themeBSequence: readonly NoteEvent[] = [
-  [0, 76, 1], [1, 69, 1], [2, 71, 1], [3, 72, 1],
-  [4, 74, 6], [10, 72, 1], [11, 71, 1],
-  [12, 69, 4], [16, 68, 4], [20, 69, 5],
-  [25, 68, 1], [26, 69, 1], [27, 71, 1], [28, 76, 4],
-];
-
-// C/D部では低いトロイカ旋律の上に、右側へ定位した独立上声が重なる。
-// OGG内の反復を差分解析し、FM倍音を別ノートと誤認したイベントを除外した。
-// 同音が続く箇所も、原音のアタックに合わせて結合せず再発音させる。
-const upperCSequence: readonly NoteEvent[] = [
-  [0, 81, 2], [2, 80, 1], [3, 81, 1],
-  [4, 83, 3], [7, 80, 1],
-  [8, 76, 4], [12, 84, 2], [14, 81, 2],
-  [20, 76, 8],
-  [28, 81, 4],
-];
-
-const upperDSequence: readonly NoteEvent[] = [
-  [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
-  [4, 74, 3],
-  [7, 77, 1], [8, 81, 2],
-  [10, 83, 1], [11, 81, 1], [12, 76, 3], [15, 77, 1],
-  [16, 76, 1], [17, 74, 1], [18, 71, 1], [19, 72, 1],
-  [20, 69, 7], [27, 76, 1], [28, 81, 4],
-];
-
-// C部へ入る直前の0.8秒はA5のピックアップ。以前はC部の先頭へ
-// 4連打として置いていたため、サビへ入る位置と発音の長さがずれていた。
-const upperPickupSequence: readonly NoteEvent[] = [
-  [0, 81, 4],
-];
-
-const closingSequence: readonly NoteEvent[] = [
-  [0, 76, 1], [1, 69, 1], [2, 71, 1], [3, 72, 1],
-  [4, 74, 6], [10, 72, 1], [11, 71, 1],
-  [12, 69, 4], [16, 68, 4], [20, 69, 8], [28, 76, 4],
-];
-
-const upperClosingSequence: readonly NoteEvent[] = [
-  [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
-  [4, 74, 3], [7, 77, 1], [8, 81, 2], [10, 83, 1], [11, 81, 1],
-  [12, 76, 3], [15, 77, 1], [16, 76, 1], [17, 74, 1],
-  // 原音ではA4が次の区切りまで2.4秒伸びる。末尾4拍が欠けていた。
-  [18, 71, 1], [19, 72, 1], [20, 69, 12],
+const outroLeadSequence: readonly NoteEvent[] = [
+  [0, 76, 4], [4, 72, 4], [8, 74, 4], [12, 71, 4],
+  [16, 72, 1], [17, 68, 1], [18, 69, 1], [19, 71, 1],
+  [20, 72, 1], [21, 69, 1], [22, 71, 1], [23, 72, 1],
+  [24, 74, 4], [28, 68, 4], [32, 76, 5], [37, 69, 1],
+  [38, 71, 1], [39, 72, 1], [40, 74, 6], [46, 72, 1],
+  [47, 71, 1], [48, 69, 2],
 ];
 
 // 原曲で主旋律の隙間を埋める八分音符アルペジオ。
@@ -379,65 +375,13 @@ const chordEventsB: readonly ChordEvent[] = [
   [20, 4, E7_CHORD], [24, 4, AM_CHORD], [28, 4, E7_CHORD],
 ];
 
-const melodyBlockSequences = {
-  a: { body: themeASequence },
-  b: { body: themeBSequence },
-  c: { body: themeASequence, upper: upperCSequence },
-  d: { body: themeBSequence, upper: upperDSequence },
-  closing: { body: closingSequence, upper: upperClosingSequence },
-} as const;
+type ArrangementBlockName = "a" | "b" | "c" | "d" | "closing";
 
-type MelodyBlockName = keyof typeof melodyBlockSequences;
-
-const melodyBlockOrder: readonly MelodyBlockName[] = [
+const arrangementBlockOrder: readonly ArrangementBlockName[] = [
   "a", "b", "a", "b", "c", "d", "c", "d", "closing",
   "a", "b", "a", "b", "c", "d", "c", "d", "closing",
   "a", "b",
 ];
-
-function createNoiseBuffer(context: AudioContext): AudioBuffer {
-  const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * 0.3), context.sampleRate);
-  const data = buffer.getChannelData(0);
-  let previous = 0;
-  for (let index = 0; index < data.length; index += 1) {
-    const white = Math.random() * 2 - 1;
-    previous = previous * 0.64 + white * 0.36;
-    data[index] = previous;
-  }
-  return buffer;
-}
-
-function createNoiseHit(
-  context: AudioContext,
-  destination: AudioNode,
-  sources: AudioScheduledSourceNode[],
-  noiseBuffer: AudioBuffer,
-  startAt: number,
-  duration: number,
-  frequency: number,
-  gain: number,
-  type: BiquadFilterType,
-): void {
-  const source = context.createBufferSource();
-  const filter = context.createBiquadFilter();
-  const envelope = context.createGain();
-  source.buffer = noiseBuffer;
-  filter.type = type;
-  filter.frequency.setValueAtTime(frequency, startAt);
-  filter.Q.setValueAtTime(type === "bandpass" ? 0.9 : 0.48, startAt);
-  envelope.gain.setValueAtTime(0.0001, startAt);
-  envelope.gain.linearRampToValueAtTime(gain, startAt + 0.005);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-  source.connect(filter);
-  filter.connect(envelope);
-  envelope.connect(destination);
-  source.start(startAt);
-  source.stop(startAt + duration);
-  trackScheduledSource(sources, source, () => {
-    filter.disconnect();
-    envelope.disconnect();
-  });
-}
 
 function createKick(
   context: AudioContext,
@@ -519,7 +463,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   const presenceFilter = context.createBiquadFilter();
   const percussionFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
-  const noiseBuffer = createNoiseBuffer(context);
+  const adpcmSamples = createAdpcmSampleBank(context);
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
@@ -746,35 +690,13 @@ export function playOpmTrack(context: AudioContext): () => void {
     startBeat: number;
     sequence: readonly NoteEvent[];
     voicing: LeadVoicing;
-  }> = [];
-  melodySections.push({
-    startBeat: FIRST_THEME_BEAT - pickupSequence.length,
-    sequence: pickupSequence,
-    voicing: "soft",
-  });
-  const melodyBlockCount = melodyBlockOrder.length;
-  for (let blockIndex = 0; blockIndex < melodyBlockCount; blockIndex += 1) {
-    const startBeat = FIRST_THEME_BEAT + blockIndex * 32;
-    const blockName = melodyBlockOrder[blockIndex % melodyBlockOrder.length];
-    const block = melodyBlockSequences[blockName];
-    const isTheme = blockName === "a" || blockName === "b";
-    const previousBlockName = blockIndex > 0 ? melodyBlockOrder[blockIndex - 1] : null;
-    if (blockName === "c" && previousBlockName !== "d") {
-      melodySections.push({
-        startBeat: startBeat - pickupSequence.length,
-        sequence: upperPickupSequence,
-        voicing: "upper",
-      });
-    }
-    melodySections.push({
-      startBeat,
-      sequence: block.body,
-      voicing: isTheme && getDensity(startBeat) === "light" ? "soft" : isTheme ? "bright" : "reed",
-    });
-    if ("upper" in block) {
-      melodySections.push({ startBeat, sequence: block.upper, voicing: "upper" });
-    }
-  }
+  }> = [
+    { startBeat: FIRST_ARRANGEMENT_BEAT, sequence: lightLeadSequence, voicing: "soft" },
+    { startBeat: FIRST_FULL_BEAT, sequence: fullLeadSequence, voicing: "bright" },
+    { startBeat: INTERLUDE_BEAT, sequence: lightLeadSequence, voicing: "soft" },
+    { startBeat: SECOND_FULL_BEAT, sequence: fullLeadSequence, voicing: "bright" },
+    { startBeat: OUTRO_BEAT, sequence: outroLeadSequence, voicing: "soft" },
+  ];
 
   const accompanimentSections: Array<{
     startBeat: number;
@@ -786,9 +708,10 @@ export function playOpmTrack(context: AudioContext): () => void {
     { startBeat: 0, pitches: accompanimentA, includeBass: false, roots: [], chords: [] },
     { startBeat: 32, pitches: accompanimentB, includeBass: false, roots: [], chords: [] },
   ];
-  for (let blockIndex = 0; blockIndex < melodyBlockCount; blockIndex += 1) {
+  const arrangementBlockCount = arrangementBlockOrder.length;
+  for (let blockIndex = 0; blockIndex < arrangementBlockCount; blockIndex += 1) {
     const startBeat = FIRST_ARRANGEMENT_BEAT + blockIndex * 32;
-    const blockName = melodyBlockOrder[blockIndex % melodyBlockOrder.length];
+    const blockName = arrangementBlockOrder[blockIndex % arrangementBlockOrder.length];
     const usesAForm = blockName === "a" || blockName === "c";
     accompanimentSections.push({
       startBeat,
@@ -807,22 +730,23 @@ export function playOpmTrack(context: AudioContext): () => void {
         createKick(context, percussionBus, sources, hitAt, halfBeat === 0 ? 0.12 : 0.085);
       }
       if (halfBeat % 8 === 4) {
-        createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.16, 1450, 0.044, "bandpass");
-        createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt + 0.01, 0.1, 3700, 0.014, "bandpass");
-        createTom(context, percussionBus, sources, hitAt, 178, 0.022);
+        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.snare, hitAt, {
+          gain: 0.105,
+          pan: halfBeat === 4 ? -0.08 : 0.08,
+        });
+        if (blockIndex % 4 === 3) {
+          scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.clap, hitAt + 0.012, {
+            gain: 0.032,
+            pan: 0.12,
+          });
+        }
       }
       if (halfBeat % 2 === 0) {
-        createNoiseHit(
-          context,
-          percussionBus,
-          sources,
-          noiseBuffer,
-          hitAt,
-          halfBeat % 8 === 6 ? 0.1 : 0.04,
-          halfBeat % 4 === 0 ? 3900 : 5100,
-          halfBeat % 8 === 6 ? 0.0065 : 0.0035,
-          "highpass",
-        );
+        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.metal, hitAt, {
+          gain: halfBeat % 8 === 6 ? 0.012 : 0.0065,
+          pan: halfBeat % 4 === 0 ? -0.2 : 0.2,
+          playbackRate: halfBeat % 8 === 6 ? 2.1 : 2.65,
+        });
       }
     }
     if (blockIndex % 4 === 3) {
@@ -836,6 +760,11 @@ export function playOpmTrack(context: AudioContext): () => void {
           frequency,
           0.052 - index * 0.006,
         );
+        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.tom, tomAt + 0.008, {
+          gain: 0.034 - index * 0.005,
+          pan: (index - 1) * 0.18,
+          playbackRate: 1.12 - index * 0.14,
+        });
       });
     }
   };

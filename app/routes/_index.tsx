@@ -48,6 +48,14 @@ export default function Index(): React.ReactNode {
     setStartupPhase("ready");
   }, []);
 
+  const handleGuiShortcut = React.useCallback((
+    event: React.MouseEvent<HTMLAnchorElement>,
+    sectionId: string,
+  ) => {
+    event.preventDefault();
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   useEffect(() => {
     if (startupPhase !== "ready") return;
 
@@ -82,9 +90,9 @@ export default function Index(): React.ReactNode {
       {mode === "gui" && (
         <div className="sx-workspace">
           <aside className="sx-icon-rail" aria-label="SX-WINDOW デスクトップ">
-            <a href="#profile"><span className="sx-drive-icon">A:</span><span>PROFILE</span></a>
-            <a href="#tech"><span className="sx-folder-icon" aria-hidden="true" /><span>TECH</span></a>
-            <a href="#blog"><span className="sx-file-icon" aria-hidden="true">T</span><span>ARTICLES</span></a>
+            <a href="#profile" onClick={(event) => handleGuiShortcut(event, "profile")}><span className="sx-drive-icon">A:</span><span>PROFILE</span></a>
+            <a href="#tech" onClick={(event) => handleGuiShortcut(event, "tech")}><span className="sx-folder-icon" aria-hidden="true" /><span>TECH</span></a>
+            <a href="#blog" onClick={(event) => handleGuiShortcut(event, "blog")}><span className="sx-file-icon" aria-hidden="true">T</span><span>ARTICLES</span></a>
             <button type="button" onClick={() => setMode("command")}>
               <span className="sx-terminal-icon" aria-hidden="true">A&gt;</span><span>COMMAND.X</span>
             </button>

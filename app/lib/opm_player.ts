@@ -2,6 +2,7 @@ import { createFmVoice, midiToFrequency, type FmPatch } from "~/lib/fm_synth";
 
 type NoteEvent = readonly [start: number, note: number, length: number];
 type ArrangementDensity = "intro" | "light" | "full";
+type LeadVoicing = "soft" | "bright" | "reed" | "ornament";
 
 // 約75 BPMはハーフテンポ判定。原曲の拍感は約150 BPMで、
 // BEATは譜面上の八分音符1つ分を表す。
@@ -13,7 +14,7 @@ const FIRST_FULL_BEAT = 128;
 const INTERLUDE_BEAT = 352;
 const SECOND_FULL_BEAT = 416;
 const OUTRO_BEAT = 640;
-const CODA_BEAT = 704;
+const FINAL_FULL_BEAT = 704;
 const FINAL_CHORD_BEAT = 768;
 const TRACK_BEATS = 788;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
@@ -151,6 +152,27 @@ const softLeadPatch: FmPatch = {
   release: 0.66,
   vibratoRate: 5.05,
   vibratoCents: 4.2,
+};
+
+const reedLeadPatch: FmPatch = {
+  algorithm: "fan",
+  ratios: [1, 2.006, 3.012, 5.018],
+  modulation: [1.12, 0.36, 0.14],
+  waveforms: ["triangle", "sine", "triangle", "sine"],
+  operatorDetuneCents: [-3.1, -0.9, 3.1, 0.9],
+  filterFrequency: 5900,
+  filterStartFrequency: 2850,
+  filterAttack: 0.055,
+  filterQ: 1.02,
+  pitchAttackCents: -8,
+  pitchAttackTime: 0.048,
+  attack: 0.014,
+  decay: 0.22,
+  peakGain: 0.014,
+  sustainGain: 0.0082,
+  release: 0.46,
+  vibratoRate: 5.3,
+  vibratoCents: 5.2,
 };
 
 const leadEchoPatch: FmPatch = {
@@ -360,40 +382,72 @@ const harmonies = {
   },
 } as const;
 
-const chordProgression = [
-  harmonies.am, harmonies.am, harmonies.e7, harmonies.e7,
+// 提供音源を6.4秒単位で解析すると、主部は
+// A-B-A-B-C-D-C-D-D の57.6秒周期になっている。
+// [開始位置（八分音符単位）, MIDIノート, 長さ]
+const themeASequence: readonly NoteEvent[] = [
+  [0, 66, 1], [1, 68, 1], [2, 69, 1], [3, 71, 1],
+  [4, 76, 4], [8, 72, 4], [12, 74, 4], [16, 71, 5],
+  [21, 69, 2], [23, 71, 4], [27, 72, 1], [28, 74, 4],
+];
+
+const themeBSequence: readonly NoteEvent[] = [
+  [0, 68, 4], [4, 76, 5], [9, 71, 2], [11, 72, 1],
+  [12, 74, 6], [18, 72, 1], [19, 71, 1], [20, 69, 4],
+  [24, 68, 4], [28, 69, 4],
+];
+
+const bridgeCSequence: readonly NoteEvent[] = [
+  [0, 69, 4], [4, 64, 4], [8, 60, 4], [12, 64, 8],
+  [20, 72, 4], [24, 65, 4], [28, 64, 4],
+];
+
+const bridgeCOrnamentSequence: readonly NoteEvent[] = [
+  [13, 74, 1], [15, 74, 1], [17, 76, 1], [19, 76, 1],
+  [20, 84, 2], [22, 81, 1], [23, 72, 4], [27, 74, 1], [29, 74, 1],
+];
+
+const bridgeDSequence: readonly NoteEvent[] = [
+  [0, 64, 12], [12, 62, 4], [16, 65, 4],
+  [20, 64, 4], [24, 64, 4], [28, 69, 4],
+];
+
+const bridgeDOrnamentSequence: readonly NoteEvent[] = [
+  [1, 76, 1], [11, 71, 1], [12, 74, 4], [17, 72, 1],
+  [19, 72, 1], [21, 69, 1], [23, 68, 1], [25, 68, 1],
+  [27, 68, 1], [28, 69, 4],
+];
+
+const closingDSequence: readonly NoteEvent[] = [
+  [0, 69, 3], [3, 64, 8], [11, 71, 1], [12, 62, 4],
+  [16, 65, 4], [20, 64, 4], [24, 64, 4], [28, 57, 4],
+];
+
+const introHarmony = [
+  harmonies.am, harmonies.e7, harmonies.am, harmonies.e7,
   harmonies.am, harmonies.dm, harmonies.e7, harmonies.e7,
-  harmonies.am, harmonies.am, harmonies.dm, harmonies.dm,
-  harmonies.am, harmonies.e7, harmonies.am, harmonies.am,
-  harmonies.am, harmonies.am, harmonies.dm, harmonies.dm,
-  harmonies.am, harmonies.e7, harmonies.am, harmonies.am,
 ] as const;
 
-// ロシア語版「Вот мчится тройка почтовая」の旋律。
-// [開始位置（八分音符単位）, MIDIノート, 長さ]
-const leadSequence: readonly NoteEvent[] = [
-  [0, 64, 1], [1, 69, 3], [4, 69, 1], [5, 69, 1], [6, 69, 1], [7, 68, 1],
-  [8, 69, 1], [9, 71, 3], [12, 68, 1], [13, 64, 2],
-  [16, 64, 1], [17, 72, 2], [19, 69, 2], [21, 60, 1], [22, 60, 1], [23, 62, 1],
-  [24, 62, 1], [25, 64, 6],
-  [32, 64, 1], [33, 69, 3], [36, 71, 1], [37, 72, 1], [38, 71, 1], [39, 69, 1],
-  [40, 67, 1], [41, 62, 3], [44, 65, 1], [45, 69, 2], [47, 71, 1],
-  [48, 69, 1], [49, 64, 3], [52, 65, 1], [53, 64, 1], [54, 62, 1], [55, 60, 1],
-  [56, 59, 1], [57, 57, 4],
-  [64, 64, 1], [65, 69, 3], [68, 71, 1], [69, 72, 1], [70, 71, 1], [71, 69, 1],
-  [72, 67, 1], [73, 62, 3], [76, 65, 1], [77, 69, 2], [79, 71, 1],
-  [80, 69, 1], [81, 64, 3], [84, 65, 1], [85, 64, 1], [86, 62, 1], [87, 60, 1],
-  [88, 59, 1], [89, 57, 4],
-];
+const harmonyBlockPatterns = {
+  a: [harmonies.am, harmonies.am, harmonies.am, harmonies.e7],
+  b: [harmonies.e7, harmonies.dm, harmonies.am, harmonies.e7],
+  c: [harmonies.am, harmonies.dm, harmonies.am, harmonies.e7],
+  d: [harmonies.e7, harmonies.dm, harmonies.am, harmonies.e7],
+  closing: [harmonies.am, harmonies.dm, harmonies.e7, harmonies.am],
+} as const;
 
-const cadenceSequence: readonly NoteEvent[] = [
-  [0, 69, 3], [3, 64, 3], [6, 65, 2], [8, 64, 2],
-  [10, 62, 2], [12, 59, 2], [14, 57, 2],
-];
+const melodyBlockSequences = {
+  a: { body: themeASequence },
+  b: { body: themeBSequence },
+  c: { body: bridgeCSequence, ornament: bridgeCOrnamentSequence },
+  d: { body: bridgeDSequence, ornament: bridgeDOrnamentSequence },
+  closing: { body: closingDSequence, ornament: bridgeDOrnamentSequence },
+} as const;
 
-const codaSequence: readonly NoteEvent[] = [
-  [0, 69, 4], [4, 72, 4], [8, 71, 4], [12, 69, 8],
-  [20, 64, 4], [24, 67, 4], [28, 69, 10],
+type MelodyBlockName = keyof typeof melodyBlockSequences;
+
+const melodyBlockOrder: readonly MelodyBlockName[] = [
+  "a", "b", "a", "b", "c", "d", "c", "d", "closing",
 ];
 
 function createNoiseBuffer(context: AudioContext): AudioBuffer {
@@ -499,7 +553,21 @@ function getDensity(beat: number): ArrangementDensity {
   if (beat < INTERLUDE_BEAT) return "full";
   if (beat < SECOND_FULL_BEAT) return "light";
   if (beat < OUTRO_BEAT) return "full";
-  return "light";
+  if (beat < FINAL_FULL_BEAT) return "light";
+  return "full";
+}
+
+function getHarmony(beat: number) {
+  if (beat < FIRST_THEME_BEAT) {
+    const introIndex = Math.floor(beat / HARMONY_BEATS) % introHarmony.length;
+    return introHarmony[introIndex];
+  }
+
+  const themeBeat = beat - FIRST_THEME_BEAT;
+  const blockIndex = Math.floor(themeBeat / 32);
+  const blockName = melodyBlockOrder[blockIndex % melodyBlockOrder.length];
+  const harmonyIndex = Math.floor((themeBeat % 32) / HARMONY_BEATS);
+  return harmonyBlockPatterns[blockName][harmonyIndex];
 }
 
 export function playOpmTrack(context: AudioContext): () => void {
@@ -560,7 +628,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   const scheduleHarmonySegment = (segmentIndex: number) => {
     const beatOffset = segmentIndex * HARMONY_BEATS;
     const segmentStart = startAt + beatOffset * BEAT;
-    const chord = chordProgression[segmentIndex % chordProgression.length];
+    const chord = getHarmony(beatOffset);
     const density = getDensity(beatOffset);
     const noteDuration = (density === "intro" ? 7.76 : 7.24) * BEAT;
 
@@ -591,18 +659,20 @@ export function playOpmTrack(context: AudioContext): () => void {
       }
     });
 
-    createFmVoice(
-      context,
-      bassBus,
-      sources,
-      chord.bass[0],
-      segmentStart,
-      7.72 * BEAT,
-      segmentIndex % 2 === 0 ? -0.04 : 0.04,
-      subBassPatch,
-    );
+    if (density === "full") {
+      createFmVoice(
+        context,
+        bassBus,
+        sources,
+        chord.bass[0],
+        segmentStart,
+        7.72 * BEAT,
+        segmentIndex % 2 === 0 ? -0.04 : 0.04,
+        subBassPatch,
+      );
+    }
 
-    const bassStepCount = density === "intro" ? 2 : density === "light" ? 4 : 8;
+    const bassStepCount = density === "full" ? 8 : 2;
     const bassStepSize = HARMONY_BEATS / bassStepCount;
     for (let step = 0; step < bassStepCount; step += 1) {
       const frequency = chord.bass[step % chord.bass.length];
@@ -714,35 +784,49 @@ export function playOpmTrack(context: AudioContext): () => void {
   const scheduleLeadEvents = (
     sequence: readonly NoteEvent[],
     startBeat: number,
-    patch: FmPatch,
-    full: boolean,
+    voicing: LeadVoicing,
   ) => {
     sequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
       const noteStart = startAt + (startBeat + beatOffset) * BEAT;
       const noteDuration = durationInBeats * BEAT;
-      const leadPan = index % 2 === 0 ? -0.18 : 0.12;
+      const leadPan = index % 2 === 0 ? -0.2 : 0.14;
+      const mainPatch = voicing === "soft"
+        ? softLeadPatch
+        : voicing === "bright"
+          ? leadPatch
+          : voicing === "reed"
+            ? reedLeadPatch
+            : piccoloPatch;
+      const mainDestination = voicing === "reed" ? fmBus : leadBus;
       createFmVoice(
         context,
-        leadBus,
+        mainDestination,
         sources,
         midiToFrequency(midiNote),
         noteStart,
         noteDuration,
         leadPan,
-        patch,
+        mainPatch,
       );
-      createFmVoice(
-        context,
-        leadBus,
-        sources,
-        midiToFrequency(midiNote),
-        noteStart + LEAD_ECHO_DELAY,
-        noteDuration,
-        leadPan < 0 ? 0.42 : -0.42,
-        leadEchoPatch,
-        leadPan < 0 ? 4.2 : -4.2,
-      );
-      if (full || durationInBeats >= 2 || index % 4 === 0) {
+
+      if (voicing === "soft" || voicing === "bright") {
+        createFmVoice(
+          context,
+          leadBus,
+          sources,
+          midiToFrequency(midiNote),
+          noteStart + LEAD_ECHO_DELAY,
+          noteDuration,
+          leadPan < 0 ? 0.42 : -0.42,
+          leadEchoPatch,
+          leadPan < 0 ? 4.2 : -4.2,
+        );
+      }
+
+      const addOctave = voicing === "bright"
+        ? durationInBeats >= 2 || index % 4 === 0
+        : voicing === "soft" && durationInBeats >= 4;
+      if (addOctave) {
         createFmVoice(
           context,
           leadBus,
@@ -755,53 +839,85 @@ export function playOpmTrack(context: AudioContext): () => void {
           index % 2 === 0 ? -2.4 : 2.4,
         );
       }
-      if ((full && (index % 3 === 0 || durationInBeats >= 2)) || (!full && durationInBeats >= 3)) {
+
+      if (voicing === "bright" && durationInBeats >= 4 && index % 2 === 0) {
         createFmVoice(
           context,
           leadBus,
           sources,
           midiToFrequency(midiNote + 24),
           noteStart + 0.032,
-          noteDuration * 0.88,
-          index % 2 === 0 ? -0.32 : 0.32,
+          noteDuration * 0.86,
+          index % 4 === 0 ? -0.32 : 0.32,
           piccoloPatch,
-          index % 2 === 0 ? 1.6 : -1.6,
+          index % 4 === 0 ? 1.6 : -1.6,
         );
       }
-      if (full && beatOffset >= 32 && durationInBeats >= 2) {
+
+      if (voicing === "reed" && durationInBeats >= 4) {
         createFmVoice(
           context,
           fmBus,
           sources,
           midiToFrequency(midiNote - 12),
-          noteStart,
-          noteDuration,
-          index % 2 === 0 ? 0.3 : -0.3,
+          noteStart + 0.012,
+          noteDuration * 0.96,
+          leadPan < 0 ? 0.28 : -0.28,
           lowCounterPatch,
           index % 2 === 0 ? -2 : 2,
+        );
+      }
+
+      if (voicing === "reed" && durationInBeats >= 8) {
+        createFmVoice(
+          context,
+          fmBus,
+          sources,
+          midiToFrequency(midiNote + 12),
+          noteStart + 0.026,
+          noteDuration * 0.9,
+          leadPan < 0 ? 0.34 : -0.34,
+          accordionPatch,
+          index % 2 === 0 ? 2.6 : -2.6,
+        );
+      }
+
+      if (voicing === "ornament" && midiNote >= 81 && durationInBeats >= 2) {
+        createFmVoice(
+          context,
+          leadBus,
+          sources,
+          midiToFrequency(midiNote + 12),
+          noteStart + 0.02,
+          noteDuration * 0.78,
+          leadPan < 0 ? 0.38 : -0.38,
+          bellPatch,
+          index % 2 === 0 ? -1.4 : 1.4,
         );
       }
     });
   };
 
-  const previewSequence = leadSequence.filter(([beatOffset]) => beatOffset < 32);
-  const outroSequence: readonly NoteEvent[] = leadSequence
-    .filter(([beatOffset]) => beatOffset >= 64)
-    .map(([beatOffset, note, length]) => [beatOffset - 64, note, length] as const);
-  const melodySections = [
-    { startBeat: FIRST_THEME_BEAT, sequence: previewSequence, patch: softLeadPatch, full: false },
-    { startBeat: 96, sequence: previewSequence, patch: softLeadPatch, full: false },
-    { startBeat: FIRST_FULL_BEAT, sequence: leadSequence, patch: leadPatch, full: true },
-    { startBeat: 224, sequence: leadSequence, patch: leadPatch, full: true },
-    { startBeat: 320, sequence: cadenceSequence, patch: leadPatch, full: true },
-    { startBeat: INTERLUDE_BEAT, sequence: previewSequence, patch: softLeadPatch, full: false },
-    { startBeat: 384, sequence: previewSequence, patch: softLeadPatch, full: false },
-    { startBeat: SECOND_FULL_BEAT, sequence: leadSequence, patch: leadPatch, full: true },
-    { startBeat: 512, sequence: leadSequence, patch: leadPatch, full: true },
-    { startBeat: 608, sequence: cadenceSequence, patch: leadPatch, full: true },
-    { startBeat: OUTRO_BEAT, sequence: outroSequence, patch: softLeadPatch, full: false },
-    { startBeat: 672, sequence: outroSequence, patch: softLeadPatch, full: false },
-  ] as const;
+  const melodySections: Array<{
+    startBeat: number;
+    sequence: readonly NoteEvent[];
+    voicing: LeadVoicing;
+  }> = [];
+  const melodyBlockCount = (FINAL_CHORD_BEAT - FIRST_THEME_BEAT) / 32;
+  for (let blockIndex = 0; blockIndex < melodyBlockCount; blockIndex += 1) {
+    const startBeat = FIRST_THEME_BEAT + blockIndex * 32;
+    const blockName = melodyBlockOrder[blockIndex % melodyBlockOrder.length];
+    const block = melodyBlockSequences[blockName];
+    const isTheme = blockName === "a" || blockName === "b";
+    melodySections.push({
+      startBeat,
+      sequence: block.body,
+      voicing: isTheme && getDensity(startBeat) === "light" ? "soft" : isTheme ? "bright" : "reed",
+    });
+    if ("ornament" in block) {
+      melodySections.push({ startBeat, sequence: block.ornament, voicing: "ornament" });
+    }
+  }
 
   const schedulePercussionBlock = (blockStartBeat: number, blockIndex: number) => {
     for (let halfBeat = 0; halfBeat < 32; halfBeat += 1) {
@@ -846,11 +962,11 @@ export function playOpmTrack(context: AudioContext): () => void {
   const percussionBlocks = [
     ...Array.from({ length: 7 }, (_, index) => FIRST_FULL_BEAT + index * 32),
     ...Array.from({ length: 7 }, (_, index) => SECOND_FULL_BEAT + index * 32),
+    FINAL_FULL_BEAT,
+    FINAL_FULL_BEAT + 32,
   ];
 
-  const scheduleCoda = () => {
-    scheduleLeadEvents(codaSequence, CODA_BEAT, softLeadPatch, false);
-    scheduleLeadEvents(codaSequence, CODA_BEAT + 32, softLeadPatch, false);
+  const scheduleFinalChord = () => {
     const finalStart = startAt + FINAL_CHORD_BEAT * BEAT;
     [45, 57, 60, 64, 69].forEach((note, index) => {
       createFmVoice(
@@ -882,11 +998,11 @@ export function playOpmTrack(context: AudioContext): () => void {
     createNoiseHit(context, percussionBus, sources, noiseBuffer, finalStart, 0.45, 4900, 0.035, "highpass");
   };
 
-  const harmonySegmentCount = CODA_BEAT / HARMONY_BEATS;
+  const harmonySegmentCount = FINAL_CHORD_BEAT / HARMONY_BEATS;
   let nextHarmonySegment = 0;
   let nextMelodySection = 0;
   let nextPercussionBlock = 0;
-  let codaScheduled = false;
+  let finalChordScheduled = false;
   let schedulerTimer: number | null = null;
 
   const schedulePendingEvents = () => {
@@ -906,7 +1022,7 @@ export function playOpmTrack(context: AudioContext): () => void {
       && startAt + melodySections[nextMelodySection].startBeat * BEAT <= horizon
     ) {
       const section = melodySections[nextMelodySection];
-      scheduleLeadEvents(section.sequence, section.startBeat, section.patch, section.full);
+      scheduleLeadEvents(section.sequence, section.startBeat, section.voicing);
       nextMelodySection += 1;
     }
 
@@ -918,16 +1034,16 @@ export function playOpmTrack(context: AudioContext): () => void {
       nextPercussionBlock += 1;
     }
 
-    if (!codaScheduled && startAt + CODA_BEAT * BEAT <= horizon) {
-      scheduleCoda();
-      codaScheduled = true;
+    if (!finalChordScheduled && startAt + FINAL_CHORD_BEAT * BEAT <= horizon) {
+      scheduleFinalChord();
+      finalChordScheduled = true;
     }
 
     if (
       nextHarmonySegment === harmonySegmentCount
       && nextMelodySection === melodySections.length
       && nextPercussionBlock === percussionBlocks.length
-      && codaScheduled
+      && finalChordScheduled
       && schedulerTimer !== null
     ) {
       window.clearInterval(schedulerTimer);

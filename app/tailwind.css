@@ -137,7 +137,7 @@ button:focus-visible {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 0.75rem;
-  font-size: clamp(0.58rem, 1.55vw, 0.82rem);
+  font-size: clamp(0.68rem, 1.75vw, 0.94rem);
   white-space: nowrap;
 }
 
@@ -171,26 +171,28 @@ button:focus-visible {
 .x68k-splash-logo small {
   display: block;
   margin-top: 0.18rem;
-  font-size: clamp(0.38rem, 0.85vw, 0.5rem);
+  font-size: clamp(0.48rem, 1.05vw, 0.62rem);
   letter-spacing: 0.3em;
   padding-left: 0.3em;
 }
 
 .x68k-splash-clock {
-  margin-top: 0.22rem !important;
-  padding-right: 0.05rem;
+  display: block;
+  width: 100%;
+  margin-top: 0.22rem;
   font-size: clamp(0.58rem, 1.45vw, 0.78rem);
-  text-align: right;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .x68k-splash-specs {
   margin-top: 0.8rem !important;
-  font-size: clamp(0.58rem, 1.45vw, 0.79rem);
+  font-size: clamp(0.68rem, 1.65vw, 0.92rem);
 }
 
 .x68k-splash-specs div {
   display: grid;
-  grid-template-columns: 5.2rem 1fr;
+  grid-template-columns: 6.1rem 1fr;
 }
 
 .x68k-splash-specs dt {
@@ -206,14 +208,14 @@ button:focus-visible {
 
 .x68k-splash-motto {
   margin-top: 0.8rem !important;
-  font-size: clamp(0.54rem, 1.32vw, 0.72rem);
+  font-size: clamp(0.64rem, 1.5vw, 0.84rem);
   text-align: center;
   white-space: nowrap;
 }
 
 .x68k-splash-secret {
   margin-top: 0.34rem !important;
-  font-size: clamp(0.4rem, 1.08vw, 0.62rem);
+  font-size: clamp(0.5rem, 1.24vw, 0.72rem);
   letter-spacing: 0.08em;
   text-align: center;
   white-space: nowrap;

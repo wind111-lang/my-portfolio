@@ -1,13 +1,13 @@
 import {
   createFmVoice,
-  midiToFrequency,
   type FmPatch,
+  x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
 import {
   STROLLING_PLAYER_CHANNELS,
   STROLLING_PLAYER_DURATION_SECONDS,
   STROLLING_PLAYER_PATCHES,
-  STROLLING_PLAYER_TUNING_SEMITONES,
+  STROLLING_PLAYER_KEY_FRACTION_SEMITONES,
   type StrollingPlayerPatch,
 } from "~/lib/strolling_player_vgm_score";
 
@@ -147,7 +147,9 @@ export function playStrollingPlayerTrack(context: AudioContext): () => void {
             context,
             channel.destination,
             sources,
-            midiToFrequency(midiNote + STROLLING_PLAYER_TUNING_SEMITONES),
+            x68000VgmMidiToFrequency(
+              midiNote + STROLLING_PLAYER_KEY_FRACTION_SEMITONES,
+            ),
             noteStart,
             duration,
             sourcePatch.pan === 2 ? -0.72 : sourcePatch.pan === 1 ? 0.72 : 0,

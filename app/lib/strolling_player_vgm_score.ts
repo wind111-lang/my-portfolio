@@ -26,7 +26,7 @@ export type StrollingPlayerPatch = {
 };
 
 export const STROLLING_PLAYER_DURATION_SECONDS = 98.76;
-export const STROLLING_PLAYER_TUNING_SEMITONES = 5 / 64;
+export const STROLLING_PLAYER_KEY_FRACTION_SEMITONES = 5 / 64;
 
 export const STROLLING_PLAYER_PATCHES: readonly StrollingPlayerPatch[] = [
   {

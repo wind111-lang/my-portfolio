@@ -8,8 +8,8 @@ import {
 } from "~/lib/destiny_vgm_score";
 import {
   createFmVoice,
-  midiToFrequency,
   type FmPatch,
+  x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
 
 const SCHEDULE_AHEAD_SECONDS = 3;
@@ -197,7 +197,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
             context,
             channel.destination,
             sources,
-            midiToFrequency(midiSixtyFourth / 64),
+            x68000VgmMidiToFrequency(midiSixtyFourth / 64),
             noteStart,
             duration,
             sourcePatch.pan === 2 ? -0.7 : sourcePatch.pan === 1 ? 0.7 : 0,

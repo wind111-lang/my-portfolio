@@ -292,7 +292,7 @@ export default function CommandView({
     const context = audioContextRef.current?.state === "closed"
       ? null
       : audioContextRef.current;
-    const audioContext = context ?? new AudioContext({ latencyHint: "interactive" });
+    const audioContext = context ?? new AudioContext({ latencyHint: "playback" });
 
     audioContextRef.current = audioContext;
 

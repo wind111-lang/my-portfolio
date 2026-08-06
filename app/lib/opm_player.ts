@@ -1,4 +1,10 @@
-import { createFmVoice, midiToFrequency, type FmPatch } from "~/lib/fm_synth";
+import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
+import {
+  createFmVoice,
+  midiToFrequency,
+  trackScheduledSource,
+  type FmPatch,
+} from "~/lib/fm_synth";
 
 type NoteEvent = readonly [start: number, note: number, length: number];
 type ArrangementDensity = "intro" | "light" | "full";
@@ -19,7 +25,7 @@ const FINAL_CHORD_BEAT = 768;
 const TRACK_BEATS = 788;
 const TRACK_DURATION = TRACK_BEATS * BEAT;
 const LEAD_ECHO_DELAY = BEAT / 2;
-const SCHEDULE_AHEAD_SECONDS = 8;
+const SCHEDULE_AHEAD_SECONDS = 5;
 
 const brassPatch: FmPatch = {
   algorithm: "dual",
@@ -488,7 +494,10 @@ function createNoiseHit(
   envelope.connect(destination);
   source.start(startAt);
   source.stop(startAt + duration);
-  sources.push(source);
+  trackScheduledSource(sources, source, () => {
+    filter.disconnect();
+    envelope.disconnect();
+  });
 }
 
 function createKick(
@@ -510,7 +519,7 @@ function createKick(
   envelope.connect(destination);
   oscillator.start(startAt);
   oscillator.stop(startAt + 0.21);
-  sources.push(oscillator);
+  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
 }
 
 function createTom(
@@ -533,7 +542,7 @@ function createTom(
   envelope.connect(destination);
   oscillator.start(startAt);
   oscillator.stop(startAt + 0.21);
-  sources.push(oscillator);
+  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
 }
 
 function createFourBitCurve(): Float32Array {
@@ -578,12 +587,15 @@ export function playOpmTrack(context: AudioContext): () => void {
   const fmBus = context.createGain();
   const bassBus = context.createGain();
   const percussionBus = context.createGain();
+  const percussionDry = context.createGain();
+  const percussionCrushed = context.createGain();
   const toneFilter = context.createBiquadFilter();
   const bassFilter = context.createBiquadFilter();
   const presenceFilter = context.createBiquadFilter();
   const percussionFilter = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context);
+  const adpcmSamples = createAdpcmSampleBank(context);
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
@@ -596,7 +608,9 @@ export function playOpmTrack(context: AudioContext): () => void {
   leadBus.gain.setValueAtTime(0.72, startAt);
   fmBus.gain.setValueAtTime(0.68, startAt);
   bassBus.gain.setValueAtTime(0.82, startAt);
-  percussionBus.gain.setValueAtTime(0.2, startAt);
+  percussionBus.gain.setValueAtTime(0.24, startAt);
+  percussionDry.gain.setValueAtTime(0.82, startAt);
+  percussionCrushed.gain.setValueAtTime(0.06, startAt);
   toneFilter.type = "lowpass";
   toneFilter.frequency.setValueAtTime(5600, startAt);
   toneFilter.Q.setValueAtTime(0.68, startAt);
@@ -620,8 +634,11 @@ export function playOpmTrack(context: AudioContext): () => void {
   bassBus.connect(bassFilter);
   bassFilter.connect(master);
   percussionBus.connect(percussionFilter);
+  percussionFilter.connect(percussionDry);
+  percussionDry.connect(master);
   percussionFilter.connect(quantizer);
-  quantizer.connect(master);
+  quantizer.connect(percussionCrushed);
+  percussionCrushed.connect(master);
   master.connect(compressor);
   compressor.connect(context.destination);
 
@@ -920,16 +937,37 @@ export function playOpmTrack(context: AudioContext): () => void {
   }
 
   const schedulePercussionBlock = (blockStartBeat: number, blockIndex: number) => {
+    const blockStartAt = startAt + blockStartBeat * BEAT;
+    if (blockIndex === 0 || blockIndex === 7 || blockIndex === 14) {
+      scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.orchestraHit, blockStartAt, {
+        gain: 0.12,
+        pan: blockIndex === 7 ? 0.12 : -0.12,
+      });
+    }
+
     for (let halfBeat = 0; halfBeat < 32; halfBeat += 1) {
       const beatPosition = halfBeat;
       const hitAt = startAt + (blockStartBeat + beatPosition) * BEAT;
       if (halfBeat % 8 === 0) {
-        createKick(context, percussionBus, sources, hitAt, halfBeat === 0 ? 0.12 : 0.085);
+        createKick(context, percussionBus, sources, hitAt, halfBeat === 0 ? 0.07 : 0.05);
+        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.kick, hitAt, {
+          gain: halfBeat === 0 ? 0.19 : 0.15,
+        });
       }
       if (halfBeat % 8 === 4) {
-        createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.16, 1450, 0.044, "bandpass");
-        createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt + 0.01, 0.1, 3700, 0.014, "bandpass");
-        createTom(context, percussionBus, sources, hitAt, 178, 0.022);
+        createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt, 0.14, 1450, 0.024, "bandpass");
+        createNoiseHit(context, percussionBus, sources, noiseBuffer, hitAt + 0.01, 0.09, 3700, 0.008, "bandpass");
+        createTom(context, percussionBus, sources, hitAt, 178, 0.014);
+        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.snare, hitAt, {
+          gain: 0.17,
+          pan: halfBeat % 16 === 4 ? -0.08 : 0.08,
+        });
+        if (halfBeat % 16 === 12) {
+          scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.clap, hitAt + 0.012, {
+            gain: 0.085,
+            pan: blockIndex % 2 === 0 ? 0.32 : -0.32,
+          });
+        }
       }
       if (halfBeat % 2 === 0) {
         createNoiseHit(
@@ -943,18 +981,31 @@ export function playOpmTrack(context: AudioContext): () => void {
           halfBeat % 8 === 6 ? 0.0065 : 0.0035,
           "highpass",
         );
+        if (halfBeat % 8 === 6) {
+          scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.metal, hitAt, {
+            gain: 0.018,
+            pan: halfBeat % 16 === 6 ? -0.46 : 0.46,
+            playbackRate: 1.72,
+          });
+        }
       }
     }
     if (blockIndex % 4 === 3) {
       [158, 126, 98].forEach((frequency, index) => {
+        const tomAt = startAt + (blockStartBeat + 26 + index * 2.5) * BEAT;
         createTom(
           context,
           percussionBus,
           sources,
-          startAt + (blockStartBeat + 26 + index * 2.5) * BEAT,
+          tomAt,
           frequency,
-          0.052 - index * 0.006,
+          0.03 - index * 0.004,
         );
+        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.tom, tomAt, {
+          gain: 0.13 - index * 0.012,
+          pan: (index - 1) * 0.28,
+          playbackRate: [1.12, 0.88, 0.68][index],
+        });
       });
     }
   };
@@ -994,7 +1045,16 @@ export function playOpmTrack(context: AudioContext): () => void {
         );
       }
     });
-    createKick(context, percussionBus, sources, finalStart, 0.09);
+    createKick(context, percussionBus, sources, finalStart, 0.055);
+    scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.kick, finalStart, { gain: 0.19 });
+    scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.orchestraHit, finalStart, {
+      gain: 0.15,
+    });
+    scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.metal, finalStart + 0.015, {
+      gain: 0.075,
+      pan: 0.2,
+      playbackRate: 0.86,
+    });
     createNoiseHit(context, percussionBus, sources, noiseBuffer, finalStart, 0.45, 4900, 0.035, "highpass");
   };
 
@@ -1065,6 +1125,8 @@ export function playOpmTrack(context: AudioContext): () => void {
     fmBus.disconnect();
     bassBus.disconnect();
     percussionBus.disconnect();
+    percussionDry.disconnect();
+    percussionCrushed.disconnect();
     toneFilter.disconnect();
     bassFilter.disconnect();
     presenceFilter.disconnect();

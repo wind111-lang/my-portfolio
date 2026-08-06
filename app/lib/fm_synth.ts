@@ -24,6 +24,20 @@ export function midiToFrequency(note: number): number {
   return 440 * 2 ** ((note - 69) / 12);
 }
 
+export function trackScheduledSource(
+  sources: AudioScheduledSourceNode[],
+  source: AudioScheduledSourceNode,
+  cleanup?: () => void,
+): void {
+  sources.push(source);
+  source.addEventListener("ended", () => {
+    const sourceIndex = sources.indexOf(source);
+    if (sourceIndex >= 0) sources.splice(sourceIndex, 1);
+    source.disconnect();
+    cleanup?.();
+  }, { once: true });
+}
+
 export function createFmVoice(
   context: AudioContext,
   destination: AudioNode,
@@ -42,13 +56,7 @@ export function createFmVoice(
   const envelope = context.createGain();
   const panner = context.createStereoPanner();
   const filter = patch.filterFrequency ? context.createBiquadFilter() : null;
-  const trackSource = (source: AudioScheduledSourceNode) => {
-    sources.push(source);
-    source.addEventListener("ended", () => {
-      const sourceIndex = sources.indexOf(source);
-      if (sourceIndex >= 0) sources.splice(sourceIndex, 1);
-    }, { once: true });
-  };
+  let vibratoDepth: GainNode | null = null;
 
   operators.forEach((operator, index) => {
     operator.type = patch.waveforms?.[index] ?? "sine";
@@ -67,18 +75,19 @@ export function createFmVoice(
 
   if (patch.vibratoRate && patch.vibratoCents) {
     const vibrato = context.createOscillator();
-    const vibratoDepth = context.createGain();
+    const depth = context.createGain();
+    vibratoDepth = depth;
     vibrato.frequency.setValueAtTime(patch.vibratoRate, startAt);
-    vibratoDepth.gain.setValueAtTime(0, startAt);
-    vibratoDepth.gain.linearRampToValueAtTime(
+    depth.gain.setValueAtTime(0, startAt);
+    depth.gain.linearRampToValueAtTime(
       patch.vibratoCents,
       startAt + Math.min(duration * 0.45, 0.4),
     );
-    vibrato.connect(vibratoDepth);
-    operators.forEach((operator) => vibratoDepth.connect(operator.detune));
+    vibrato.connect(depth);
+    operators.forEach((operator) => depth.connect(operator.detune));
     vibrato.start(startAt);
     vibrato.stop(soundEnd + 0.02);
-    trackSource(vibrato);
+    trackScheduledSource(sources, vibrato);
   }
 
   modulationDepths.forEach((depth, index) => {
@@ -141,9 +150,15 @@ export function createFmVoice(
   }
   panner.connect(destination);
 
-  operators.forEach((operator) => {
+  operators.forEach((operator, index) => {
     operator.start(startAt);
     operator.stop(soundEnd + 0.02);
-    trackSource(operator);
+    trackScheduledSource(sources, operator, index === operators.length - 1 ? () => {
+      modulationDepths.forEach((depth) => depth.disconnect());
+      vibratoDepth?.disconnect();
+      envelope.disconnect();
+      filter?.disconnect();
+      panner.disconnect();
+    } : undefined);
   });
 }

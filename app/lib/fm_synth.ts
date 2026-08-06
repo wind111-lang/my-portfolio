@@ -5,6 +5,7 @@ export type FmPatch = {
   operatorCount?: 2 | 4;
   waveforms?: readonly [OscillatorType, OscillatorType, OscillatorType, OscillatorType];
   operatorDetuneCents?: readonly [number, number, number, number];
+  carrierGains?: readonly [number, number, number, number];
   filterFrequency?: number;
   filterStartFrequency?: number;
   filterAttack?: number;
@@ -53,6 +54,7 @@ export function createFmVoice(
   const operatorCount = patch.operatorCount ?? 4;
   const operators = Array.from({ length: operatorCount }, () => context.createOscillator());
   const modulationDepths = Array.from({ length: 3 }, () => context.createGain());
+  const carrierLevels: GainNode[] = [];
   const envelope = context.createGain();
   const panner = context.createStereoPanner();
   const filter = patch.filterFrequency ? context.createBiquadFilter() : null;
@@ -94,6 +96,14 @@ export function createFmVoice(
     depth.gain.setValueAtTime(frequency * patch.modulation[index], startAt);
   });
 
+  const connectCarrier = (operatorIndex: number) => {
+    const level = context.createGain();
+    level.gain.setValueAtTime(patch.carrierGains?.[operatorIndex] ?? 1, startAt);
+    operators[operatorIndex].connect(level);
+    level.connect(envelope);
+    carrierLevels.push(level);
+  };
+
   const attackEnd = startAt + Math.min(patch.attack, duration * 0.2);
   const decayEnd = startAt + Math.min(patch.decay, duration * 0.55);
   envelope.gain.setValueAtTime(0.0001, startAt);
@@ -106,19 +116,19 @@ export function createFmVoice(
   if (operatorCount === 2) {
     operators[1].connect(modulationDepths[0]);
     modulationDepths[0].connect(operators[0].frequency);
-    operators[0].connect(envelope);
+    connectCarrier(0);
   } else if (patch.algorithm === "dual") {
     operators[1].connect(modulationDepths[0]);
     modulationDepths[0].connect(operators[0].frequency);
     operators[3].connect(modulationDepths[2]);
     modulationDepths[2].connect(operators[2].frequency);
-    operators[0].connect(envelope);
-    operators[2].connect(envelope);
+    connectCarrier(0);
+    connectCarrier(2);
   } else if (patch.algorithm === "fan") {
     operators.slice(0, 3).forEach((carrier, index) => {
       operators[3].connect(modulationDepths[index]);
       modulationDepths[index].connect(carrier.frequency);
-      carrier.connect(envelope);
+      connectCarrier(index);
     });
   } else {
     operators[3].connect(modulationDepths[2]);
@@ -127,7 +137,7 @@ export function createFmVoice(
     modulationDepths[1].connect(operators[1].frequency);
     operators[1].connect(modulationDepths[0]);
     modulationDepths[0].connect(operators[0].frequency);
-    operators[0].connect(envelope);
+    connectCarrier(0);
   }
 
   if (filter) {
@@ -155,6 +165,7 @@ export function createFmVoice(
     operator.stop(soundEnd + 0.02);
     trackScheduledSource(sources, operator, index === operators.length - 1 ? () => {
       modulationDepths.forEach((depth) => depth.disconnect());
+      carrierLevels.forEach((level) => level.disconnect());
       vibratoDepth?.disconnect();
       envelope.disconnect();
       filter?.disconnect();

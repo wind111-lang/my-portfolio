@@ -10,7 +10,9 @@ import ScrollToTop from "~/components/scroll_to_top";
 import SpeakSection from "~/components/speak_section";
 import CommandView from "~/components/command_view";
 import BootScreen from "~/components/boot_screen";
+import PowerOnScreen from "~/components/power_on_screen";
 import ShutdownScreen from "~/components/shutdown_screen";
+import { playMorningMusic } from "~/lib/morning_music_player";
 import type { MetaFunction } from "@remix-run/node";
 
 export const meta: MetaFunction = () => [
@@ -39,11 +41,47 @@ export const meta: MetaFunction = () => [
 
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
-  const [startupPhase, setStartupPhase] = useState<"system" | "command" | "ready">("system");
+  const [startupPhase, setStartupPhase] = useState<"power" | "system" | "command" | "ready">("power");
   const [isShuttingDown, setIsShuttingDown] = useState(false);
+  const isPoweringOnRef = React.useRef(false);
+  const bootAudioContextRef = React.useRef<AudioContext | null>(null);
+  const stopBootMusicRef = React.useRef<(() => void) | null>(null);
+  const closeBootAudioTimerRef = React.useRef<number | null>(null);
+
+  const powerOn = React.useCallback(() => {
+    if (isPoweringOnRef.current) return;
+    isPoweringOnRef.current = true;
+
+    const showSplash = () => setStartupPhase("system");
+    try {
+      const context = new AudioContext({ latencyHint: "playback" });
+      bootAudioContextRef.current = context;
+      stopBootMusicRef.current = playMorningMusic(context);
+      if (context.state === "suspended") {
+        void context.resume().catch(() => {
+          stopBootMusicRef.current?.();
+          stopBootMusicRef.current = null;
+          void context.close();
+          bootAudioContextRef.current = null;
+        });
+      }
+      showSplash();
+    } catch {
+      showSplash();
+    }
+  }, []);
 
   const beginCommandStartup = React.useCallback(() => {
     setStartupPhase("command");
+    closeBootAudioTimerRef.current = window.setTimeout(() => {
+      stopBootMusicRef.current?.();
+      stopBootMusicRef.current = null;
+      if (bootAudioContextRef.current?.state !== "closed") {
+        void bootAudioContextRef.current?.close();
+      }
+      bootAudioContextRef.current = null;
+      closeBootAudioTimerRef.current = null;
+    }, 700);
   }, []);
 
   const completeStartup = React.useCallback(() => {
@@ -83,6 +121,16 @@ export default function Index(): React.ReactNode {
     return () => window.removeEventListener("pageshow", resetShutdownAfterHistoryRestore);
   }, []);
 
+  useEffect(() => () => {
+    if (closeBootAudioTimerRef.current !== null) {
+      window.clearTimeout(closeBootAudioTimerRef.current);
+    }
+    stopBootMusicRef.current?.();
+    if (bootAudioContextRef.current?.state !== "closed") {
+      void bootAudioContextRef.current?.close();
+    }
+  }, []);
+
   useEffect(() => {
     if (startupPhase !== "ready" || isShuttingDown) return;
 
@@ -100,6 +148,10 @@ export default function Index(): React.ReactNode {
     window.addEventListener("keydown", handleFunctionKey);
     return () => window.removeEventListener("keydown", handleFunctionKey);
   }, [isShuttingDown, startupPhase]);
+
+  if (startupPhase === "power") {
+    return <PowerOnScreen onPowerOn={powerOn} />;
+  }
 
   if (startupPhase === "system") {
     return <BootScreen onComplete={beginCommandStartup} />;
@@ -139,8 +191,12 @@ export default function Index(): React.ReactNode {
           </main>
         </div>
       )}
-      <Footer />
-      <ScrollToTop />
+      {mode === "gui" && (
+        <>
+          <Footer />
+          <ScrollToTop />
+        </>
+      )}
     </div>
   );
 }

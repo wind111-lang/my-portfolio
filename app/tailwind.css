@@ -48,6 +48,69 @@ button:focus-visible {
   min-height: 100vh;
 }
 
+/* 自動再生制限を解除する操作を、X68000の電源スイッチとして見せる。 */
+.x68k-power-on-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  min-width: 320px;
+  min-height: 100dvh;
+  place-items: center;
+  color: #d7ded9;
+  background: #000;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.x68k-power-switch {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 0.65rem;
+  border: 1px solid #4b544f;
+  padding: 0.7rem 0.9rem;
+  color: #d7ded9;
+  background: #050706;
+  box-shadow: inset 1px 1px #161b18, inset -1px -1px #000;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.x68k-power-switch > span {
+  grid-row: 1 / 3;
+  width: 0.72rem;
+  height: 0.72rem;
+  border: 1px solid #6b776f;
+  border-radius: 50%;
+  background: #17251c;
+  box-shadow: 0 0 0.32rem rgb(87 255 125 / 18%);
+}
+
+.x68k-power-switch strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+}
+
+.x68k-power-switch small {
+  color: #778179;
+  font-size: 0.57rem;
+  letter-spacing: 0.08em;
+}
+
+.x68k-power-switch:hover,
+.x68k-power-switch:focus-visible {
+  border-color: #aab5ae;
+}
+
+.x68k-power-switch:hover > span,
+.x68k-power-switch:focus-visible > span {
+  background: #52f074;
+  box-shadow: 0 0 0.55rem rgb(82 240 116 / 72%);
+}
+
 /* X68000 power-on sequence */
 .x68k-boot-screen {
   position: fixed;
@@ -349,7 +412,94 @@ button:focus-visible {
   46%, 100% { opacity: 0.18; }
 }
 
-/* Human68k / common control strip */
+/* Human68k command-line function/status strips */
+.human68k-command-bars {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 300;
+  color: #111;
+  font-family: "Osaka-Mono", "MS Gothic", "Noto Sans Mono CJK JP", monospace;
+  font-size: 0.68rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.human68k-function-strip {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  align-items: center;
+  gap: clamp(0.2rem, 0.8vw, 0.72rem);
+  height: 29px;
+  padding: 5px clamp(0.6rem, 4vw, 3rem);
+  background: #000;
+}
+
+.human68k-function-strip span {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  min-width: 0;
+  height: 17px;
+  padding: 0 0.24rem;
+  color: #111;
+  background: #ededed;
+  box-shadow: inset -1px -1px #888;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.human68k-function-strip small {
+  color: #777;
+  font-size: 0.48rem;
+}
+
+.human68k-status-strip {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, 0.5fr) minmax(8rem, 2fr) auto auto auto;
+  align-items: stretch;
+  min-height: 20px;
+  border-top: 1px solid #f5f5f5;
+  color: #111;
+  background: #c9c9c9;
+}
+
+.human68k-status-strip > span,
+.human68k-status-strip button {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid #f1f1f1;
+  border-left: 1px solid #666;
+  padding: 0.2rem 0.45rem;
+  overflow: hidden;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.human68k-status-strip button {
+  color: #ddd;
+  background: #090909;
+  cursor: pointer;
+}
+
+.human68k-status-strip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.human68k-status-strip > span:last-child {
+  justify-content: center;
+  color: #071509;
+  background: #52f074;
+  font-weight: 700;
+}
+
+/* SX-WINDOW control strip */
 .system-header {
   position: sticky;
   top: 0;
@@ -423,33 +573,30 @@ button:focus-visible {
 /* Human68k command mode */
 .site-shell[data-mode="command"] {
   position: relative;
-  background:
-    linear-gradient(rgb(255 255 255 / 0.018) 50%, transparent 50%) 0 0 / 100% 4px,
-    radial-gradient(ellipse at center, #0b100d 0%, #030403 78%);
+  min-height: 100dvh;
+  color: #ededed;
+  background: #000;
 }
 
 .site-shell[data-mode="command"]::before {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: linear-gradient(90deg, rgb(255 0 0 / 0.012), rgb(0 255 0 / 0.008), rgb(0 0 255 / 0.012));
-  pointer-events: none;
-  content: "";
+  content: none;
 }
 
 .terminal-screen {
-  width: min(1120px, 100%);
-  min-height: calc(100vh - 48px);
-  margin: 0 auto;
-  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem) 5rem;
-  font-size: clamp(0.84rem, 1.45vw, 1.08rem);
-  line-height: 1.65;
-  text-shadow: 0 0 7px rgb(190 255 218 / 24%);
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  padding: clamp(1.6rem, 4vw, 2.25rem) clamp(1rem, 4vw, 2.25rem) 6.5rem;
+  color: #ededed;
+  font-family: "Osaka-Mono", "MS Gothic", "Noto Sans Mono CJK JP", "Courier New", monospace;
+  font-size: clamp(0.88rem, 1.35vw, 1rem);
+  line-height: 1.22;
+  letter-spacing: 0.025em;
 }
 
 .boot-message {
-  min-height: 10.85em;
-  margin-bottom: 3rem;
+  min-height: 7.4em;
+  margin-bottom: 1.5rem;
 }
 
 .boot-message p,
@@ -458,22 +605,22 @@ button:focus-visible {
 }
 
 .command-entry {
-  margin: 0 0 2rem;
+  margin: 0 0 1.15rem;
 }
 
 .entered-command {
-  margin: 0 0 0.65rem;
-  color: #f2f5f3;
+  margin: 0 0 0.24rem;
+  color: #ededed;
 }
 
 .entered-command span,
 .terminal-input-row label {
-  color: var(--terminal-accent);
+  color: #fff;
 }
 
 .terminal-output {
-  padding-left: 2.25rem;
-  color: var(--terminal-text);
+  padding-left: 1.15rem;
+  color: #ededed;
 }
 
 .terminal-output a {
@@ -482,8 +629,8 @@ button:focus-visible {
 }
 
 .terminal-output a:hover {
-  color: #051008;
-  background: var(--terminal-accent);
+  color: #000;
+  background: #ededed;
 }
 
 .root-directory > p:first-child {
@@ -492,35 +639,35 @@ button:focus-visible {
 
 .directory-list {
   display: grid;
-  width: min(36rem, 100%);
+  width: min(39rem, 100%);
 }
 
 .directory-list button {
   display: grid;
-  grid-template-columns: 9rem 6rem 1fr;
+  grid-template-columns: 8rem 4.5rem 5.5rem 6.5rem 5rem;
   border: 0;
   padding: 0.08rem 0;
-  color: var(--terminal-text);
+  color: #ededed;
   background: transparent;
   font: inherit;
   line-height: inherit;
   text-align: left;
-  text-shadow: inherit;
   cursor: pointer;
 }
 
 .directory-list button:hover {
-  color: #051008;
-  background: var(--terminal-accent);
+  color: #000;
+  background: #ededed;
 }
 
-.directory-list button span:last-child {
+.directory-list button span:nth-child(3) {
   text-align: right;
+  padding-right: 1rem;
 }
 
 .dir-hint {
   margin-top: 0.8rem !important;
-  color: var(--terminal-dim);
+  color: #bdbdbd;
 }
 
 .help-output > p {
@@ -544,16 +691,16 @@ button:focus-visible {
 }
 
 .help-output dt span:last-child {
-  color: var(--terminal-text);
+  color: #ededed;
 }
 
 .help-output dd {
   margin: 0;
-  color: var(--terminal-dim);
+  color: #bdbdbd;
 }
 
 .command-error {
-  color: #ffcf70;
+  color: #ededed;
 }
 
 .identity-output strong {
@@ -570,7 +717,7 @@ button:focus-visible {
 
 .terminal-table time,
 .command-articles a > span:first-child {
-  color: var(--terminal-dim);
+  color: #bdbdbd;
 }
 
 .dir-grid {
@@ -594,7 +741,7 @@ button:focus-visible {
 .file-count,
 .terminal-help {
   margin-top: 0.75rem !important;
-  color: var(--terminal-dim);
+  color: #bdbdbd;
 }
 
 .talk-command {
@@ -603,10 +750,10 @@ button:focus-visible {
 
 .terminal-input-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.25rem;
-  margin-top: 0.5rem;
+  margin-top: 0.2rem;
 }
 
 .terminal-input-row label {
@@ -618,10 +765,10 @@ button:focus-visible {
   border: 0;
   border-radius: 0;
   padding: 0;
-  color: #f2f5f3;
+  color: #fff;
   outline: 0;
   background: transparent;
-  caret-color: var(--terminal-accent);
+  caret-color: #fff;
   font: inherit;
   line-height: inherit;
   text-transform: uppercase;
@@ -636,6 +783,18 @@ button:focus-visible {
   font: inherit;
   font-size: 0.65em;
   cursor: pointer;
+}
+
+.terminal-return-key {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .terminal-input-row button:hover {
@@ -1347,6 +1506,37 @@ button:focus-visible {
     padding-top: 1.5rem;
   }
 
+  .human68k-function-strip {
+    gap: 2px;
+    padding-right: 0.35rem;
+    padding-left: 0.35rem;
+  }
+
+  .human68k-function-strip span {
+    display: block;
+    padding: 0.16rem 0.05rem 0;
+    font-size: 0.52rem;
+  }
+
+  .human68k-function-strip small {
+    display: none;
+  }
+
+  .human68k-status-strip {
+    grid-template-columns: 3rem minmax(0, 1fr) auto auto;
+    font-size: 0.56rem;
+  }
+
+  .human68k-status-strip > span:nth-child(2) {
+    display: none;
+  }
+
+  .human68k-status-strip > span,
+  .human68k-status-strip button {
+    padding-right: 0.25rem;
+    padding-left: 0.25rem;
+  }
+
   .terminal-input-row input {
     font-size: 16px;
   }
@@ -1357,6 +1547,10 @@ button:focus-visible {
 
   .directory-list button {
     grid-template-columns: minmax(6.5rem, 1fr) 4.5rem 3rem;
+  }
+
+  .directory-list time {
+    display: none;
   }
 
   .help-output dl > div {

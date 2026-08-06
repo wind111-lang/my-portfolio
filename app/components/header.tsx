@@ -18,15 +18,46 @@ export default function Header({ mode, onModeChange, disabled = false }: HeaderP
     }
   };
 
+  if (mode === "command") {
+    const functionLabels = ["C1", "CU", "CA", "S1", "SU", "VOID", "NWL", "INS", "N&CU", "EOF"];
+
+    return (
+      <header className="human68k-command-bars">
+        <div className="human68k-function-strip" aria-hidden="true">
+          {functionLabels.map((label, index) => (
+            <span key={label}><small>F{index + 1}</small>{label}</span>
+          ))}
+        </div>
+        <div className="human68k-status-strip">
+          <span>Ready</span>
+          <span>A: PORTFOLIO</span>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed="true"
+            onClick={() => onModeChange("command")}
+          >
+            F1 COMMAND
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed="false"
+            onClick={() => onModeChange("gui")}
+          >
+            F2 SX-WINDOW
+          </button>
+          <span>POWER</span>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="system-header">
       <div className="system-brand">
-        {mode === "gui" && (
-          <>
-            <strong>SX-WINDOW</strong>
-            <small>version 3.1</small>
-          </>
-        )}
+        <strong>SX-WINDOW</strong>
+        <small>version 3.1</small>
       </div>
       <nav className="desktop-menu" aria-label="メインナビゲーション">
         <ul className="system-nav">
@@ -49,7 +80,7 @@ export default function Header({ mode, onModeChange, disabled = false }: HeaderP
         <button
           type="button"
           disabled={disabled}
-          aria-pressed={mode === "command"}
+          aria-pressed="false"
           onClick={() => onModeChange("command")}
           title="F1キーでも切り替えられます"
         >
@@ -58,7 +89,7 @@ export default function Header({ mode, onModeChange, disabled = false }: HeaderP
         <button
           type="button"
           disabled={disabled}
-          aria-pressed={mode === "gui"}
+          aria-pressed="true"
           onClick={() => onModeChange("gui")}
           title="F2キーでも切り替えられます"
         >

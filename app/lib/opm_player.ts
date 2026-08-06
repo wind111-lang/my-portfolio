@@ -1,892 +1,348 @@
-import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
 import {
   createFmVoice,
   midiToFrequency,
-  trackScheduledSource,
   type FmPatch,
 } from "~/lib/fm_synth";
+import {
+  ARPEGGIO_BLOCK_ORDER,
+  ARPEGGIO_PATTERN_A,
+  ARPEGGIO_PATTERN_B,
+  ARPEGGIO_PATTERN_C,
+  BASS_FIRST_NOTES,
+  BASS_RETURN_NOTES,
+  CENTER_LEAD_EVENTS,
+  CHORD_CHANNEL_3_NOTES,
+  CHORD_CHANNEL_4_NOTES,
+  CHORD_CHANNEL_5_NOTES,
+  STEREO_LEAD_EVENTS,
+  type VgmNoteEvent,
+} from "~/lib/opm_vgm_score";
 
-type NoteEvent = readonly [start: number, note: number, length: number];
-type ChordEvent = readonly [start: number, length: number, notes: readonly number[]];
-type ArrangementDensity = "intro" | "light" | "full";
-type LeadVoicing = "soft" | "bright" | "reed" | "upper";
-
-// 約75 BPMはハーフテンポ判定。原曲の拍感は約150 BPMで、
-// BEATは譜面上の八分音符1つ分を表す。
-const BPM = 150;
-const BEAT = 60 / BPM / 2;
-const OUTPUT_GAIN = 0.8;
-// 提供音源の伴奏・和音は6.4秒単位で切り替わり、12.8秒から
-// 採譜した主旋律のMIDIイベントが始まる。
-const FIRST_ARRANGEMENT_BEAT = 64;
-const FIRST_FULL_BEAT = 128;
-const INTERLUDE_BEAT = 352;
-const SECOND_FULL_BEAT = 416;
-const OUTRO_BEAT = 640;
-// 再提供されたX68版OGGは128.8秒からフェードし、約138秒で終わる。
-const FADE_START_BEAT = OUTRO_BEAT;
-const TRACK_BEATS = 690;
-const TRACK_DURATION = TRACK_BEATS * BEAT;
-const LEAD_ECHO_DELAY = BEAT / 2;
+const VGM_STEP_SECONDS = 0.1;
+const VGM_FIRST_NOTE_SECONDS = 0.75;
+const VGM_TUNING_SEMITONES = 5 / 64;
+const VGM_LOOP_START_STEP = 386;
+const VGM_LOOP_LENGTH_STEP = 576;
+const VGM_SCORE_END_STEP = 962;
+const TRACK_DURATION_SECONDS = 137.99;
+const FADE_START_SECONDS = 128.8;
+const OUTPUT_GAIN = 0.92;
 const SCHEDULE_AHEAD_SECONDS = 5;
 
-const brassPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 2.002, 1.003, 3.01],
-  modulation: [1.06, 0, 0.58],
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  operatorDetuneCents: [-2.2, 1.1, 2.2, -1.1],
-  carrierGains: [1, 0, 0.54, 0],
-  filterFrequency: 5200,
-  filterStartFrequency: 2200,
-  filterAttack: 0.11,
-  filterQ: 0.82,
-  pitchAttackCents: -9,
-  pitchAttackTime: 0.07,
-  attack: 0.04,
-  decay: 0.3,
-  peakGain: 0.01,
-  sustainGain: 0.0055,
-  release: 0.5,
-};
-
-const stringPatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 2, 3, 4.005],
-  modulation: [0.32, 0.14, 0.06],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-4.2, -1.3, 4.2, 1.3],
-  carrierGains: [1, 0.3, 0.12, 0],
-  filterFrequency: 3300,
-  filterStartFrequency: 1500,
-  filterAttack: 0.2,
-  filterQ: 0.56,
-  attack: 0.11,
-  decay: 0.52,
-  peakGain: 0.0048,
-  sustainGain: 0.0035,
-  release: 0.78,
-};
-
-const bassPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 1.002, 2, 3],
-  modulation: [1.2, 0.62, 0.22],
-  operatorCount: 2,
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.2, 1.2, 0, 0],
-  filterFrequency: 1800,
-  filterStartFrequency: 650,
-  filterAttack: 0.055,
-  filterQ: 0.74,
-  attack: 0.008,
-  decay: 0.1,
-  peakGain: 0.04,
-  sustainGain: 0.018,
-  release: 0.18,
-};
-
-const subBassPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 1.001, 2, 3],
-  modulation: [0.36, 0, 0],
-  operatorCount: 2,
-  waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-0.8, 0.8, 0, 0],
-  filterFrequency: 760,
-  filterStartFrequency: 300,
-  filterAttack: 0.12,
-  filterQ: 0.58,
-  attack: 0.018,
-  decay: 0.22,
-  peakGain: 0.025,
-  sustainGain: 0.017,
-  release: 0.34,
-};
-
-const baritonePatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 2.002, 1.5, 3.01],
-  modulation: [0.54, 0, 0.24],
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.8, 0.8, 1.8, -0.8],
-  carrierGains: [1, 0, 0.28, 0],
-  filterFrequency: 3200,
-  filterStartFrequency: 1250,
-  filterAttack: 0.055,
-  filterQ: 0.72,
-  pitchAttackCents: -7,
-  pitchAttackTime: 0.045,
-  attack: 0.016,
-  decay: 0.17,
-  peakGain: 0.0064,
-  sustainGain: 0.0028,
-  release: 0.28,
-};
-
-const leadPatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 1.998, 3.005, 4.01],
-  modulation: [0.98, 0.44, 0.17],
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  operatorDetuneCents: [-2.6, 1.1, 2.6, -1.1],
-  carrierGains: [1, 0.38, 0.16, 0],
-  filterFrequency: 6500,
-  filterStartFrequency: 3400,
-  filterAttack: 0.065,
-  filterQ: 0.92,
-  pitchAttackCents: -10,
-  pitchAttackTime: 0.055,
-  attack: 0.022,
-  decay: 0.24,
-  peakGain: 0.018,
-  sustainGain: 0.01,
-  release: 0.58,
-  vibratoRate: 5.15,
-  vibratoCents: 6,
-};
-
-// Troikaの公開VGMで高音主旋律に割り当てられているCON=2を近似する。
-// M1/C1/M2/C2の倍率2/9/1/1と、C2だけをキャリアにすることで、
-// 音程を重ねずにサビで不足していた上側のFM倍音を戻す。
-const highChorusLeadPatch: FmPatch = {
+// VGM channel 0: CON=2 / FB=7 / MUL=2,9,1,1 / TL=36,32,55,8。
+// M1/C1/M2/C2の接続と倍率を原ログのまま保つ高音主旋律。
+const stereoLeadPatch: FmPatch = {
   algorithm: 2,
   ratios: [2, 9, 1, 1],
   modulation: [0, 0, 0],
-  operatorModulation: [0.82, 1.42, 0.52, 0],
+  operatorModulation: [0.84, 1.38, 0.5, 0],
   waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.6, 1.1, -0.7, 0.5],
+  operatorDetuneCents: [0, 0, 0, 0],
   carrierGains: [0, 0, 0, 1],
-  filterFrequency: 11800,
-  filterStartFrequency: 5200,
-  filterAttack: 0.035,
-  filterQ: 0.78,
-  pitchAttackCents: -8,
-  pitchAttackTime: 0.045,
-  attack: 0.018,
+  filterFrequency: 14200,
+  filterStartFrequency: 5800,
+  filterAttack: 0.028,
+  filterQ: 0.62,
+  attack: 0.014,
   decay: 0.24,
   peakGain: 0.019,
   sustainGain: 0.0105,
-  release: 0.5,
+  release: 0.2,
   vibratoRate: 5.15,
-  vibratoCents: 6,
-};
-
-const highChorusEchoPatch: FmPatch = {
-  ...highChorusLeadPatch,
-  peakGain: 0.0072,
-  sustainGain: 0.004,
-  release: 0.56,
-};
-
-const softLeadPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 2.003, 1.004, 3.01],
-  modulation: [0.62, 0, 0.28],
-  waveforms: ["sine", "triangle", "sine", "sine"],
-  operatorDetuneCents: [-2, 0.8, 2, -0.8],
-  carrierGains: [1, 0, 0.5, 0],
-  filterFrequency: 4800,
-  filterStartFrequency: 2500,
-  filterAttack: 0.09,
-  filterQ: 0.7,
-  pitchAttackCents: -6,
-  pitchAttackTime: 0.06,
-  attack: 0.035,
-  decay: 0.3,
-  peakGain: 0.01,
-  sustainGain: 0.006,
-  release: 0.66,
-  vibratoRate: 5.05,
-  vibratoCents: 4.2,
-};
-
-const reedLeadPatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 2.006, 3.012, 5.018],
-  modulation: [1.12, 0.36, 0.14],
-  waveforms: ["triangle", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-3.1, -0.9, 3.1, 0.9],
-  carrierGains: [1, 0.32, 0.13, 0],
-  filterFrequency: 5900,
-  filterStartFrequency: 2850,
-  filterAttack: 0.055,
-  filterQ: 1.02,
-  pitchAttackCents: -8,
-  pitchAttackTime: 0.048,
-  attack: 0.014,
-  decay: 0.22,
-  peakGain: 0.014,
-  sustainGain: 0.0082,
-  release: 0.46,
-  vibratoRate: 5.3,
   vibratoCents: 5.2,
 };
 
-const leadEchoPatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 2.004, 2.997, 4.02],
-  modulation: [0.78, 0.34, 0.12],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [1.8, -0.8, -1.8, 0.8],
-  carrierGains: [1, 0.26, 0.09, 0],
-  filterFrequency: 5200,
-  filterStartFrequency: 2800,
-  filterAttack: 0.08,
-  filterQ: 0.68,
-  attack: 0.032,
-  decay: 0.3,
-  peakGain: 0.0074,
-  sustainGain: 0.004,
-  release: 0.68,
-  vibratoRate: 5,
-  vibratoCents: 4.5,
+// VGM channel 6はchannel 0を0.1秒遅らせ、C2のTLを13段下げた片側成分。
+const stereoLeadDelayPatch: FmPatch = {
+  ...stereoLeadPatch,
+  peakGain: 0.0063,
+  sustainGain: 0.0035,
+  release: 0.22,
 };
 
-const arpeggioPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 2.01, 3.002, 5.01],
-  modulation: [0.76, 0, 0.44],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-1.4, 0.7, 1.4, -0.7],
-  carrierGains: [1, 0, 0.3, 0],
-  filterFrequency: 5200,
-  filterStartFrequency: 7400,
-  filterAttack: 0.035,
-  filterQ: 1.05,
-  attack: 0.006,
-  decay: 0.1,
-  peakGain: 0.0058,
-  sustainGain: 0.0012,
-  release: 0.18,
-};
-
-const accordionPatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 2.002, 3.001, 1.004],
-  modulation: [0.52, 0.22, 0.08],
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  operatorDetuneCents: [-3.8, -1.1, 3.8, 1.1],
-  carrierGains: [1, 0.3, 0.11, 0],
-  filterFrequency: 4400,
-  filterStartFrequency: 2100,
-  filterAttack: 0.1,
-  filterQ: 0.78,
-  pitchAttackCents: -7,
-  pitchAttackTime: 0.065,
-  attack: 0.035,
-  decay: 0.28,
-  peakGain: 0.0068,
-  sustainGain: 0.0042,
-  release: 0.5,
-  vibratoRate: 4.8,
-  vibratoCents: 2.8,
-};
-
-const lowCounterPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.003, 2, 3],
-  modulation: [0.48, 0, 0],
-  operatorCount: 2,
+// VGM channel 2: CON=2 / FB=7 / MUL=1,5,1,1 / TL=34,45,50,14。
+// 12.8秒から入る中央主旋律で、ステレオ主旋律より丸い音色を担当する。
+const centerLeadPatch: FmPatch = {
+  algorithm: 2,
+  ratios: [1, 5, 1, 1],
+  modulation: [0, 0, 0],
+  operatorModulation: [0.96, 0.66, 0.46, 0],
   waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.4, 1.4, 0, 0],
-  filterFrequency: 1800,
-  filterStartFrequency: 850,
-  filterAttack: 0.08,
-  filterQ: 0.58,
-  attack: 0.025,
-  decay: 0.25,
-  peakGain: 0.012,
-  sustainGain: 0.0065,
-  release: 0.45,
-};
-
-const bassAttackPatch: FmPatch = {
-  algorithm: "serial",
-  ratios: [1, 2.01, 2, 3],
-  modulation: [1.18, 0, 0],
-  operatorCount: 2,
-  waveforms: ["triangle", "sine", "sine", "sine"],
-  filterFrequency: 2600,
-  filterStartFrequency: 900,
-  filterAttack: 0.04,
-  filterQ: 0.86,
-  pitchAttackCents: 12,
-  pitchAttackTime: 0.045,
-  attack: 0.004,
-  decay: 0.1,
+  operatorDetuneCents: [0, 0, 0, 0],
+  carrierGains: [0, 0, 0, 1],
+  filterFrequency: 11200,
+  filterStartFrequency: 4100,
+  filterAttack: 0.05,
+  filterQ: 0.7,
+  pitchAttackCents: -5,
+  pitchAttackTime: 0.04,
+  attack: 0.024,
+  decay: 0.3,
   peakGain: 0.016,
-  sustainGain: 0.0018,
-  release: 0.18,
+  sustainGain: 0.0088,
+  release: 0.25,
 };
 
-// OGGのside成分を短い解析窓で150 BPMの八分音符中央へ再量子化し、
-// 2回のフル区間で完全に一致した主旋律だけを採用する。長い解析窓で
-// 1拍遅れていた速い経過音と、高域へ入る直前の音程もここで補正する。
-// [開始位置（八分音符単位）, MIDIノート, 長さ]
-const fullLeadSequence: readonly NoteEvent[] = [
-  [0, 76, 4], [4, 72, 4], [8, 74, 4], [12, 71, 4],
-  [16, 72, 1], [17, 68, 1], [18, 69, 1], [19, 71, 1],
-  [20, 72, 1], [21, 69, 1], [22, 71, 1], [23, 72, 1],
-  [24, 74, 4], [28, 68, 4], [32, 76, 5], [37, 69, 1],
-  [38, 71, 1], [39, 72, 1], [40, 74, 6], [46, 72, 1],
-  [47, 71, 1], [48, 69, 4], [52, 68, 4], [56, 69, 4],
-  [60, 66, 1], [61, 68, 1], [62, 69, 1], [63, 71, 1],
-  [64, 81, 8], [72, 83, 3], [75, 80, 1], [76, 76, 4],
-  [80, 84, 2], [82, 81, 2], [84, 72, 2], [86, 74, 2],
-  [88, 76, 8],
-  [96, 81, 3], [99, 83, 3], [102, 81, 1], [103, 76, 1],
-  [104, 74, 3], [107, 77, 1], [108, 81, 4], [112, 76, 5],
-  [117, 74, 1], [118, 71, 1], [119, 72, 1], [120, 69, 7],
-  [127, 76, 1], [128, 81, 8], [136, 83, 3], [139, 80, 1],
-  [140, 76, 4], [144, 84, 2], [146, 81, 2], [148, 72, 2],
-  [150, 74, 2], [152, 76, 8], [160, 81, 3], [163, 83, 3],
-  [166, 81, 1], [167, 76, 1], [168, 74, 3], [171, 77, 1],
-  [172, 81, 4],
-  [176, 76, 5], [181, 74, 1], [182, 71, 1], [183, 72, 1],
-  [184, 69, 7], [191, 76, 1], [192, 81, 3], [195, 83, 3],
-  [198, 81, 1], [199, 76, 1], [200, 74, 3], [203, 77, 1],
-  [204, 81, 4], [208, 76, 5], [213, 74, 1], [214, 71, 1],
-  [215, 72, 1], [216, 69, 8],
+// VGM channel 1: CON=3 / MUL=6,0.5,0.5,1。
+// 0.4秒刻みの短いOPM低音で、人工キックは重ねない。
+const bassPatch: FmPatch = {
+  algorithm: 3,
+  ratios: [6, 0.5, 0.5, 1],
+  modulation: [0, 0, 0],
+  operatorModulation: [0.52, 0.72, 0.42, 0],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-3.5, 0, 0, 4.5],
+  carrierGains: [0, 0, 0, 1],
+  filterFrequency: 3600,
+  filterStartFrequency: 1250,
+  filterAttack: 0.018,
+  filterQ: 0.88,
+  pitchAttackCents: 7,
+  pitchAttackTime: 0.022,
+  attack: 0.004,
+  decay: 0.105,
+  peakGain: 0.021,
+  sustainGain: 0.0048,
+  release: 0.1,
+};
+
+// VGM channels 3-5: 同一のCON=3 / FB=5 / MUL=6,4,1,1。
+// 左・中央・右で異なる音程を短く鳴らし、原曲のサビの三声を作る。
+const chordPulsePatch: FmPatch = {
+  algorithm: 3,
+  ratios: [6, 4, 1, 1],
+  modulation: [0, 0, 0],
+  operatorModulation: [0.34, 0.52, 0.66, 0],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [4.2, -1.8, -1.8, 4.2],
+  carrierGains: [0, 0, 0, 1],
+  filterFrequency: 8600,
+  filterStartFrequency: 3000,
+  filterAttack: 0.022,
+  filterQ: 0.68,
+  attack: 0.006,
+  decay: 0.12,
+  peakGain: 0.0088,
+  sustainGain: 0.0027,
+  release: 0.12,
+  vibratoRate: 5.15,
+  vibratoCents: 2.2,
+};
+
+// VGM channel 7: CON=5 / FB=7 / MUL=1,12,3,1。
+// 冒頭から連続する「タッタカ」はADPCMではなく、この高速OPMアルペジオ。
+const arpeggioPatch: FmPatch = {
+  algorithm: 5,
+  ratios: [1, 12, 3, 1],
+  modulation: [0, 0, 0],
+  operatorModulation: [1.04, 0, 0, 0],
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.8, 0, 4.2, 0],
+  carrierGains: [0, 0.018, 0.042, 1],
+  filterFrequency: 9600,
+  filterStartFrequency: 3900,
+  filterAttack: 0.012,
+  filterQ: 0.72,
+  attack: 0.003,
+  decay: 0.1,
+  peakGain: 0.0145,
+  sustainGain: 0.0025,
+  release: 0.09,
+};
+
+function createPulseEvents(
+  startStep: number,
+  intervalSteps: number,
+  notes: readonly number[],
+  gateSteps = 2,
+): VgmNoteEvent[] {
+  return notes.map((note, index) => [
+    startStep + index * intervalSteps,
+    note,
+    gateSteps,
+  ] as const);
+}
+
+function createArpeggioEvents(): VgmNoteEvent[] {
+  const patterns = {
+    A: ARPEGGIO_PATTERN_A,
+    B: ARPEGGIO_PATTERN_B,
+    C: ARPEGGIO_PATTERN_C,
+  } as const;
+
+  return [...ARPEGGIO_BLOCK_ORDER].flatMap((patternName, blockIndex) =>
+    patterns[patternName as keyof typeof patterns].map((note, noteIndex) => [
+      blockIndex * 64 + noteIndex * 2,
+      note,
+      2,
+    ] as const),
+  );
+}
+
+function offsetEvents(
+  events: readonly VgmNoteEvent[],
+  stepOffset: number,
+): VgmNoteEvent[] {
+  return events.map(([startStep, note, gateSteps]) => {
+    const shiftedStart = startStep + stepOffset;
+    return [
+      shiftedStart,
+      note,
+      Math.min(gateSteps, VGM_SCORE_END_STEP - shiftedStart),
+    ] as const;
+  });
+}
+
+function appendPartialLoop(events: readonly VgmNoteEvent[]): VgmNoteEvent[] {
+  const loopedEvents = events
+    .filter(([startStep]) => startStep >= VGM_LOOP_START_STEP)
+    .map(([startStep, note, gateSteps]) => [
+      startStep + VGM_LOOP_LENGTH_STEP,
+      note,
+      gateSteps,
+    ] as const)
+    .filter(([startStep]) =>
+      VGM_FIRST_NOTE_SECONDS + startStep * VGM_STEP_SECONDS < TRACK_DURATION_SECONDS,
+    );
+  return [...events, ...loopedEvents];
+}
+
+const bassEvents = [
+  ...createPulseEvents(256, 4, BASS_FIRST_NOTES),
+  ...createPulseEvents(832, 4, BASS_RETURN_NOTES),
 ];
 
-const lightLeadSequence: readonly NoteEvent[] = [
-  [0, 76, 4], [4, 72, 4], [8, 74, 4], [12, 71, 4],
-  [16, 72, 1], [17, 68, 1], [18, 69, 1], [19, 71, 1],
-  [20, 72, 1], [21, 69, 1], [22, 71, 1], [23, 72, 1],
-  [24, 74, 4], [28, 68, 4], [32, 76, 5], [37, 69, 1],
-  [38, 71, 1], [39, 72, 1], [40, 74, 6], [46, 72, 1],
-  [47, 71, 1], [48, 69, 4], [52, 68, 4], [56, 69, 4],
-  [60, 66, 1], [61, 68, 1], [62, 69, 1], [63, 71, 1],
-];
-
-const outroLeadSequence: readonly NoteEvent[] = [
-  [0, 76, 4], [4, 72, 4], [8, 74, 4], [12, 71, 4],
-  [16, 72, 1], [17, 68, 1], [18, 69, 1], [19, 71, 1],
-  [20, 72, 1], [21, 69, 1], [22, 71, 1], [23, 72, 1],
-  [24, 74, 4], [28, 68, 4], [32, 76, 5], [37, 69, 1],
-  [38, 71, 1], [39, 72, 1], [40, 74, 6], [46, 72, 1],
-  [47, 71, 1], [48, 69, 2],
-];
-
-// 原曲で主旋律の隙間を埋める八分音符アルペジオ。
-// A/C系とB/D系で異なるE4・F4の運指までMIDIイベントへ戻す。
-const accompanimentA = [
-  57, 64, 60, 64, 57, 64, 60, 64,
-  56, 64, 62, 64, 56, 64, 62, 64,
-  57, 64, 60, 64, 57, 65, 60, 65,
-  56, 64, 62, 64, 56, 64, 62, 64,
+const baseChannelEvents = [
+  STEREO_LEAD_EVENTS,
+  bassEvents,
+  CENTER_LEAD_EVENTS,
+  createPulseEvents(386, 4, CHORD_CHANNEL_3_NOTES),
+  createPulseEvents(386, 4, CHORD_CHANNEL_4_NOTES),
+  createPulseEvents(386, 4, CHORD_CHANNEL_5_NOTES),
+  offsetEvents(STEREO_LEAD_EVENTS, 1),
+  createArpeggioEvents(),
 ] as const;
 
-const accompanimentB = [
-  57, 64, 60, 64, 57, 64, 60, 64,
-  57, 65, 62, 65, 57, 65, 62, 65,
-  57, 64, 60, 64, 56, 64, 62, 64,
-  57, 64, 60, 64, 57, 64, 60, 64,
-] as const;
+const channelEvents = baseChannelEvents.map(appendPartialLoop);
 
-const bassRootsA: readonly NoteEvent[] = [
-  [0, 45, 8], [8, 40, 8], [16, 45, 4], [20, 41, 4], [24, 40, 8],
-];
-
-const bassRootsB: readonly NoteEvent[] = [
-  [0, 45, 8], [8, 38, 8], [16, 45, 4], [20, 40, 4], [24, 45, 4], [28, 40, 4],
-];
-
-const AM_CHORD = [45, 48, 52] as const;
-const E7_CHORD = [40, 44, 47, 50] as const;
-const DM_CHORD = [38, 41, 45] as const;
-const F_CHORD = [41, 45, 48] as const;
-
-const chordEventsA: readonly ChordEvent[] = [
-  [0, 8, AM_CHORD], [8, 8, E7_CHORD], [16, 4, AM_CHORD],
-  [20, 4, F_CHORD], [24, 8, E7_CHORD],
-] as const;
-
-const chordEventsB: readonly ChordEvent[] = [
-  [0, 8, AM_CHORD], [8, 8, DM_CHORD], [16, 4, AM_CHORD],
-  [20, 4, E7_CHORD], [24, 4, AM_CHORD], [28, 4, E7_CHORD],
-];
-
-type ArrangementBlockName = "a" | "b" | "c" | "d" | "closing";
-
-const arrangementBlockOrder: readonly ArrangementBlockName[] = [
-  "a", "b", "a", "b", "c", "d", "c", "d", "closing",
-  "a", "b", "a", "b", "c", "d", "c", "d", "closing",
-  "a", "b",
-];
-
-function createKick(
-  context: AudioContext,
-  destination: AudioNode,
-  sources: AudioScheduledSourceNode[],
-  startAt: number,
-  gain = 0.1,
-): void {
-  const oscillator = context.createOscillator();
-  const envelope = context.createGain();
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(142, startAt);
-  oscillator.frequency.exponentialRampToValueAtTime(46, startAt + 0.17);
-  envelope.gain.setValueAtTime(0.0001, startAt);
-  envelope.gain.exponentialRampToValueAtTime(gain, startAt + 0.004);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.2);
-  oscillator.connect(envelope);
-  envelope.connect(destination);
-  oscillator.start(startAt);
-  oscillator.stop(startAt + 0.21);
-  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
-}
-
-function createTom(
-  context: AudioContext,
-  destination: AudioNode,
-  sources: AudioScheduledSourceNode[],
-  startAt: number,
-  frequency: number,
-  gain: number,
-): void {
-  const oscillator = context.createOscillator();
-  const envelope = context.createGain();
-  oscillator.type = "triangle";
-  oscillator.frequency.setValueAtTime(frequency, startAt);
-  oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.56, startAt + 0.16);
-  envelope.gain.setValueAtTime(0.0001, startAt);
-  envelope.gain.exponentialRampToValueAtTime(gain, startAt + 0.005);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.2);
-  oscillator.connect(envelope);
-  envelope.connect(destination);
-  oscillator.start(startAt);
-  oscillator.stop(startAt + 0.21);
-  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
-}
-
-function createFourBitCurve(): Float32Array {
-  const curve = new Float32Array(256);
-  const maxFourBitValue = 15;
-  for (let index = 0; index < curve.length; index += 1) {
-    const input = index / (curve.length - 1) * 2 - 1;
-    const normalized = (input + 1) / 2;
-    curve[index] = Math.round(normalized * maxFourBitValue) / maxFourBitValue * 2 - 1;
-  }
-  return curve;
-}
-
-function getDensity(beat: number): ArrangementDensity {
-  if (beat < FIRST_ARRANGEMENT_BEAT) return "intro";
-  if (beat < FIRST_FULL_BEAT) return "light";
-  if (beat < INTERLUDE_BEAT) return "full";
-  if (beat < SECOND_FULL_BEAT) return "light";
-  if (beat < OUTRO_BEAT) return "full";
-  return "light";
-}
+type RuntimeChannel = {
+  events: readonly VgmNoteEvent[];
+  patch: FmPatch;
+  destination: AudioNode;
+  pan: number;
+  nextEvent: number;
+};
 
 export function playOpmTrack(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
+  const outputFilter = context.createBiquadFilter();
+  const leadPresence = context.createBiquadFilter();
   const leadBus = context.createGain();
-  const fmBus = context.createGain();
   const bassBus = context.createGain();
-  const percussionBus = context.createGain();
-  const percussionDry = context.createGain();
-  const percussionCrushed = context.createGain();
-  const toneFilter = context.createBiquadFilter();
-  const bassFilter = context.createBiquadFilter();
-  const presenceFilter = context.createBiquadFilter();
-  const percussionFilter = context.createBiquadFilter();
-  const quantizer = context.createWaveShaper();
-  const adpcmSamples = createAdpcmSampleBank(context);
+  const harmonyBus = context.createGain();
+  const arpeggioBus = context.createGain();
   const sources: AudioScheduledSourceNode[] = [];
+  let schedulerTimer: number | null = null;
   let disconnected = false;
 
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt);
-  compressor.threshold.setValueAtTime(-12, startAt);
-  compressor.knee.setValueAtTime(18, startAt);
+  compressor.threshold.setValueAtTime(-15, startAt);
+  compressor.knee.setValueAtTime(14, startAt);
   compressor.ratio.setValueAtTime(2.2, startAt);
-  compressor.attack.setValueAtTime(0.009, startAt);
-  compressor.release.setValueAtTime(0.28, startAt);
-  leadBus.gain.setValueAtTime(0.72, startAt);
-  fmBus.gain.setValueAtTime(0.68, startAt);
-  bassBus.gain.setValueAtTime(0.82, startAt);
-  percussionBus.gain.setValueAtTime(0.2, startAt);
-  percussionDry.gain.setValueAtTime(0.82, startAt);
-  percussionCrushed.gain.setValueAtTime(0.06, startAt);
-  toneFilter.type = "lowpass";
-  toneFilter.frequency.setValueAtTime(5600, startAt);
-  toneFilter.Q.setValueAtTime(0.68, startAt);
-  bassFilter.type = "lowpass";
-  bassFilter.frequency.setValueAtTime(1450, startAt);
-  bassFilter.Q.setValueAtTime(0.62, startAt);
-  presenceFilter.type = "peaking";
-  presenceFilter.frequency.setValueAtTime(720, startAt);
-  presenceFilter.Q.setValueAtTime(0.92, startAt);
-  presenceFilter.gain.setValueAtTime(2.6, startAt);
-  percussionFilter.type = "lowpass";
-  percussionFilter.frequency.setValueAtTime(5200, startAt);
-  percussionFilter.Q.setValueAtTime(0.66, startAt);
-  quantizer.curve = createFourBitCurve();
-  quantizer.oversample = "none";
+  compressor.attack.setValueAtTime(0.006, startAt);
+  compressor.release.setValueAtTime(0.2, startAt);
+  outputFilter.type = "lowpass";
+  outputFilter.frequency.setValueAtTime(15200, startAt);
+  outputFilter.Q.setValueAtTime(0.5, startAt);
+  leadPresence.type = "peaking";
+  leadPresence.frequency.setValueAtTime(5900, startAt);
+  leadPresence.Q.setValueAtTime(0.72, startAt);
+  leadPresence.gain.setValueAtTime(2.4, startAt);
+  leadBus.gain.setValueAtTime(1, startAt);
+  bassBus.gain.setValueAtTime(0.92, startAt);
+  harmonyBus.gain.setValueAtTime(0.86, startAt);
+  arpeggioBus.gain.setValueAtTime(0.82, startAt);
 
-  leadBus.connect(presenceFilter);
-  presenceFilter.connect(master);
-  fmBus.connect(toneFilter);
-  toneFilter.connect(master);
-  bassBus.connect(bassFilter);
-  bassFilter.connect(master);
-  percussionBus.connect(percussionFilter);
-  percussionFilter.connect(percussionDry);
-  percussionDry.connect(master);
-  percussionFilter.connect(quantizer);
-  quantizer.connect(percussionCrushed);
-  percussionCrushed.connect(master);
+  leadBus.connect(leadPresence);
+  leadPresence.connect(master);
+  bassBus.connect(master);
+  harmonyBus.connect(master);
+  arpeggioBus.connect(master);
   master.connect(compressor);
-  compressor.connect(context.destination);
+  compressor.connect(outputFilter);
+  outputFilter.connect(context.destination);
 
-  const scheduleAccompaniment = (
-    pitches: readonly number[],
-    startBeat: number,
-    includeBass: boolean,
-    roots: readonly NoteEvent[],
-    chords: readonly ChordEvent[],
-  ) => {
-    const density = getDensity(startBeat);
-    pitches.forEach((midiNote, beatOffset) => {
-      const noteStart = startAt + (startBeat + beatOffset) * BEAT;
-      createFmVoice(
-        context,
-        fmBus,
-        sources,
-        midiToFrequency(midiNote),
-        noteStart,
-        0.82 * BEAT,
-        beatOffset % 2 === 0 ? -0.52 : 0.52,
-        arpeggioPatch,
-        beatOffset % 2 === 0 ? -2.1 : 2.1,
-      );
-
-      if (density === "full" && beatOffset % 2 === 0) {
-        createFmVoice(
-          context,
-          fmBus,
-          sources,
-          midiToFrequency(midiNote - 12),
-          noteStart + 0.012,
-          0.76 * BEAT,
-          beatOffset % 4 === 0 ? 0.3 : -0.3,
-          baritonePatch,
-          beatOffset % 4 === 0 ? 1.4 : -1.4,
-        );
-      }
-    });
-
-    chords.forEach(([beatOffset, durationInBeats, notes], chordIndex) => {
-      const chordStart = startAt + (startBeat + beatOffset) * BEAT;
-      notes.forEach((midiNote, noteIndex) => {
-        const pan = (noteIndex - (notes.length - 1) / 2) * 0.18;
-        createFmVoice(
-          context,
-          fmBus,
-          sources,
-          midiToFrequency(midiNote),
-          chordStart,
-          durationInBeats * BEAT * 0.94,
-          pan,
-          stringPatch,
-          noteIndex % 2 === 0 ? -1.8 : 1.8,
-        );
-        createFmVoice(
-          context,
-          fmBus,
-          sources,
-          midiToFrequency(midiNote + 12),
-          chordStart + 0.018,
-          durationInBeats * BEAT * 0.88,
-          -pan,
-          density === "full" ? brassPatch : accordionPatch,
-          chordIndex % 2 === 0 ? 1.6 : -1.6,
-        );
-      });
-    });
-
-    if (!includeBass) return;
-    roots.forEach(([beatOffset, midiNote, durationInBeats], index) => {
-      const noteStart = startAt + (startBeat + beatOffset) * BEAT;
-      createFmVoice(
-        context,
-        bassBus,
-        sources,
-        midiToFrequency(midiNote),
-        noteStart,
-        durationInBeats * BEAT * 0.9,
-        index % 2 === 0 ? -0.08 : 0.08,
-        bassPatch,
-      );
-      createFmVoice(
-        context,
-        fmBus,
-        sources,
-        midiToFrequency(midiNote + 12),
-        noteStart,
-        Math.min(1.3, durationInBeats * 0.38) * BEAT,
-        index % 2 === 0 ? 0.1 : -0.1,
-        bassAttackPatch,
-      );
-      if (density === "full") {
-        createFmVoice(
-          context,
-          bassBus,
-          sources,
-          midiToFrequency(midiNote - 12),
-          noteStart + 0.018,
-          durationInBeats * BEAT * 0.94,
-          index % 2 === 0 ? 0.04 : -0.04,
-          subBassPatch,
-        );
-      }
-    });
-  };
-
-  const scheduleLeadEvents = (
-    sequence: readonly NoteEvent[],
-    startBeat: number,
-    voicing: LeadVoicing,
-  ) => {
-    sequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
-      const noteStart = startAt + (startBeat + beatOffset) * BEAT;
-      // 上声の長音も譜面どおり次の発音位置まで保ち、短いゲート切れを作らない。
-      const noteDuration = durationInBeats * BEAT;
-      const leadPan = voicing === "upper" ? 0.34 : index % 2 === 0 ? -0.2 : 0.14;
-      const usesHighChorusPatch = voicing === "bright" && midiNote >= 80;
-      const mainPatch = usesHighChorusPatch
-        ? highChorusLeadPatch
-        : voicing === "soft"
-        ? softLeadPatch
-        : voicing === "bright"
-          ? leadPatch
-          : reedLeadPatch;
-      const mainDestination = voicing === "reed" ? fmBus : leadBus;
-      createFmVoice(
-        context,
-        mainDestination,
-        sources,
-        midiToFrequency(midiNote),
-        noteStart,
-        noteDuration,
-        leadPan,
-        mainPatch,
-      );
-
-      if (voicing === "soft" || voicing === "bright") {
-        createFmVoice(
-          context,
-          leadBus,
-          sources,
-          midiToFrequency(midiNote),
-          noteStart + LEAD_ECHO_DELAY,
-          noteDuration,
-          leadPan < 0 ? 0.42 : -0.42,
-          usesHighChorusPatch ? highChorusEchoPatch : leadEchoPatch,
-          leadPan < 0 ? 4.2 : -4.2,
-        );
-      }
-
-      if (voicing === "reed" && durationInBeats >= 4) {
-        createFmVoice(
-          context,
-          fmBus,
-          sources,
-          midiToFrequency(midiNote - 12),
-          noteStart + 0.012,
-          noteDuration * 0.96,
-          leadPan < 0 ? 0.28 : -0.28,
-          lowCounterPatch,
-          index % 2 === 0 ? -2 : 2,
-        );
-      }
-
-      if (voicing === "reed" && durationInBeats >= 8) {
-        createFmVoice(
-          context,
-          fmBus,
-          sources,
-          midiToFrequency(midiNote + 12),
-          noteStart + 0.026,
-          noteDuration * 0.9,
-          leadPan < 0 ? 0.34 : -0.34,
-          accordionPatch,
-          index % 2 === 0 ? 2.6 : -2.6,
-        );
-      }
-
-    });
-  };
-
-  const melodySections: Array<{
-    startBeat: number;
-    sequence: readonly NoteEvent[];
-    voicing: LeadVoicing;
-  }> = [
-    { startBeat: FIRST_ARRANGEMENT_BEAT, sequence: lightLeadSequence, voicing: "soft" },
-    { startBeat: FIRST_FULL_BEAT, sequence: fullLeadSequence, voicing: "bright" },
-    { startBeat: INTERLUDE_BEAT, sequence: lightLeadSequence, voicing: "soft" },
-    { startBeat: SECOND_FULL_BEAT, sequence: fullLeadSequence, voicing: "bright" },
-    { startBeat: OUTRO_BEAT, sequence: outroLeadSequence, voicing: "soft" },
+  const channels: RuntimeChannel[] = [
+    { events: channelEvents[0], patch: stereoLeadPatch, destination: leadBus, pan: -0.72, nextEvent: 0 },
+    { events: channelEvents[1], patch: bassPatch, destination: bassBus, pan: 0, nextEvent: 0 },
+    { events: channelEvents[2], patch: centerLeadPatch, destination: leadBus, pan: 0, nextEvent: 0 },
+    { events: channelEvents[3], patch: chordPulsePatch, destination: harmonyBus, pan: -0.68, nextEvent: 0 },
+    { events: channelEvents[4], patch: chordPulsePatch, destination: harmonyBus, pan: 0, nextEvent: 0 },
+    { events: channelEvents[5], patch: chordPulsePatch, destination: harmonyBus, pan: 0.68, nextEvent: 0 },
+    { events: channelEvents[6], patch: stereoLeadDelayPatch, destination: leadBus, pan: 0.72, nextEvent: 0 },
+    { events: channelEvents[7], patch: arpeggioPatch, destination: arpeggioBus, pan: 0, nextEvent: 0 },
   ];
-
-  const accompanimentSections: Array<{
-    startBeat: number;
-    pitches: readonly number[];
-    includeBass: boolean;
-    roots: readonly NoteEvent[];
-    chords: readonly ChordEvent[];
-  }> = [
-    { startBeat: 0, pitches: accompanimentA, includeBass: false, roots: [], chords: [] },
-    { startBeat: 32, pitches: accompanimentB, includeBass: false, roots: [], chords: [] },
-  ];
-  const arrangementBlockCount = arrangementBlockOrder.length;
-  for (let blockIndex = 0; blockIndex < arrangementBlockCount; blockIndex += 1) {
-    const startBeat = FIRST_ARRANGEMENT_BEAT + blockIndex * 32;
-    const blockName = arrangementBlockOrder[blockIndex % arrangementBlockOrder.length];
-    const usesAForm = blockName === "a" || blockName === "c";
-    accompanimentSections.push({
-      startBeat,
-      pitches: usesAForm ? accompanimentA : accompanimentB,
-      includeBass: true,
-      roots: usesAForm ? bassRootsA : bassRootsB,
-      chords: usesAForm ? chordEventsA : chordEventsB,
-    });
-  }
-
-  const schedulePercussionBlock = (blockStartBeat: number, blockIndex: number) => {
-    for (let halfBeat = 0; halfBeat < 32; halfBeat += 1) {
-      const beatPosition = halfBeat;
-      const hitAt = startAt + (blockStartBeat + beatPosition) * BEAT;
-      if (halfBeat % 8 === 0) {
-        createKick(context, percussionBus, sources, hitAt, halfBeat === 0 ? 0.12 : 0.085);
-      }
-      if (halfBeat % 8 === 4) {
-        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.snare, hitAt, {
-          gain: 0.105,
-          pan: halfBeat === 4 ? -0.08 : 0.08,
-        });
-        if (blockIndex % 4 === 3) {
-          scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.clap, hitAt + 0.012, {
-            gain: 0.032,
-            pan: 0.12,
-          });
-        }
-      }
-      if (halfBeat % 2 === 0) {
-        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.metal, hitAt, {
-          gain: halfBeat % 8 === 6 ? 0.012 : 0.0065,
-          pan: halfBeat % 4 === 0 ? -0.2 : 0.2,
-          playbackRate: halfBeat % 8 === 6 ? 2.1 : 2.65,
-        });
-      }
-    }
-    if (blockIndex % 4 === 3) {
-      [158, 126, 98].forEach((frequency, index) => {
-        const tomAt = startAt + (blockStartBeat + 26 + index * 2.5) * BEAT;
-        createTom(
-          context,
-          percussionBus,
-          sources,
-          tomAt,
-          frequency,
-          0.052 - index * 0.006,
-        );
-        scheduleAdpcmSample(context, percussionBus, sources, adpcmSamples.tom, tomAt + 0.008, {
-          gain: 0.034 - index * 0.005,
-          pan: (index - 1) * 0.18,
-          playbackRate: 1.12 - index * 0.14,
-        });
-      });
-    }
-  };
-
-  const percussionBlocks = [
-    ...Array.from({ length: 7 }, (_, index) => FIRST_FULL_BEAT + index * 32),
-    ...Array.from({ length: 7 }, (_, index) => SECOND_FULL_BEAT + index * 32),
-  ];
-
-  let nextAccompanimentSection = 0;
-  let nextMelodySection = 0;
-  let nextPercussionBlock = 0;
-  let schedulerTimer: number | null = null;
 
   const schedulePendingEvents = () => {
     if (disconnected) return;
     const horizon = context.currentTime + SCHEDULE_AHEAD_SECONDS;
 
-    while (
-      nextAccompanimentSection < accompanimentSections.length
-      && startAt + accompanimentSections[nextAccompanimentSection].startBeat * BEAT <= horizon
-    ) {
-      const section = accompanimentSections[nextAccompanimentSection];
-      scheduleAccompaniment(
-        section.pitches,
-        section.startBeat,
-        section.includeBass,
-        section.roots,
-        section.chords,
-      );
-      nextAccompanimentSection += 1;
-    }
+    channels.forEach((channel) => {
+      while (channel.nextEvent < channel.events.length) {
+        const [startStep, midiNote, gateSteps] = channel.events[channel.nextEvent];
+        const eventOffset = VGM_FIRST_NOTE_SECONDS + startStep * VGM_STEP_SECONDS;
+        const noteStart = startAt + eventOffset;
+        if (noteStart > horizon) break;
 
-    while (
-      nextMelodySection < melodySections.length
-      && startAt + melodySections[nextMelodySection].startBeat * BEAT <= horizon
-    ) {
-      const section = melodySections[nextMelodySection];
-      scheduleLeadEvents(section.sequence, section.startBeat, section.voicing);
-      nextMelodySection += 1;
-    }
+        const remainingTrackTime = TRACK_DURATION_SECONDS - eventOffset;
+        const vgmGate = Math.max(0.04, gateSteps * VGM_STEP_SECONDS - 0.01);
+        const duration = Math.min(vgmGate, remainingTrackTime);
+        if (duration > 0.01) {
+          createFmVoice(
+            context,
+            channel.destination,
+            sources,
+            midiToFrequency(midiNote + VGM_TUNING_SEMITONES),
+            noteStart,
+            duration,
+            channel.pan,
+            channel.patch,
+          );
+        }
+        channel.nextEvent += 1;
+      }
+    });
 
-    while (
-      nextPercussionBlock < percussionBlocks.length
-      && startAt + percussionBlocks[nextPercussionBlock] * BEAT <= horizon
-    ) {
-      schedulePercussionBlock(percussionBlocks[nextPercussionBlock], nextPercussionBlock);
-      nextPercussionBlock += 1;
-    }
-
-    if (
-      nextAccompanimentSection === accompanimentSections.length
-      && nextMelodySection === melodySections.length
-      && nextPercussionBlock === percussionBlocks.length
-      && schedulerTimer !== null
-    ) {
-      window.clearInterval(schedulerTimer);
+    if (channels.every((channel) => channel.nextEvent === channel.events.length)) {
+      if (schedulerTimer !== null) window.clearInterval(schedulerTimer);
       schedulerTimer = null;
     }
   };
 
   schedulePendingEvents();
-  schedulerTimer = window.setInterval(schedulePendingEvents, 750);
+  schedulerTimer = window.setInterval(schedulePendingEvents, 500);
 
-  const fadeStart = startAt + FADE_START_BEAT * BEAT;
-  master.gain.setValueAtTime(OUTPUT_GAIN, fadeStart);
-  master.gain.linearRampToValueAtTime(0.0001, startAt + TRACK_DURATION);
+  master.gain.setValueAtTime(OUTPUT_GAIN, startAt + FADE_START_SECONDS);
+  master.gain.linearRampToValueAtTime(0.0001, startAt + TRACK_DURATION_SECONDS);
 
   const disconnectGraph = () => {
     if (disconnected) return;
     disconnected = true;
     leadBus.disconnect();
-    fmBus.disconnect();
     bassBus.disconnect();
-    percussionBus.disconnect();
-    percussionDry.disconnect();
-    percussionCrushed.disconnect();
-    toneFilter.disconnect();
-    bassFilter.disconnect();
-    presenceFilter.disconnect();
-    percussionFilter.disconnect();
-    quantizer.disconnect();
+    harmonyBus.disconnect();
+    arpeggioBus.disconnect();
+    leadPresence.disconnect();
     master.disconnect();
     compressor.disconnect();
+    outputFilter.disconnect();
   };
-  const cleanupTimer = window.setTimeout(disconnectGraph, (TRACK_DURATION + 0.3) * 1000);
+  const cleanupTimer = window.setTimeout(
+    disconnectGraph,
+    (TRACK_DURATION_SECONDS + 0.5) * 1000,
+  );
 
   return () => {
     window.clearTimeout(cleanupTimer);

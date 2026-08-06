@@ -14,6 +14,7 @@ const SIXTEENTH = 60 / BPM / 4;
 const FM_ENTRY_SECONDS = 1.855;
 const PHRASE_UNITS = 128;
 const TRACK_UNITS = PHRASE_UNITS * 4;
+const OUTPUT_GAIN = 0.8;
 // 参照MP3は本編終了後も約5.35秒かけて自然に減衰する。
 const RELEASE_TAIL_SECONDS = 5.35;
 const TRACK_DURATION = FM_ENTRY_SECONDS + TRACK_UNITS * SIXTEENTH + RELEASE_TAIL_SECONDS;
@@ -635,21 +636,26 @@ function schedulePitchedAdpcmSequence(
   offset: number,
   transpose: number,
 ): void {
-  sequence.forEach(([start, note], index) => {
+  sequence.forEach(([start, note, length], index) => {
     const targetNote = note + transpose;
     const playbackRate = 2 ** ((targetNote - ADPCM_HIGH_CHIME_BASE_MIDI) / 12);
-    scheduleAdpcmSample(
-      context,
-      destination,
-      sources,
-      sample,
-      entryAt + (offset + start) * SIXTEENTH,
-      {
-        gain: targetNote >= 92 ? 0.038 : 0.03,
-        pan: index % 2 === 0 ? -0.34 : 0.34,
-        playbackRate,
-      },
-    );
+    // 長い高音も先頭の一打だけで消えないよう、約0.45秒ごとに
+    // 弱い追撃を入れてMSM6258由来のきらめきを保つ。
+    const pulseCount = Math.max(1, Math.ceil(length / 4));
+    for (let pulse = 0; pulse < pulseCount; pulse += 1) {
+      scheduleAdpcmSample(
+        context,
+        destination,
+        sources,
+        sample,
+        entryAt + (offset + start + pulse * 4) * SIXTEENTH,
+        {
+          gain: (targetNote >= 92 ? 0.082 : 0.068) * (pulse === 0 ? 1 : 0.58),
+          pan: (index + pulse) % 2 === 0 ? -0.3 : 0.3,
+          playbackRate,
+        },
+      );
+    }
   });
 }
 
@@ -766,6 +772,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const brillianceBus = context.createGain();
   const fmBus = context.createGain();
   const adpcmBus = context.createGain();
+  const adpcmHighBus = context.createGain();
   const adpcmDry = context.createGain();
   const adpcmCrushed = context.createGain();
   const toneFilter = context.createBiquadFilter();
@@ -773,6 +780,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const airFilter = context.createBiquadFilter();
   const brillianceFilter = context.createBiquadFilter();
   const brilliancePeak = context.createBiquadFilter();
+  const adpcmHighPass = context.createBiquadFilter();
+  const adpcmHighShelf = context.createBiquadFilter();
   const quantizer = context.createWaveShaper();
   const softClip = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context, 0.7);
@@ -780,7 +789,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.66, startAt);
+  master.gain.setValueAtTime(OUTPUT_GAIN, startAt);
   compressor.threshold.setValueAtTime(-12, startAt);
   compressor.knee.setValueAtTime(18, startAt);
   compressor.ratio.setValueAtTime(2.2, startAt);
@@ -791,6 +800,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   brillianceBus.gain.setValueAtTime(0.51, startAt);
   fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
+  adpcmHighBus.gain.setValueAtTime(0.48, startAt);
   adpcmDry.gain.setValueAtTime(0.82, startAt);
   adpcmCrushed.gain.setValueAtTime(0.07, startAt);
   toneFilter.type = "lowpass";
@@ -810,6 +820,12 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   brilliancePeak.frequency.setValueAtTime(5400, startAt);
   brilliancePeak.Q.setValueAtTime(0.72, startAt);
   brilliancePeak.gain.setValueAtTime(4.2, startAt);
+  adpcmHighPass.type = "highpass";
+  adpcmHighPass.frequency.setValueAtTime(1850, startAt);
+  adpcmHighPass.Q.setValueAtTime(0.62, startAt);
+  adpcmHighShelf.type = "highshelf";
+  adpcmHighShelf.frequency.setValueAtTime(4700, startAt);
+  adpcmHighShelf.gain.setValueAtTime(5.4, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
@@ -829,6 +845,11 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   adpcmBus.connect(quantizer);
   quantizer.connect(adpcmCrushed);
   adpcmCrushed.connect(softClip);
+  // 高音サンプルをドラム用の小さいADPCMバスから分離し、強くなった
+  // FM高音へ埋もれない帯域と音量でミックスする。
+  adpcmHighBus.connect(adpcmHighPass);
+  adpcmHighPass.connect(adpcmHighShelf);
+  adpcmHighShelf.connect(softClip);
   softClip.connect(compressor);
   compressor.connect(master);
   master.connect(context.destination);
@@ -977,7 +998,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     );
     schedulePitchedAdpcmSequence(
       context,
-      adpcmBus,
+      adpcmHighBus,
       sources,
       adpcmSamples.highChime,
       crystalSequence,
@@ -1129,7 +1150,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
   // 参照音源末尾に相当する追加フレーズは作らず、本編4フレーズの余韻だけを残す。
-  master.gain.setValueAtTime(0.66, finalStart);
+  master.gain.setValueAtTime(OUTPUT_GAIN, finalStart);
   master.gain.exponentialRampToValueAtTime(0.0001, finalStart + RELEASE_TAIL_SECONDS);
 
   const disconnectGraph = () => {
@@ -1140,6 +1161,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     brillianceBus.disconnect();
     fmBus.disconnect();
     adpcmBus.disconnect();
+    adpcmHighBus.disconnect();
     adpcmDry.disconnect();
     adpcmCrushed.disconnect();
     toneFilter.disconnect();
@@ -1147,6 +1169,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     airFilter.disconnect();
     brillianceFilter.disconnect();
     brilliancePeak.disconnect();
+    adpcmHighPass.disconnect();
+    adpcmHighShelf.disconnect();
     quantizer.disconnect();
     softClip.disconnect();
     master.disconnect();

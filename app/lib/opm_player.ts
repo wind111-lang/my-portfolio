@@ -14,6 +14,7 @@ type LeadVoicing = "soft" | "bright" | "reed" | "upper";
 // BEATは譜面上の八分音符1つ分を表す。
 const BPM = 150;
 const BEAT = 60 / BPM / 2;
+const OUTPUT_GAIN = 0.8;
 // 提供音源の伴奏・和音は6.4秒単位で切り替わり、12.8秒から
 // 4音のピックアップ、13.6秒から主旋律が始まる。伴奏と主旋律の
 // 起点を混ぜると全区間で0.8秒ずれるため、別の定数として扱う。
@@ -335,7 +336,8 @@ const upperClosingSequence: readonly NoteEvent[] = [
   [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
   [4, 74, 3], [7, 77, 1], [8, 81, 2], [10, 83, 1], [11, 81, 1],
   [12, 76, 3], [15, 77, 1], [16, 76, 1], [17, 74, 1],
-  [18, 71, 1], [19, 72, 1], [20, 69, 8],
+  // 原音ではA4が次の区切りまで2.4秒伸びる。末尾4拍が欠けていた。
+  [18, 71, 1], [19, 72, 1], [20, 69, 12],
 ];
 
 // 原曲で主旋律の隙間を埋める八分音符アルペジオ。
@@ -521,7 +523,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  master.gain.setValueAtTime(0.6, startAt);
+  master.gain.setValueAtTime(OUTPUT_GAIN, startAt);
   compressor.threshold.setValueAtTime(-12, startAt);
   compressor.knee.setValueAtTime(18, startAt);
   compressor.ratio.setValueAtTime(2.2, startAt);
@@ -675,7 +677,8 @@ export function playOpmTrack(context: AudioContext): () => void {
   ) => {
     sequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
       const noteStart = startAt + (startBeat + beatOffset) * BEAT;
-      const noteDuration = durationInBeats * BEAT * (voicing === "upper" ? 0.92 : 1);
+      // 上声の長音も譜面どおり次の発音位置まで保ち、短いゲート切れを作らない。
+      const noteDuration = durationInBeats * BEAT;
       const leadPan = voicing === "upper" ? 0.34 : index % 2 === 0 ? -0.2 : 0.14;
       const mainPatch = voicing === "soft"
         ? softLeadPatch
@@ -898,7 +901,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   schedulerTimer = window.setInterval(schedulePendingEvents, 750);
 
   const fadeStart = startAt + FADE_START_BEAT * BEAT;
-  master.gain.setValueAtTime(0.6, fadeStart);
+  master.gain.setValueAtTime(OUTPUT_GAIN, fadeStart);
   master.gain.linearRampToValueAtTime(0.0001, startAt + TRACK_DURATION);
 
   const disconnectGraph = () => {

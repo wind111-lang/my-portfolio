@@ -15,6 +15,10 @@ const systemMessages = [
   "PORTFOLIO DEVICE DRIVER version 1.01",
 ] as const;
 
+const SPLASH_DURATION_MS = 5000;
+const DRIVER_MESSAGES_START_MS = SPLASH_DURATION_MS + 180;
+const SYSTEM_BOOT_COMPLETE_MS = SPLASH_DURATION_MS + 1850;
+
 export default function BootScreen({ onComplete }: BootScreenProps): React.ReactNode {
   const [stage, setStage] = useState<"splash" | "drivers">("splash");
   const [visibleMessageCount, setVisibleMessageCount] = useState(0);
@@ -24,7 +28,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     const scale = reducedMotion ? 0.3 : 1;
     const timers: number[] = [];
     const schedule = (callback: () => void, delay: number) => {
-      timers.push(window.setTimeout(callback, delay * scale));
+      timers.push(window.setTimeout(callback, delay));
     };
 
     const previousOverflow = document.body.style.overflow;
@@ -37,11 +41,17 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
     window.addEventListener("keydown", blockInput, true);
 
-    schedule(() => setStage("drivers"), 2500);
+    schedule(() => setStage("drivers"), SPLASH_DURATION_MS);
     systemMessages.forEach((_, index) => {
-      schedule(() => setVisibleMessageCount(index + 1), 2680 + index * 150);
+      schedule(
+        () => setVisibleMessageCount(index + 1),
+        SPLASH_DURATION_MS + (DRIVER_MESSAGES_START_MS - SPLASH_DURATION_MS + index * 150) * scale,
+      );
     });
-    schedule(onComplete, 4350);
+    schedule(
+      onComplete,
+      SPLASH_DURATION_MS + (SYSTEM_BOOT_COMPLETE_MS - SPLASH_DURATION_MS) * scale,
+    );
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));

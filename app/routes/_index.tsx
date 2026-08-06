@@ -13,6 +13,7 @@ import BootScreen from "~/components/boot_screen";
 import PowerOnScreen from "~/components/power_on_screen";
 import ShutdownScreen from "~/components/shutdown_screen";
 import { playMorningMusic } from "~/lib/morning_music_player";
+import { MORNING_MUSIC_DURATION_SECONDS } from "~/lib/morning_music_vgm_score";
 import type { MetaFunction } from "@remix-run/node";
 
 export const meta: MetaFunction = () => [
@@ -48,6 +49,20 @@ export default function Index(): React.ReactNode {
   const stopBootMusicRef = React.useRef<(() => void) | null>(null);
   const closeBootAudioTimerRef = React.useRef<number | null>(null);
 
+  const stopBootAudio = React.useCallback(() => {
+    if (closeBootAudioTimerRef.current !== null) {
+      window.clearTimeout(closeBootAudioTimerRef.current);
+      closeBootAudioTimerRef.current = null;
+    }
+    stopBootMusicRef.current?.();
+    stopBootMusicRef.current = null;
+    const context = bootAudioContextRef.current;
+    bootAudioContextRef.current = null;
+    if (context && context.state !== "closed") {
+      void context.close();
+    }
+  }, []);
+
   const powerOn = React.useCallback(() => {
     if (isPoweringOnRef.current) return;
     isPoweringOnRef.current = true;
@@ -57,31 +72,23 @@ export default function Index(): React.ReactNode {
       const context = new AudioContext({ latencyHint: "playback" });
       bootAudioContextRef.current = context;
       stopBootMusicRef.current = playMorningMusic(context);
+      closeBootAudioTimerRef.current = window.setTimeout(
+        stopBootAudio,
+        (MORNING_MUSIC_DURATION_SECONDS + 0.8) * 1000,
+      );
       if (context.state === "suspended") {
         void context.resume().catch(() => {
-          stopBootMusicRef.current?.();
-          stopBootMusicRef.current = null;
-          void context.close();
-          bootAudioContextRef.current = null;
+          stopBootAudio();
         });
       }
       showSplash();
     } catch {
       showSplash();
     }
-  }, []);
+  }, [stopBootAudio]);
 
   const beginCommandStartup = React.useCallback(() => {
     setStartupPhase("command");
-    closeBootAudioTimerRef.current = window.setTimeout(() => {
-      stopBootMusicRef.current?.();
-      stopBootMusicRef.current = null;
-      if (bootAudioContextRef.current?.state !== "closed") {
-        void bootAudioContextRef.current?.close();
-      }
-      bootAudioContextRef.current = null;
-      closeBootAudioTimerRef.current = null;
-    }, 700);
   }, []);
 
   const completeStartup = React.useCallback(() => {
@@ -89,8 +96,9 @@ export default function Index(): React.ReactNode {
   }, []);
 
   const beginShutdown = React.useCallback(() => {
+    stopBootAudio();
     setIsShuttingDown(true);
-  }, []);
+  }, [stopBootAudio]);
 
   const completeShutdown = React.useCallback(() => {
     const isMobileDevice = window.matchMedia("(pointer: coarse)").matches
@@ -114,22 +122,18 @@ export default function Index(): React.ReactNode {
 
   useEffect(() => {
     const resetShutdownAfterHistoryRestore = () => {
+      stopBootAudio();
+      isPoweringOnRef.current = false;
+      setMode("command");
+      setStartupPhase("power");
       setIsShuttingDown(false);
     };
 
     window.addEventListener("pageshow", resetShutdownAfterHistoryRestore);
     return () => window.removeEventListener("pageshow", resetShutdownAfterHistoryRestore);
-  }, []);
+  }, [stopBootAudio]);
 
-  useEffect(() => () => {
-    if (closeBootAudioTimerRef.current !== null) {
-      window.clearTimeout(closeBootAudioTimerRef.current);
-    }
-    stopBootMusicRef.current?.();
-    if (bootAudioContextRef.current?.state !== "closed") {
-      void bootAudioContextRef.current?.close();
-    }
-  }, []);
+  useEffect(() => () => stopBootAudio(), [stopBootAudio]);
 
   useEffect(() => {
     if (startupPhase !== "ready" || isShuttingDown) return;
@@ -169,6 +173,7 @@ export default function Index(): React.ReactNode {
         isInitializing={startupPhase === "command"}
         onInitializationComplete={completeStartup}
         isActive={mode === "command"}
+        onMusicPlaybackStart={stopBootAudio}
         onShutdown={beginShutdown}
       />
       {mode === "gui" && (

@@ -75,9 +75,9 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
                     />
                   </span>
                   <small>PORTFOLIO</small>
+                  <span className="x68k-splash-clock">- HIGH CLOCK -</span>
                 </span>
               </div>
-              <p className="x68k-splash-clock">- HIGH CLOCK -</p>
               <dl className="x68k-splash-specs">
                 <div><dt>HOSTNAME:</dt><dd>PORTFOLIO</dd></div>
                 <div><dt>OWNER:</dt><dd>SHOTA TSUTSUI</dd></div>

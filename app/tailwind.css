@@ -177,10 +177,12 @@ button:focus-visible {
 }
 
 .x68k-splash-clock {
-  margin-top: 0.22rem !important;
-  padding-right: 0.05rem;
+  display: block;
+  width: 100%;
+  margin-top: 0.22rem;
   font-size: clamp(0.58rem, 1.45vw, 0.78rem);
-  text-align: right;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .x68k-splash-specs {

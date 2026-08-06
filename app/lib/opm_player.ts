@@ -218,20 +218,6 @@ const arpeggioPatch: FmPatch = {
   release: 0.18,
 };
 
-const bellPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 2.5, 4.01, 7.02],
-  modulation: [1.56, 0, 1.82],
-  waveforms: ["sine", "sine", "sine", "sine"],
-  filterFrequency: 6200,
-  filterQ: 1.1,
-  attack: 0.003,
-  decay: 0.08,
-  peakGain: 0.0065,
-  sustainGain: 0.001,
-  release: 0.82,
-};
-
 const accordionPatch: FmPatch = {
   algorithm: "fan",
   ratios: [1, 2.002, 3.001, 1.004],
@@ -251,48 +237,6 @@ const accordionPatch: FmPatch = {
   release: 0.5,
   vibratoRate: 4.8,
   vibratoCents: 2.8,
-};
-
-const octaveLeadPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 3.01, 1.003, 5.02],
-  modulation: [0.62, 0, 0.31],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-2.1, 0.9, 2.1, -0.9],
-  filterFrequency: 5600,
-  filterStartFrequency: 2700,
-  filterAttack: 0.075,
-  filterQ: 0.82,
-  pitchAttackCents: -13,
-  pitchAttackTime: 0.06,
-  attack: 0.012,
-  decay: 0.24,
-  peakGain: 0.0075,
-  sustainGain: 0.0038,
-  release: 0.52,
-  vibratoRate: 5.2,
-  vibratoCents: 4.2,
-};
-
-const piccoloPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 4.01, 2.002, 7.03],
-  modulation: [0.58, 0, 0.42],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-2.8, 1.2, 2.8, -1.2],
-  filterFrequency: 7600,
-  filterStartFrequency: 3900,
-  filterAttack: 0.045,
-  filterQ: 0.96,
-  pitchAttackCents: -16,
-  pitchAttackTime: 0.05,
-  attack: 0.008,
-  decay: 0.18,
-  peakGain: 0.0076,
-  sustainGain: 0.0032,
-  release: 0.44,
-  vibratoRate: 5.4,
-  vibratoCents: 3.6,
 };
 
 const lowCounterPatch: FmPatch = {
@@ -353,22 +297,24 @@ const themeBSequence: readonly NoteEvent[] = [
   [25, 68, 1], [26, 69, 1], [27, 71, 1], [28, 76, 4],
 ];
 
-// C/D部では低いトロイカ旋律の上に、独立した高音パートが重なる。
-// 以前の短い推定列ではなく、OGG内の4回の反復で一致したイベントを採用する。
-// C部冒頭だけは解析上の一瞬のG#5を使わず、指定どおり後続と同じA5で滑らかにつなぐ。
+// C/D部では低いトロイカ旋律の上に、右側へ定位した独立上声が重なる。
+// OGG内の反復を差分解析し、FM倍音を別ノートと誤認したイベントを除外した。
+// 同音が続く箇所も、原音のアタックに合わせて結合せず再発音させる。
 const upperCSequence: readonly NoteEvent[] = [
-  [0, 81, 4],
-  [4, 83, 3], [7, 80, 1], [8, 76, 4],
+  [0, 81, 1], [1, 81, 1], [2, 81, 1], [3, 81, 1],
+  [4, 83, 3], [7, 80, 1],
+  [8, 76, 1], [9, 76, 2], [11, 76, 1],
   [12, 84, 2], [14, 81, 3],
-  [20, 76, 8], [28, 81, 3], [31, 83, 1],
+  [20, 76, 1], [21, 76, 2], [23, 76, 2], [25, 76, 2], [27, 76, 1],
+  [28, 81, 4],
 ];
 
 const upperDSequence: readonly NoteEvent[] = [
   [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
-  [4, 74, 3], [7, 77, 1], [8, 81, 2],
+  [7, 77, 1], [8, 81, 2],
   [10, 83, 1], [11, 81, 1], [12, 76, 3], [15, 77, 1],
   [16, 76, 1], [17, 74, 1], [18, 71, 1], [19, 72, 1],
-  [20, 69, 5], [25, 68, 1], [26, 69, 1], [27, 76, 1], [28, 81, 4],
+  [27, 76, 1], [28, 81, 4],
 ];
 
 const closingSequence: readonly NoteEvent[] = [
@@ -379,9 +325,9 @@ const closingSequence: readonly NoteEvent[] = [
 
 const upperClosingSequence: readonly NoteEvent[] = [
   [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
-  [4, 74, 4], [8, 81, 2], [10, 83, 1], [11, 81, 1],
+  [7, 77, 1], [8, 81, 2], [10, 83, 1], [11, 81, 1],
   [12, 76, 3], [15, 77, 1], [16, 76, 1], [17, 74, 1],
-  [18, 71, 1], [19, 72, 1], [20, 69, 8], [28, 76, 4],
+  [18, 71, 1], [19, 72, 1],
 ];
 
 // 原曲で主旋律の隙間を埋める八分音符アルペジオ。
@@ -721,8 +667,8 @@ export function playOpmTrack(context: AudioContext): () => void {
   ) => {
     sequence.forEach(([beatOffset, midiNote, durationInBeats], index) => {
       const noteStart = startAt + (startBeat + beatOffset) * BEAT;
-      const noteDuration = durationInBeats * BEAT;
-      const leadPan = index % 2 === 0 ? -0.2 : 0.14;
+      const noteDuration = durationInBeats * BEAT * (voicing === "upper" ? 0.92 : 1);
+      const leadPan = voicing === "upper" ? 0.34 : index % 2 === 0 ? -0.2 : 0.14;
       const mainPatch = voicing === "soft"
         ? softLeadPatch
         : voicing === "bright"
@@ -754,37 +700,6 @@ export function playOpmTrack(context: AudioContext): () => void {
         );
       }
 
-      const addOctave = voicing === "bright"
-        ? durationInBeats >= 2 || index % 4 === 0
-        : voicing === "soft" && durationInBeats >= 4;
-      if (addOctave) {
-        createFmVoice(
-          context,
-          leadBus,
-          sources,
-          midiToFrequency(midiNote + 12),
-          noteStart + 0.018,
-          noteDuration * 0.94,
-          leadPan < 0 ? 0.24 : -0.24,
-          octaveLeadPatch,
-          index % 2 === 0 ? -2.4 : 2.4,
-        );
-      }
-
-      if (voicing === "bright" && durationInBeats >= 4 && index % 2 === 0) {
-        createFmVoice(
-          context,
-          leadBus,
-          sources,
-          midiToFrequency(midiNote + 24),
-          noteStart + 0.032,
-          noteDuration * 0.86,
-          index % 4 === 0 ? -0.32 : 0.32,
-          piccoloPatch,
-          index % 4 === 0 ? 1.6 : -1.6,
-        );
-      }
-
       if (voicing === "reed" && durationInBeats >= 4) {
         createFmVoice(
           context,
@@ -813,19 +728,6 @@ export function playOpmTrack(context: AudioContext): () => void {
         );
       }
 
-      if (voicing === "upper" && midiNote >= 81 && durationInBeats >= 2) {
-        createFmVoice(
-          context,
-          leadBus,
-          sources,
-          midiToFrequency(midiNote + 12),
-          noteStart + 0.02,
-          noteDuration * 0.78,
-          leadPan < 0 ? 0.38 : -0.38,
-          bellPatch,
-          index % 2 === 0 ? -1.4 : 1.4,
-        );
-      }
     });
   };
 

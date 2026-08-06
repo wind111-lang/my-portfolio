@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { playForeverX68000Track } from "~/lib/forever_x68000_player";
 import { playOpmTrack } from "~/lib/opm_player";
+import { playStrollingPlayerTrack } from "~/lib/opm2_player";
 
 const articles = [
   ["GoオンリーでGUI上からQRコード読み取りをしてみた", "https://qiita.com/wind111-lang/items/af7e3fadeb1c71673cda"],
@@ -23,6 +24,7 @@ type OutputName =
   | "speak"
   | "forever"
   | "opm"
+  | "opm2"
   | "version"
   | "error";
 
@@ -71,6 +73,7 @@ const commandAliases: Record<string, OutputName> = {
   FOREVERX68000: "forever",
   FOREVERX68K: "forever",
   OPM: "opm",
+  OPM2: "opm2",
   VER: "version",
 };
 
@@ -114,6 +117,7 @@ function CommandOutput({
           <div><dt><span>GUI</span><span /></dt><dd>SX-WINDOWへ切り替え</dd></div>
           <div><dt><span>VER</span><span /></dt><dd>システムのバージョンを表示</dd></div>
           <div><dt><span>OPM</span><span /></dt><dd>？？？？？？</dd></div>
+          <div><dt><span>OPM2</span><span /></dt><dd>？？？？？？</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
           <div><dt><span>SHUTDOWN</span><span /></dt><dd>システムを終了</dd></div>
           <div><dt><span>HELP</span><span>/ ?</span></dt><dd>この一覧を表示</dd></div>
@@ -201,6 +205,15 @@ function CommandOutput({
       <div className="terminal-output">
         <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
         <p>NOW PLAYING... MUSIC.DAT</p>
+      </div>
+    );
+  }
+
+  if (output === "opm2") {
+    return (
+      <div className="terminal-output">
+        <p>YM2151 (OPM) SOUND SYSTEM</p>
+        <p>NOW PLAYING... MUSIC2.DAT</p>
       </div>
     );
   }
@@ -338,6 +351,9 @@ export default function CommandView({
     }
     if (command === "OPM") {
       runMusicCommand(playOpmTrack);
+    }
+    if (command === "OPM2") {
+      runMusicCommand(playStrollingPlayerTrack);
     }
     if (resolvedCommand === "FOREVERX68000" || resolvedCommand === "FOREVERX68K") {
       runMusicCommand(playForeverX68000Track);

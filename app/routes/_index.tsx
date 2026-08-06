@@ -55,6 +55,14 @@ export default function Index(): React.ReactNode {
   }, []);
 
   const completeShutdown = React.useCallback(() => {
+    const isMobileDevice = window.matchMedia("(pointer: coarse)").matches
+      || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobileDevice) {
+      window.location.assign(
+        new URL(`${import.meta.env.BASE_URL}poweroff.html`, window.location.origin).href,
+      );
+      return;
+    }
     window.location.assign("https://www.google.com/");
   }, []);
 
@@ -64,6 +72,15 @@ export default function Index(): React.ReactNode {
   ) => {
     event.preventDefault();
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  useEffect(() => {
+    const resetShutdownAfterHistoryRestore = () => {
+      setIsShuttingDown(false);
+    };
+
+    window.addEventListener("pageshow", resetShutdownAfterHistoryRestore);
+    return () => window.removeEventListener("pageshow", resetShutdownAfterHistoryRestore);
   }, []);
 
   useEffect(() => {

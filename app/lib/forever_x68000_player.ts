@@ -1,4 +1,10 @@
-import { createFmVoice, midiToFrequency, type FmPatch } from "~/lib/fm_synth";
+import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
+import {
+  createFmVoice,
+  midiToFrequency,
+  trackScheduledSource,
+  type FmPatch,
+} from "~/lib/fm_synth";
 
 type NoteEvent = readonly [start: number, note: number, length: number];
 
@@ -124,6 +130,7 @@ const pluckPatch: FmPatch = {
   algorithm: "dual",
   ratios: [1, 2.01, 2.998, 6.02],
   modulation: [0.74, 0, 0.42],
+  operatorCount: 2,
   waveforms: ["sine", "sine", "triangle", "sine"],
   filterFrequency: 8600,
   filterQ: 1.18,
@@ -138,6 +145,7 @@ const shimmerPatch: FmPatch = {
   algorithm: "fan",
   ratios: [1, 2, 3, 5],
   modulation: [0.82, 0.36, 0.14],
+  operatorCount: 2,
   waveforms: ["sine", "sine", "triangle", "sine"],
   filterFrequency: 9200,
   filterQ: 1.2,
@@ -285,6 +293,7 @@ const guitarPatch: FmPatch = {
   algorithm: "serial",
   ratios: [1, 2.01, 3.99, 8.02],
   modulation: [1.12, 0.46, 0.13],
+  operatorCount: 2,
   waveforms: ["triangle", "sine", "sine", "sine"],
   operatorDetuneCents: [-1, 0.8, -0.6, 1.2],
   filterFrequency: 7600,
@@ -431,7 +440,10 @@ function createNoiseHit(
   envelope.connect(destination);
   source.start(startAt);
   source.stop(startAt + duration);
-  sources.push(source);
+  trackScheduledSource(sources, source, () => {
+    filter.disconnect();
+    envelope.disconnect();
+  });
 }
 
 function createKick(
@@ -453,7 +465,7 @@ function createKick(
   envelope.connect(destination);
   oscillator.start(startAt);
   oscillator.stop(startAt + 0.2);
-  sources.push(oscillator);
+  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
 }
 
 function createTom(
@@ -476,7 +488,7 @@ function createTom(
   envelope.connect(destination);
   oscillator.start(startAt);
   oscillator.stop(startAt + 0.27);
-  sources.push(oscillator);
+  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
 }
 
 function createSnareBody(
@@ -498,7 +510,7 @@ function createSnareBody(
   envelope.connect(destination);
   oscillator.start(startAt);
   oscillator.stop(startAt + 0.145);
-  sources.push(oscillator);
+  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
 }
 
 function createMetalHit(
@@ -529,7 +541,10 @@ function createMetalHit(
     oscillator.connect(filter);
     oscillator.start(startAt);
     oscillator.stop(startAt + duration + 0.02);
-    sources.push(oscillator);
+    trackScheduledSource(sources, oscillator, index === frequencies.length - 1 ? () => {
+      filter.disconnect();
+      envelope.disconnect();
+    } : undefined);
   });
 }
 
@@ -785,6 +800,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   const quantizer = context.createWaveShaper();
   const softClip = context.createWaveShaper();
   const noiseBuffer = createNoiseBuffer(context, 0.7);
+  const adpcmSamples = createAdpcmSampleBank(context);
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
@@ -799,8 +815,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   brillianceBus.gain.setValueAtTime(0.38, startAt);
   fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
-  adpcmDry.gain.setValueAtTime(0.78, startAt);
-  adpcmCrushed.gain.setValueAtTime(0.12, startAt);
+  adpcmDry.gain.setValueAtTime(0.82, startAt);
+  adpcmCrushed.gain.setValueAtTime(0.07, startAt);
   toneFilter.type = "lowpass";
   toneFilter.frequency.setValueAtTime(12400, startAt);
   toneFilter.Q.setValueAtTime(0.72, startAt);
@@ -821,7 +837,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
-  softClip.oversample = "4x";
+  softClip.oversample = "2x";
 
   leadBus.connect(presenceFilter);
   presenceFilter.connect(softClip);
@@ -842,6 +858,22 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   master.connect(context.destination);
 
   createAdpcmIntro(context, adpcmBus, sources, noiseBuffer, startAt);
+  [1.08, 0.98, 0.86, 1.16, 0.76].forEach((playbackRate, index) => {
+    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, startAt + index * 0.34, {
+      gain: 0.065 + index * 0.006,
+      pan: (index - 2) * 0.18,
+      playbackRate,
+    });
+  });
+  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.orchestraHit, startAt, {
+    gain: 0.075,
+    pan: -0.16,
+  });
+  scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, startAt + 1.67, {
+    gain: 0.08,
+    pan: 0.24,
+    playbackRate: 1.08,
+  });
 
   const schedulePhrase = (phrase: number) => {
     if (disconnected) return;
@@ -991,11 +1023,26 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       );
     }
 
+    const phraseStartAt = entryAt + offset * SIXTEENTH;
+    if (phrase % 2 === 0) {
+      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.orchestraHit, phraseStartAt, {
+        gain: phrase === 2 ? 0.13 : 0.105,
+        pan: phrase === 2 ? 0.16 : -0.16,
+        playbackRate: phrase === 2 ? 1.06 : 1,
+      });
+    } else {
+      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.voiceStab, phraseStartAt + 8 * SIXTEENTH, {
+        gain: phrase === 3 ? 0.095 : 0.075,
+        pan: phrase === 3 ? 0.26 : -0.26,
+        playbackRate: phrase === 3 ? 1.06 : 1,
+      });
+    }
+
     createMetalHit(
       context,
       adpcmBus,
       sources,
-      entryAt + offset * SIXTEENTH,
+      phraseStartAt,
       phrase === 2 ? 0.72 : 0.48,
       phrase === 2 ? 0.009 : 0.006,
     );
@@ -1004,12 +1051,26 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       const unit = offset + phraseUnit;
       const hitAt = entryAt + unit * SIXTEENTH;
       if (phraseUnit % 8 === 0 || phraseUnit % 32 === 20) {
-        createKick(context, adpcmBus, sources, hitAt, phraseUnit === 0 ? 0.105 : 0.075);
+        createKick(context, adpcmBus, sources, hitAt, phraseUnit === 0 ? 0.065 : 0.045);
+        scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.kick, hitAt, {
+          gain: phraseUnit === 0 ? 0.19 : 0.145,
+          pan: phraseUnit % 16 === 0 ? -0.04 : 0.04,
+        });
       }
       if (phraseUnit % 8 === 4) {
-        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.17, 1750, 0.038);
-        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt + 0.009, 0.11, 3600, 0.014);
-        createSnareBody(context, adpcmBus, sources, hitAt, 0.027);
+        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt, 0.15, 1750, 0.022);
+        createNoiseHit(context, adpcmBus, sources, noiseBuffer, hitAt + 0.009, 0.09, 3600, 0.008);
+        createSnareBody(context, adpcmBus, sources, hitAt, 0.016);
+        scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.snare, hitAt, {
+          gain: 0.17,
+          pan: phraseUnit % 16 === 4 ? -0.1 : 0.1,
+        });
+        if (phraseUnit % 32 === 28) {
+          scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.clap, hitAt + 0.012, {
+            gain: 0.085,
+            pan: phrase % 2 === 0 ? 0.38 : -0.38,
+          });
+        }
       }
       createNoiseHit(
         context,
@@ -1027,18 +1088,29 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       }
       if (phraseUnit % 16 === 14) {
         createMetalHit(context, adpcmBus, sources, hitAt, 0.085, 0.0018);
+        scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, hitAt, {
+          gain: 0.028,
+          pan: phrase % 2 === 0 ? -0.5 : 0.5,
+          playbackRate: 1.8,
+        });
       }
     }
 
     [120, 124, 126].forEach((phraseUnit, index) => {
+      const tomAt = entryAt + (offset + phraseUnit) * SIXTEENTH;
       createTom(
         context,
         adpcmBus,
         sources,
-        entryAt + (offset + phraseUnit) * SIXTEENTH,
+        tomAt,
         184 - index * 28,
-        0.044 - index * 0.004,
+        0.026 - index * 0.003,
       );
+      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, tomAt, {
+        gain: 0.12 - index * 0.01,
+        pan: (index - 1) * 0.3,
+        playbackRate: [1.08, 0.84, 0.64][index],
+      });
     });
   };
 
@@ -1092,7 +1164,13 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       );
     });
     [0, 0.66, 1.34, 2.16].forEach((delay, index) => {
-      createTom(context, adpcmBus, sources, finalStart + delay, 215 - index * 23, 0.055 - index * 0.006);
+      const tomAt = finalStart + delay;
+      createTom(context, adpcmBus, sources, tomAt, 215 - index * 23, 0.032 - index * 0.004);
+      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.tom, tomAt, {
+        gain: 0.13 - index * 0.012,
+        pan: (index - 1.5) * 0.22,
+        playbackRate: [1.24, 1.02, 0.82, 0.66][index],
+      });
     });
     [37, 49, 56, 61, 65].forEach((note, index) => {
       createFmVoice(
@@ -1142,16 +1220,27 @@ export function playForeverX68000Track(context: AudioContext): () => void {
         (index - 1) * 1.4,
       );
     });
-    createKick(context, adpcmBus, sources, finalResolutionStart, 0.11);
+    createKick(context, adpcmBus, sources, finalResolutionStart, 0.065);
+    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.kick, finalResolutionStart, {
+      gain: 0.2,
+    });
+    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.orchestraHit, finalResolutionStart, {
+      gain: 0.155,
+    });
+    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, finalResolutionStart + 0.02, {
+      gain: 0.095,
+      pan: 0.18,
+      playbackRate: 0.82,
+    });
     createMetalHit(context, adpcmBus, sources, finalResolutionStart, 1.4, 0.011);
     createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalResolutionStart, 0.72, 4300, 0.045);
     createNoiseHit(context, adpcmBus, sources, noiseBuffer, finalResolutionStart + 2.1, 2.4, 1200, 0.016);
   };
 
-  // 8秒先までをAudioContextの絶対時刻へ予約する。通常のタイマーは
+  // 5秒先までをAudioContextの絶対時刻へ予約する。通常のタイマーは
   // 予約を補充するだけにして、フレーズ境界そのものは音声クロックへ揃える。
   const phraseDuration = PHRASE_UNITS * SIXTEENTH;
-  const scheduleAheadSeconds = 8;
+  const scheduleAheadSeconds = 5;
   let nextPhrase = 0;
   let finalScheduled = false;
   let schedulerTimer: number | null = null;

@@ -26,6 +26,15 @@ export function midiToFrequency(note: number): number {
   return 440 * 2 ** ((note - 69) / 12);
 }
 
+// 4MHz動作のX68000用VGMから抽出したYM2151キーコードは、Web Audioの
+// A4=440Hzへそのまま写すと試聴上およそ半音低くなる。各曲固有のKF
+// （1/64半音）は維持したまま、VGM由来トラックだけを共通して補正する。
+export const X68000_VGM_PITCH_CORRECTION_SEMITONES = 1;
+
+export function x68000VgmMidiToFrequency(note: number): number {
+  return midiToFrequency(note + X68000_VGM_PITCH_CORRECTION_SEMITONES);
+}
+
 export function trackScheduledSource(
   sources: AudioScheduledSourceNode[],
   source: AudioScheduledSourceNode,

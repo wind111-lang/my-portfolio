@@ -1,7 +1,7 @@
 import {
   createFmVoice,
-  midiToFrequency,
   type FmPatch,
+  x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
 import {
   ARPEGGIO_BLOCK_ORDER,
@@ -20,7 +20,7 @@ import {
 
 const VGM_STEP_SECONDS = 0.1;
 const VGM_FIRST_NOTE_SECONDS = 0.75;
-const VGM_TUNING_SEMITONES = 5 / 64;
+const VGM_KEY_FRACTION_SEMITONES = 5 / 64;
 const VGM_LOOP_START_STEP = 386;
 const VGM_LOOP_LENGTH_STEP = 576;
 const VGM_SCORE_END_STEP = 962;
@@ -304,7 +304,7 @@ export function playOpmTrack(context: AudioContext): () => void {
             context,
             channel.destination,
             sources,
-            midiToFrequency(midiNote + VGM_TUNING_SEMITONES),
+            x68000VgmMidiToFrequency(midiNote + VGM_KEY_FRACTION_SEMITONES),
             noteStart,
             duration,
             channel.pan,

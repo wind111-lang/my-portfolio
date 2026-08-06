@@ -1,7 +1,7 @@
 import {
   createFmVoice,
-  midiToFrequency,
   type FmPatch,
+  x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
 import {
   MORNING_MUSIC_CHANNELS,
@@ -150,7 +150,7 @@ export function playMorningMusic(context: AudioContext): () => void {
             context,
             channel.destination,
             sources,
-            midiToFrequency(midiSixtyFourth / 64),
+            x68000VgmMidiToFrequency(midiSixtyFourth / 64),
             noteStart,
             duration,
             sourcePatch.pan === 2 ? -0.72 : sourcePatch.pan === 1 ? 0.72 : 0,

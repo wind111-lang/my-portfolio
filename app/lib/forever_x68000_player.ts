@@ -1,8 +1,8 @@
 import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
 import {
   createFmVoice,
-  midiToFrequency,
   type FmPatch,
+  x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
 
 type NoteEvent = readonly [start: number, note: number, length: number];
@@ -344,7 +344,7 @@ function scheduleSequence(
       context,
       destination,
       sources,
-      midiToFrequency(note),
+      x68000VgmMidiToFrequency(note),
       entryAt + (phraseOffset + start + startOffset) * SIXTEENTH,
       length * SIXTEENTH,
       pan,
@@ -374,7 +374,7 @@ function scheduleRootSequence(
         context,
         destination,
         sources,
-        midiToFrequency(note + transpose),
+        x68000VgmMidiToFrequency(note + transpose),
         entryAt + (phraseOffset + start + position) * SIXTEENTH,
         Math.min(pulseLength, length - position) * SIXTEENTH * (phrase === 0 ? 1 : 0.96),
         pan,

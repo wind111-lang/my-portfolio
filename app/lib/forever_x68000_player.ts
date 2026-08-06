@@ -14,7 +14,8 @@ const SIXTEENTH = 60 / BPM / 4;
 const FM_ENTRY_SECONDS = 1.855;
 const PHRASE_UNITS = 128;
 const TRACK_UNITS = PHRASE_UNITS * 4;
-const RELEASE_TAIL_SECONDS = 1.25;
+// 参照MP3は本編終了後も約5.35秒かけて自然に減衰する。
+const RELEASE_TAIL_SECONDS = 5.35;
 const TRACK_DURATION = FM_ENTRY_SECONDS + TRACK_UNITS * SIXTEENTH + RELEASE_TAIL_SECONDS;
 
 const chordPatch: FmPatch = {
@@ -198,62 +199,65 @@ const electricPianoPatch: FmPatch = {
 };
 
 const ensemblePatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 2.002, 3.998, 1.006],
-  modulation: [0.24, 0.1, 0.045],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-5.2, -1.6, 4.8, 1.4],
-  filterFrequency: 5200,
-  filterStartFrequency: 2600,
-  filterAttack: 0.18,
-  filterQ: 0.58,
-  attack: 0.14,
-  decay: 0.48,
-  peakGain: 0.0038,
-  sustainGain: 0.0027,
-  release: 0.82,
-  vibratoRate: 4.35,
-  vibratoCents: 3.5,
+  algorithm: "serial",
+  ratios: [1, 2.002, 3, 4],
+  modulation: [0.18, 0, 0],
+  operatorCount: 2,
+  waveforms: ["sine", "sine", "sine", "sine"],
+  operatorDetuneCents: [-1.8, 1.8, 0, 0],
+  filterFrequency: 6800,
+  filterStartFrequency: 3200,
+  filterAttack: 0.28,
+  filterQ: 0.48,
+  attack: 0.2,
+  decay: 0.62,
+  peakGain: 0.0044,
+  sustainGain: 0.0037,
+  release: 2.1,
+  vibratoRate: 4.1,
+  vibratoCents: 1.6,
 };
 
 const airLeadPatch: FmPatch = {
-  algorithm: "dual",
-  ratios: [1, 5.01, 2.002, 9.03],
-  modulation: [0.52, 0, 0.31],
-  waveforms: ["sine", "sine", "triangle", "sine"],
-  operatorDetuneCents: [-2.6, 1.1, 2.6, -1.1],
-  filterFrequency: 13200,
-  filterStartFrequency: 6800,
-  filterAttack: 0.048,
-  filterQ: 0.94,
-  pitchAttackCents: -14,
-  pitchAttackTime: 0.065,
-  attack: 0.01,
-  decay: 0.28,
-  peakGain: 0.0062,
-  sustainGain: 0.0031,
-  release: 0.68,
-  vibratoRate: 5.35,
-  vibratoCents: 3.2,
+  algorithm: "serial",
+  ratios: [1, 2.004, 3, 4],
+  modulation: [0.44, 0, 0],
+  operatorCount: 2,
+  waveforms: ["sine", "triangle", "sine", "sine"],
+  operatorDetuneCents: [-1.7, 1.7, 0, 0],
+  filterFrequency: 14800,
+  filterStartFrequency: 7200,
+  filterAttack: 0.055,
+  filterQ: 0.72,
+  pitchAttackCents: -7,
+  pitchAttackTime: 0.045,
+  attack: 0.008,
+  decay: 0.22,
+  peakGain: 0.007,
+  sustainGain: 0.0032,
+  release: 0.56,
+  vibratoRate: 5.2,
+  vibratoCents: 2.1,
 };
 
 const brilliancePatch: FmPatch = {
-  algorithm: "fan",
-  ratios: [1, 3.006, 5.01, 8.03],
-  modulation: [0.42, 0.23, 0.11],
+  algorithm: "serial",
+  ratios: [1, 2.006, 3, 4],
+  modulation: [0.34, 0, 0],
+  operatorCount: 2,
   waveforms: ["sine", "sine", "sine", "sine"],
-  operatorDetuneCents: [-1.6, 1.1, -0.8, 1.7],
-  filterFrequency: 16800,
-  filterStartFrequency: 9200,
-  filterAttack: 0.024,
-  filterQ: 0.82,
-  pitchAttackCents: -12,
-  pitchAttackTime: 0.038,
-  attack: 0.003,
-  decay: 0.13,
-  peakGain: 0.0042,
-  sustainGain: 0.00055,
-  release: 0.42,
+  operatorDetuneCents: [-1.1, 1.1, 0, 0],
+  filterFrequency: 17600,
+  filterStartFrequency: 9800,
+  filterAttack: 0.018,
+  filterQ: 0.7,
+  pitchAttackCents: -5,
+  pitchAttackTime: 0.025,
+  attack: 0.002,
+  decay: 0.11,
+  peakGain: 0.0045,
+  sustainGain: 0.00065,
+  release: 0.34,
 };
 
 const guitarPatch: FmPatch = {
@@ -340,11 +344,27 @@ const upperLeadSequences: readonly (readonly NoteEvent[])[] = [
     [120, 83, 2],
   ],
   [
-    [7, 80, 2], [11, 82, 1], [16, 80, 2], [24, 84, 1],
-    [50, 84, 1], [73, 84, 1], [77, 84, 1], [103, 79, 1],
+    // 30.95〜45.49秒のside成分を16分音符へ量子化した上昇列。
+    [0, 77, 4], [4, 79, 2], [6, 80, 4], [10, 82, 3], [13, 84, 3],
+    [16, 80, 4], [20, 82, 3], [23, 84, 3],
+    [26, 73, 3], [29, 75, 3], [32, 73, 4], [36, 75, 3],
+    [39, 77, 2], [41, 79, 3], [44, 80, 3], [47, 82, 2],
+    [49, 84, 15], [64, 82, 8], [72, 79, 8],
+    [80, 82, 4], [84, 80, 2], [86, 79, 3], [89, 77, 7],
+    [96, 82, 4], [100, 80, 2], [102, 79, 3], [105, 77, 7],
+    [112, 79, 8], [120, 77, 4], [124, 75, 4],
   ],
   [
-    [19, 82, 1], [43, 80, 1], [73, 84, 1],
+    // 45.49秒以降は短い上昇列の後、E5〜G#5の応答へ移る。
+    [0, 77, 3], [3, 79, 3], [6, 80, 3], [9, 82, 3], [12, 84, 4],
+    [16, 80, 3], [19, 82, 3], [22, 84, 2],
+    [24, 72, 2], [26, 73, 3], [29, 72, 4],
+    [33, 77, 3], [36, 75, 3], [39, 77, 2], [41, 79, 3],
+    [44, 80, 3], [47, 79, 2], [49, 72, 16],
+    [65, 77, 9], [74, 72, 7], [81, 79, 3], [84, 80, 3],
+    [87, 79, 2], [89, 80, 7], [96, 79, 4], [100, 80, 3],
+    [103, 79, 2], [105, 80, 7], [112, 79, 8],
+    [120, 77, 1], [121, 72, 4], [125, 75, 3],
   ],
 ];
 
@@ -354,14 +374,17 @@ const crystalSequences: readonly (readonly NoteEvent[])[] = [
   [],
   [],
   [
-    [7, 92, 1], [10, 94, 1], [17, 89, 1], [21, 94, 1],
-    [65, 94, 1], [67, 94, 1], [69, 94, 1], [81, 94, 2],
-    [89, 89, 3], [96, 94, 3],
-    [104, 89, 1], [105, 89, 1], [107, 89, 2], [113, 91, 1],
-    [120, 89, 1], [121, 89, 1], [122, 89, 1],
+    [0, 89, 4], [4, 91, 2], [6, 92, 4], [10, 94, 3], [13, 96, 3],
+    [16, 92, 4], [20, 94, 3], [23, 96, 3],
+    [39, 89, 2], [41, 91, 3], [44, 92, 3], [47, 94, 2],
+    [49, 96, 15], [64, 94, 8], [72, 91, 8],
+    [80, 94, 4], [84, 92, 2], [86, 91, 3], [89, 89, 7],
+    [96, 94, 4], [100, 92, 2], [102, 91, 3], [105, 89, 7],
+    [112, 91, 8], [120, 89, 4],
   ],
   [
-    [0, 89, 2], [7, 92, 1], [17, 92, 2], [21, 94, 1], [29, 99, 2],
+    [0, 89, 3], [3, 91, 3], [6, 92, 3], [9, 94, 3], [12, 96, 4],
+    [16, 92, 3], [19, 94, 3], [22, 96, 2],
   ],
 ];
 
@@ -575,6 +598,33 @@ function scheduleSequence(
   });
 }
 
+// 長いパッド音だけは次の音へ少し重ねる。通常の0.94倍ゲートを使うと
+// 16単位ごとに約0.1秒の空白が生まれ、伸びる「ファー」が息切れして聞こえる。
+function scheduleSustainedSequence(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  sequence: readonly NoteEvent[],
+  entryAt: number,
+  offset: number,
+  pan: number,
+  patch: FmPatch,
+  transpose = 0,
+): void {
+  sequence.forEach(([start, note, length]) => {
+    createFmVoice(
+      context,
+      destination,
+      sources,
+      midiToFrequency(note + transpose),
+      entryAt + (offset + start) * SIXTEENTH,
+      length * SIXTEENTH * 1.055,
+      pan,
+      patch,
+    );
+  });
+}
+
 function schedulePitchedAdpcmSequence(
   context: AudioContext,
   destination: AudioNode,
@@ -737,8 +787,8 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   compressor.attack.setValueAtTime(0.012, startAt);
   compressor.release.setValueAtTime(0.24, startAt);
   leadBus.gain.setValueAtTime(0.74, startAt);
-  airBus.gain.setValueAtTime(0.5, startAt);
-  brillianceBus.gain.setValueAtTime(0.44, startAt);
+  airBus.gain.setValueAtTime(0.57, startAt);
+  brillianceBus.gain.setValueAtTime(0.51, startAt);
   fmBus.gain.setValueAtTime(0.64, startAt);
   adpcmBus.gain.setValueAtTime(0.27, startAt);
   adpcmDry.gain.setValueAtTime(0.82, startAt);
@@ -754,12 +804,12 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   airFilter.frequency.setValueAtTime(4600, startAt);
   airFilter.gain.setValueAtTime(4.2, startAt);
   brillianceFilter.type = "highpass";
-  brillianceFilter.frequency.setValueAtTime(3800, startAt);
+  brillianceFilter.frequency.setValueAtTime(2400, startAt);
   brillianceFilter.Q.setValueAtTime(0.64, startAt);
   brilliancePeak.type = "peaking";
-  brilliancePeak.frequency.setValueAtTime(6200, startAt);
+  brilliancePeak.frequency.setValueAtTime(5400, startAt);
   brilliancePeak.Q.setValueAtTime(0.72, startAt);
-  brilliancePeak.gain.setValueAtTime(4.8, startAt);
+  brilliancePeak.gain.setValueAtTime(4.2, startAt);
   quantizer.curve = createFourBitCurve();
   quantizer.oversample = "none";
   softClip.curve = createSoftClipCurve();
@@ -826,9 +876,39 @@ export function playForeverX68000Track(context: AudioContext): () => void {
       fineTune,
     );
     scheduleSequence(context, fmBus, sources, harmonySequence, entryAt, offset, -0.12, harmonyPatch, transpose);
-    scheduleSequence(context, fmBus, sources, counterSequence, entryAt, offset, 0.18, ensemblePatch, transpose);
-    scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, -0.58, padPatch, transpose + 24);
-    scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0.58, padPatch, transpose + 31);
+    scheduleSustainedSequence(
+      context,
+      fmBus,
+      sources,
+      counterSequence,
+      entryAt,
+      offset,
+      0.18,
+      ensemblePatch,
+      transpose,
+    );
+    scheduleSustainedSequence(
+      context,
+      fmBus,
+      sources,
+      bassSequence,
+      entryAt,
+      offset,
+      -0.58,
+      padPatch,
+      transpose + 24,
+    );
+    scheduleSustainedSequence(
+      context,
+      fmBus,
+      sources,
+      bassSequence,
+      entryAt,
+      offset,
+      0.58,
+      padPatch,
+      transpose + 31,
+    );
     schedulePulsedSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, bassPatch, transpose);
     if (phrase >= 1) {
       scheduleSequence(context, fmBus, sources, bassSequence, entryAt, offset, 0, subBassPatch, transpose - 12);

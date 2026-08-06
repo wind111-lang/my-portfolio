@@ -14,13 +14,15 @@ type LeadVoicing = "soft" | "bright" | "reed" | "upper";
 // BEATは譜面上の八分音符1つ分を表す。
 const BPM = 150;
 const BEAT = 60 / BPM / 2;
-// 提供音源では12.8秒（64番目の八分音符）から4音のピックアップが入り、
-// 主旋律は13.6秒から始まる。各32拍ブロックもここを起点に揃える。
+// 提供音源の伴奏・和音は6.4秒単位で切り替わり、12.8秒から
+// 4音のピックアップ、13.6秒から主旋律が始まる。伴奏と主旋律の
+// 起点を混ぜると全区間で0.8秒ずれるため、別の定数として扱う。
+const FIRST_ARRANGEMENT_BEAT = 64;
 const FIRST_THEME_BEAT = 68;
-const FIRST_FULL_BEAT = 132;
-const INTERLUDE_BEAT = 356;
-const SECOND_FULL_BEAT = 420;
-const OUTRO_BEAT = 644;
+const FIRST_FULL_BEAT = 128;
+const INTERLUDE_BEAT = 352;
+const SECOND_FULL_BEAT = 416;
+const OUTRO_BEAT = 640;
 // 再提供されたX68版OGGは128.8秒からフェードし、約138秒で終わる。
 const FADE_START_BEAT = OUTRO_BEAT;
 const TRACK_BEATS = 690;
@@ -301,20 +303,26 @@ const themeBSequence: readonly NoteEvent[] = [
 // OGG内の反復を差分解析し、FM倍音を別ノートと誤認したイベントを除外した。
 // 同音が続く箇所も、原音のアタックに合わせて結合せず再発音させる。
 const upperCSequence: readonly NoteEvent[] = [
-  [0, 81, 1], [1, 81, 1], [2, 81, 1], [3, 81, 1],
+  [0, 81, 2], [2, 80, 1], [3, 81, 1],
   [4, 83, 3], [7, 80, 1],
-  [8, 76, 1], [9, 76, 2], [11, 76, 1],
-  [12, 84, 2], [14, 81, 3],
-  [20, 76, 1], [21, 76, 2], [23, 76, 2], [25, 76, 2], [27, 76, 1],
+  [8, 76, 4], [12, 84, 2], [14, 81, 2],
+  [20, 76, 8],
   [28, 81, 4],
 ];
 
 const upperDSequence: readonly NoteEvent[] = [
   [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
+  [4, 74, 3],
   [7, 77, 1], [8, 81, 2],
   [10, 83, 1], [11, 81, 1], [12, 76, 3], [15, 77, 1],
   [16, 76, 1], [17, 74, 1], [18, 71, 1], [19, 72, 1],
-  [27, 76, 1], [28, 81, 4],
+  [20, 69, 7], [27, 76, 1], [28, 81, 4],
+];
+
+// C部へ入る直前の0.8秒はA5のピックアップ。以前はC部の先頭へ
+// 4連打として置いていたため、サビへ入る位置と発音の長さがずれていた。
+const upperPickupSequence: readonly NoteEvent[] = [
+  [0, 81, 4],
 ];
 
 const closingSequence: readonly NoteEvent[] = [
@@ -325,9 +333,9 @@ const closingSequence: readonly NoteEvent[] = [
 
 const upperClosingSequence: readonly NoteEvent[] = [
   [0, 84, 1], [1, 83, 1], [2, 81, 1], [3, 76, 1],
-  [7, 77, 1], [8, 81, 2], [10, 83, 1], [11, 81, 1],
+  [4, 74, 3], [7, 77, 1], [8, 81, 2], [10, 83, 1], [11, 81, 1],
   [12, 76, 3], [15, 77, 1], [16, 76, 1], [17, 74, 1],
-  [18, 71, 1], [19, 72, 1],
+  [18, 71, 1], [19, 72, 1], [20, 69, 8],
 ];
 
 // 原曲で主旋律の隙間を埋める八分音符アルペジオ。
@@ -486,7 +494,7 @@ function createFourBitCurve(): Float32Array {
 }
 
 function getDensity(beat: number): ArrangementDensity {
-  if (beat < FIRST_THEME_BEAT) return "intro";
+  if (beat < FIRST_ARRANGEMENT_BEAT) return "intro";
   if (beat < FIRST_FULL_BEAT) return "light";
   if (beat < INTERLUDE_BEAT) return "full";
   if (beat < SECOND_FULL_BEAT) return "light";
@@ -747,6 +755,14 @@ export function playOpmTrack(context: AudioContext): () => void {
     const blockName = melodyBlockOrder[blockIndex % melodyBlockOrder.length];
     const block = melodyBlockSequences[blockName];
     const isTheme = blockName === "a" || blockName === "b";
+    const previousBlockName = blockIndex > 0 ? melodyBlockOrder[blockIndex - 1] : null;
+    if (blockName === "c" && previousBlockName !== "d") {
+      melodySections.push({
+        startBeat: startBeat - pickupSequence.length,
+        sequence: upperPickupSequence,
+        voicing: "upper",
+      });
+    }
     melodySections.push({
       startBeat,
       sequence: block.body,
@@ -764,11 +780,11 @@ export function playOpmTrack(context: AudioContext): () => void {
     roots: readonly NoteEvent[];
     chords: readonly ChordEvent[];
   }> = [
-    { startBeat: 4, pitches: accompanimentA, includeBass: false, roots: [], chords: [] },
-    { startBeat: 36, pitches: accompanimentB, includeBass: false, roots: [], chords: [] },
+    { startBeat: 0, pitches: accompanimentA, includeBass: false, roots: [], chords: [] },
+    { startBeat: 32, pitches: accompanimentB, includeBass: false, roots: [], chords: [] },
   ];
   for (let blockIndex = 0; blockIndex < melodyBlockCount; blockIndex += 1) {
-    const startBeat = FIRST_THEME_BEAT + blockIndex * 32;
+    const startBeat = FIRST_ARRANGEMENT_BEAT + blockIndex * 32;
     const blockName = melodyBlockOrder[blockIndex % melodyBlockOrder.length];
     const usesAForm = blockName === "a" || blockName === "c";
     accompanimentSections.push({
@@ -824,8 +840,6 @@ export function playOpmTrack(context: AudioContext): () => void {
   const percussionBlocks = [
     ...Array.from({ length: 7 }, (_, index) => FIRST_FULL_BEAT + index * 32),
     ...Array.from({ length: 7 }, (_, index) => SECOND_FULL_BEAT + index * 32),
-    OUTRO_BEAT,
-    OUTRO_BEAT + 32,
   ];
 
   let nextAccompanimentSection = 0;

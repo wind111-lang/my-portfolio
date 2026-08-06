@@ -10,6 +10,7 @@ import ScrollToTop from "~/components/scroll_to_top";
 import SpeakSection from "~/components/speak_section";
 import CommandView from "~/components/command_view";
 import BootScreen from "~/components/boot_screen";
+import ShutdownScreen from "~/components/shutdown_screen";
 import type { MetaFunction } from "@remix-run/node";
 
 export const meta: MetaFunction = () => [
@@ -39,6 +40,7 @@ export const meta: MetaFunction = () => [
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
   const [startupPhase, setStartupPhase] = useState<"system" | "command" | "ready">("system");
+  const [isShuttingDown, setIsShuttingDown] = useState(false);
 
   const beginCommandStartup = React.useCallback(() => {
     setStartupPhase("command");
@@ -46,6 +48,14 @@ export default function Index(): React.ReactNode {
 
   const completeStartup = React.useCallback(() => {
     setStartupPhase("ready");
+  }, []);
+
+  const beginShutdown = React.useCallback(() => {
+    setIsShuttingDown(true);
+  }, []);
+
+  const completeShutdown = React.useCallback(() => {
+    window.location.assign("https://www.google.com/");
   }, []);
 
   const handleGuiShortcut = React.useCallback((
@@ -57,7 +67,7 @@ export default function Index(): React.ReactNode {
   }, []);
 
   useEffect(() => {
-    if (startupPhase !== "ready") return;
+    if (startupPhase !== "ready" || isShuttingDown) return;
 
     const handleFunctionKey = (event: KeyboardEvent) => {
       if (event.key === "F1") {
@@ -72,10 +82,14 @@ export default function Index(): React.ReactNode {
 
     window.addEventListener("keydown", handleFunctionKey);
     return () => window.removeEventListener("keydown", handleFunctionKey);
-  }, [startupPhase]);
+  }, [isShuttingDown, startupPhase]);
 
   if (startupPhase === "system") {
     return <BootScreen onComplete={beginCommandStartup} />;
+  }
+
+  if (isShuttingDown) {
+    return <ShutdownScreen onComplete={completeShutdown} />;
   }
 
   return (
@@ -86,6 +100,7 @@ export default function Index(): React.ReactNode {
         isInitializing={startupPhase === "command"}
         onInitializationComplete={completeStartup}
         isActive={mode === "command"}
+        onShutdown={beginShutdown}
       />
       {mode === "gui" && (
         <div className="sx-workspace">

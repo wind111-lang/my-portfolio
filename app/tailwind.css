@@ -284,6 +284,91 @@ button:focus-visible {
   letter-spacing: 0.08em;
 }
 
+/* Human68k-style shutdown sequence */
+.x68k-shutdown-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  min-width: 320px;
+  min-height: 100dvh;
+  color: #d7ded9;
+  background: #000;
+  cursor: wait;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+
+.x68k-shutdown-console {
+  width: min(1120px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 3rem) 5rem;
+  font-size: clamp(0.77rem, 1.65vw, 1.02rem);
+  line-height: 1.55;
+  text-shadow: 0 0 7px rgb(190 255 218 / 24%);
+  animation: x68k-screen-on 70ms steps(2, end) both;
+}
+
+.x68k-shutdown-console p {
+  min-height: 1.55em;
+  margin: 0;
+}
+
+.x68k-system-halted,
+.x68k-poweroff {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.65rem;
+  text-align: center;
+}
+
+.x68k-system-halted strong {
+  font-size: clamp(1rem, 3vw, 1.55rem);
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 9px rgb(190 255 218 / 35%);
+}
+
+.x68k-system-halted span {
+  color: #737a75;
+  font-size: clamp(0.68rem, 1.7vw, 0.86rem);
+}
+
+.x68k-poweroff {
+  isolation: isolate;
+}
+
+.x68k-poweroff strong {
+  z-index: 1;
+  color: #737a75;
+  font-size: clamp(0.72rem, 1.8vw, 0.92rem);
+  letter-spacing: 0.2em;
+  opacity: 0;
+  animation: x68k-poweroff-label 0.65s 0.32s steps(1, end) forwards;
+}
+
+.x68k-poweroff-beam {
+  position: fixed;
+  inset: 0;
+  background: #d7ded9;
+  box-shadow: 0 0 2.5rem rgb(215 222 217 / 85%);
+  transform-origin: center;
+  animation: x68k-crt-off 0.62s ease-in forwards;
+}
+
+@keyframes x68k-crt-off {
+  0% { opacity: 0.72; transform: scale(1); }
+  58% { opacity: 0.9; transform: scale(1, 0.012); }
+  82% { opacity: 1; transform: scale(0.16, 0.012); }
+  100% { opacity: 0; transform: scale(0, 0.012); }
+}
+
+@keyframes x68k-poweroff-label {
+  to { opacity: 1; }
+}
+
 @keyframes x68k-screen-on {
   from { opacity: 0; }
   to { opacity: 1; }

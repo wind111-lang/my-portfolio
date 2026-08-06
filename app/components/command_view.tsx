@@ -37,6 +37,7 @@ type CommandViewProps = {
   isInitializing: boolean;
   onInitializationComplete: () => void;
   isActive: boolean;
+  onShutdown: () => void;
 };
 
 const startupMessages = [
@@ -114,6 +115,7 @@ function CommandOutput({
           <div><dt><span>VER</span><span /></dt><dd>システムのバージョンを表示</dd></div>
           <div><dt><span>OPM</span><span /></dt><dd>？？？？？？</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
+          <div><dt><span>EXIT</span><span /></dt><dd>システムを終了</dd></div>
           <div><dt><span>HELP</span><span>/ ?</span></dt><dd>この一覧を表示</dd></div>
         </dl>
       </div>
@@ -229,6 +231,7 @@ export default function CommandView({
   isInitializing,
   onInitializationComplete,
   isActive,
+  onShutdown,
 }: CommandViewProps): React.ReactNode {
   const [input, setInput] = useState("");
   const [inputHistory, setInputHistory] = useState<string[]>([]);
@@ -325,6 +328,12 @@ export default function CommandView({
     }
     if (command === "GUI" || command === "SX") {
       onModeChange("gui");
+      return;
+    }
+    if (command === "EXIT") {
+      stopMusicRef.current?.();
+      stopMusicRef.current = null;
+      onShutdown();
       return;
     }
     if (command === "OPM") {

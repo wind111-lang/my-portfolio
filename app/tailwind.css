@@ -1034,6 +1034,23 @@ button:focus-visible {
   line-height: 1.65;
 }
 
+.destiny-hint {
+  margin: -0.65rem 0 1.45rem;
+  color: #b9c2bd;
+  font-size: clamp(0.66rem, 1.3vw, 0.78rem);
+  letter-spacing: 0.12em;
+  line-height: 1.8;
+}
+
+.destiny-hint strong {
+  display: inline-block;
+  padding: 0.03rem 0.3rem;
+  color: #0a0a09;
+  background: #e2e2dc;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
 .command-line {
   color: #e2e2dc;
   font-size: 0.8rem;

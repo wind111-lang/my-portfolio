@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { playDestinyTrack } from "~/lib/destiny_player";
 import { playForeverX68000Track } from "~/lib/forever_x68000_player";
 import { playOpmTrack } from "~/lib/opm_player";
 import { playStrollingPlayerTrack } from "~/lib/opm2_player";
@@ -22,6 +23,7 @@ type OutputName =
   | "tech"
   | "articles"
   | "speak"
+  | "destiny"
   | "forever"
   | "opm"
   | "opm2"
@@ -72,6 +74,7 @@ const commandAliases: Record<string, OutputName> = {
   "DIR A:\\ARTICLES": "articles",
   SPEAK: "speak",
   "TYPE SPEAK.LOG": "speak",
+  DESTINY: "destiny",
   FOREVERX68000: "forever",
   FOREVERX68K: "forever",
   OPM: "opm",
@@ -229,6 +232,15 @@ function CommandOutput({
     );
   }
 
+  if (output === "destiny") {
+    return (
+      <div className="terminal-output">
+        <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
+        <p>NOW PLAYING... DESTINY.DAT</p>
+      </div>
+    );
+  }
+
   if (output === "version") {
     return <div className="terminal-output"><p>Human68k version 3.02 / PORTFOLIO.SYS version 1.01</p></div>;
   }
@@ -340,25 +352,31 @@ export default function CommandView({
   }, []);
 
   const runMusicCommand = (playTrack: typeof playOpmTrack) => {
-    const context = audioContextRef.current?.state === "closed"
-      ? null
-      : audioContextRef.current;
-    const audioContext = context ?? new AudioContext({ latencyHint: "playback" });
+    try {
+      const context = audioContextRef.current?.state === "closed"
+        ? null
+        : audioContextRef.current;
+      const audioContext = context ?? new AudioContext({ latencyHint: "playback" });
 
-    audioContextRef.current = audioContext;
+      audioContextRef.current = audioContext;
 
-    const startPlayback = () => {
-      onMusicPlaybackStart();
+      const startPlayback = () => {
+        onMusicPlaybackStart();
+        stopMusicRef.current?.();
+        stopMusicRef.current = playTrack(audioContext);
+      };
+
+      if (audioContext.state === "suspended") {
+        void audioContext.resume().then(startPlayback);
+        return;
+      }
+
+      startPlayback();
+    } catch {
+      // Web Audio非対応環境でもコマンド履歴とDAT名は表示する。
       stopMusicRef.current?.();
-      stopMusicRef.current = playTrack(audioContext);
-    };
-
-    if (audioContext.state === "suspended") {
-      void audioContext.resume().then(startPlayback);
-      return;
+      stopMusicRef.current = null;
     }
-
-    startPlayback();
   };
 
   const runCommand = (rawCommand: string) => {
@@ -390,6 +408,9 @@ export default function CommandView({
     }
     if (command === "OPM2") {
       runMusicCommand(playStrollingPlayerTrack);
+    }
+    if (command === "DESTINY") {
+      runMusicCommand(playDestinyTrack);
     }
     if (resolvedCommand === "FOREVERX68000" || resolvedCommand === "FOREVERX68K") {
       runMusicCommand(playForeverX68000Track);

@@ -39,6 +39,7 @@ type CommandViewProps = {
   isInitializing: boolean;
   onInitializationComplete: () => void;
   isActive: boolean;
+  onMusicPlaybackStart: () => void;
   onShutdown: () => void;
 };
 
@@ -49,6 +50,7 @@ const startupMessages = [
   "Command version 3.00",
   "PORTFOLIO DEVICE DRIVER version 1.01",
   "プロフィール情報を表示できます",
+  "F1: COMMAND / F2: GUI (SX-WINDOW) でポートフォリオ画面を切り替えられます",
 ] as const;
 
 const commandAliases: Record<string, OutputName> = {
@@ -244,6 +246,7 @@ export default function CommandView({
   isInitializing,
   onInitializationComplete,
   isActive,
+  onMusicPlaybackStart,
   onShutdown,
 }: CommandViewProps): React.ReactNode {
   const [input, setInput] = useState("");
@@ -257,9 +260,31 @@ export default function CommandView({
   const nextId = useRef(1);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputDraftRef = useRef("");
-  const terminalEndRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const stopMusicRef = useRef<(() => void) | null>(null);
+
+  const scrollInputIntoView = React.useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const inputElement = inputRef.current;
+      if (!inputElement) return;
+
+      const viewport = window.visualViewport;
+      const visibleTop = viewport?.offsetTop ?? 0;
+      const visibleBottom = visibleTop + (viewport?.height ?? window.innerHeight);
+      const commandBarsTop = document
+        .querySelector<HTMLElement>(".human68k-command-bars")
+        ?.getBoundingClientRect().top ?? visibleBottom;
+      const safeTop = visibleTop + 12;
+      const safeBottom = Math.min(visibleBottom, commandBarsTop) - 12;
+      const inputBounds = inputElement.getBoundingClientRect();
+
+      if (inputBounds.bottom > safeBottom) {
+        window.scrollBy({ top: inputBounds.bottom - safeBottom, behavior: "auto" });
+      } else if (inputBounds.top < safeTop) {
+        window.scrollBy({ top: inputBounds.top - safeTop, behavior: "auto" });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (
@@ -273,8 +298,18 @@ export default function CommandView({
 
   useEffect(() => {
     if (!isActive || isInitializing) return;
-    terminalEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
-  }, [history, input, isActive, isInitializing]);
+    scrollInputIntoView();
+  }, [history, input, isActive, isInitializing, scrollInputIntoView]);
+
+  useEffect(() => {
+    if (!isActive || isInitializing || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const handleViewportResize = () => {
+      if (document.activeElement === inputRef.current) scrollInputIntoView();
+    };
+    viewport.addEventListener("resize", handleViewportResize);
+    return () => viewport.removeEventListener("resize", handleViewportResize);
+  }, [isActive, isInitializing, scrollInputIntoView]);
 
   useEffect(() => {
     if (!isInitializing) return;
@@ -313,6 +348,7 @@ export default function CommandView({
     audioContextRef.current = audioContext;
 
     const startPlayback = () => {
+      onMusicPlaybackStart();
       stopMusicRef.current?.();
       stopMusicRef.current = playTrack(audioContext);
     };
@@ -441,6 +477,7 @@ export default function CommandView({
                 inputDraftRef.current = nextInput;
               }}
               onKeyDown={handleInputKeyDown}
+              onFocus={scrollInputIntoView}
               autoComplete="off"
               autoCapitalize="characters"
               enterKeyHint="go"
@@ -451,7 +488,6 @@ export default function CommandView({
           </form>
         </>
       )}
-      <div ref={terminalEndRef} aria-hidden="true" />
     </main>
   );
 }

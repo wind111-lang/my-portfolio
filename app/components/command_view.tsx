@@ -91,11 +91,11 @@ function CommandOutput({
       <div className="terminal-output root-directory">
         <p>A:\ のディレクトリ</p>
         <div className="directory-list" aria-label="ポートフォリオのファイル一覧">
-          <button type="button" onClick={() => runCommand("TYPE PROFILE.DAT")}><span>PROFILE</span><span>DAT</span><span>507</span></button>
-          <button type="button" onClick={() => runCommand("TYPE CAREER.LOG")}><span>CAREER</span><span>LOG</span><span>1,024</span></button>
-          <button type="button" onClick={() => runCommand("DIR TECH")}><span>TECH</span><span>&lt;DIR&gt;</span><span>6</span></button>
-          <button type="button" onClick={() => runCommand("DIR ARTICLES")}><span>ARTICLES</span><span>&lt;DIR&gt;</span><span>8</span></button>
-          <button type="button" onClick={() => runCommand("TYPE SPEAK.LOG")}><span>SPEAK</span><span>LOG</span><span>1,337</span></button>
+          <button type="button" onClick={() => runCommand("TYPE PROFILE.DAT")}><span>PROFILE</span><span>DAT</span><span>507</span><time>26-08-07</time><time>0:00:00</time></button>
+          <button type="button" onClick={() => runCommand("TYPE CAREER.LOG")}><span>CAREER</span><span>LOG</span><span>1,024</span><time>26-08-07</time><time>0:00:02</time></button>
+          <button type="button" onClick={() => runCommand("DIR TECH")}><span>TECH</span><span>&lt;DIR&gt;</span><span>6</span><time>26-08-07</time><time>0:00:04</time></button>
+          <button type="button" onClick={() => runCommand("DIR ARTICLES")}><span>ARTICLES</span><span>&lt;DIR&gt;</span><span>8</span><time>26-08-07</time><time>0:00:06</time></button>
+          <button type="button" onClick={() => runCommand("TYPE SPEAK.LOG")}><span>SPEAK</span><span>LOG</span><span>1,337</span><time>26-08-07</time><time>0:00:08</time></button>
         </div>
         <p className="file-count">3 file(s)&nbsp;&nbsp; 2 dir(s)</p>
         <p className="dir-hint">ファイル名を選択するか、HELPでコマンド一覧を表示できます。</p>
@@ -414,7 +414,7 @@ export default function CommandView({
       <div className="command-history" aria-live="polite">
         {shouldShowInitialDirectory && history.map((entry) => (
           <section className="command-entry" key={entry.id}>
-            <p className="entered-command"><span>A:\&gt;</span>{entry.command}</p>
+            <p className="entered-command"><span>A&gt;</span>{entry.command}</p>
             <CommandOutput output={entry.output} command={entry.command} runCommand={runCommand} />
           </section>
         ))}
@@ -429,7 +429,7 @@ export default function CommandView({
               runCommand(input);
             }}
           >
-            <label htmlFor="human68k-command">A:\&gt;</label>
+            <label htmlFor="human68k-command">A&gt;</label>
             <input
               ref={inputRef}
               id="human68k-command"
@@ -443,12 +443,12 @@ export default function CommandView({
               onKeyDown={handleInputKeyDown}
               autoComplete="off"
               autoCapitalize="characters"
+              enterKeyHint="go"
               spellCheck={false}
-              aria-describedby="command-hint"
+              aria-label="Human68k コマンド"
             />
-            <button type="submit">RETURN</button>
+            <button className="terminal-return-key" type="submit">RETURN</button>
           </form>
-          <p className="terminal-help" id="command-hint">HELP: コマンド一覧&nbsp;&nbsp; F1: COMMAND&nbsp;&nbsp; F2: SX-WINDOW</p>
         </>
       )}
       <div ref={terminalEndRef} aria-hidden="true" />

@@ -115,7 +115,7 @@ function CommandOutput({
           <div><dt><span>VER</span><span /></dt><dd>システムのバージョンを表示</dd></div>
           <div><dt><span>OPM</span><span /></dt><dd>？？？？？？</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
-          <div><dt><span>EXIT</span><span /></dt><dd>システムを終了</dd></div>
+          <div><dt><span>SHUTDOWN</span><span /></dt><dd>システムを終了</dd></div>
           <div><dt><span>HELP</span><span>/ ?</span></dt><dd>この一覧を表示</dd></div>
         </dl>
       </div>
@@ -330,7 +330,7 @@ export default function CommandView({
       onModeChange("gui");
       return;
     }
-    if (command === "EXIT") {
+    if (command === "SHUTDOWN") {
       stopMusicRef.current?.();
       stopMusicRef.current = null;
       onShutdown();

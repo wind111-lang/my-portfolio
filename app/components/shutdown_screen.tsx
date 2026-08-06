@@ -4,10 +4,10 @@ type ShutdownScreenProps = {
   onComplete: () => void;
 };
 
-type ShutdownStage = "unloading" | "halted" | "poweroff";
+type ShutdownStage = "unloading" | "poweroff";
 
 const shutdownMessages = [
-  "A:\\>EXIT",
+  "A:\\>SHUTDOWN",
   "",
   "Stopping YM2151 (OPM) + MSM6258 SOUND SYSTEM...",
   "Closing SX-WINDOW...",
@@ -58,9 +58,8 @@ export default function ShutdownScreen({ onComplete }: ShutdownScreenProps): Rea
     shutdownMessages.slice(1).forEach((_, index) => {
       schedule(() => setVisibleMessageCount(index + 2), 240 + index * 235);
     });
-    schedule(() => setStage("halted"), 2350);
-    schedule(() => setStage("poweroff"), 3050);
-    schedule(onComplete, 4050);
+    schedule(() => setStage("poweroff"), 2350);
+    schedule(onComplete, 3350);
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -89,17 +88,9 @@ export default function ShutdownScreen({ onComplete }: ShutdownScreenProps): Rea
         </section>
       )}
 
-      {stage === "halted" && (
-        <section className="x68k-system-halted" role="status">
-          <strong>SYSTEM HALTED</strong>
-          <span>All drives stopped.</span>
-        </section>
-      )}
-
       {stage === "poweroff" && (
-        <section className="x68k-poweroff" role="status">
+        <section className="x68k-poweroff" role="status" aria-label="CRT電源断中">
           <span className="x68k-poweroff-beam" aria-hidden="true" />
-          <strong>POWER OFF</strong>
         </section>
       )}
 

@@ -14,6 +14,9 @@ import {
 
 const SCHEDULE_AHEAD_SECONDS = 3;
 const OUTPUT_GAIN = 0.9;
+const ADPCM_OUTPUT_GAIN = 0.66;
+const ADPCM_PLAYBACK_START_CENTISECONDS = 340;
+const ADPCM_MIN_INTERVAL_CENTISECONDS = 18;
 const FADE_START_SECONDS = DESTINY_DURATION_SECONDS - 3.5;
 const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
 const CHANNEL_GAINS = [0.94, 0.9, 0.92, 0.9, 0.86, 0.88, 0.72, 0.68] as const;
@@ -74,6 +77,32 @@ function convertPatch(source: DestinyPatch): FmPatch {
 
 const fmPatches = DESTINY_PATCHES.map(convertPatch);
 
+function createAdpcmPlaybackEvents() {
+  const playbackEvents: (typeof DESTINY_ADPCM_EVENTS)[number][] = [];
+  let lastKeptCentisecond = Number.NEGATIVE_INFINITY;
+
+  DESTINY_ADPCM_EVENTS.forEach((event) => {
+    const [startCentisecond, sampleCode] = event;
+    // FMが始まる1.72秒から約1小節（1.67秒）は打音を入れず、
+    // 3.41秒の明確なキックからMSM6258のリズムを加える。
+    if (startCentisecond < ADPCM_PLAYBACK_START_CENTISECONDS) return;
+
+    // 解析した全立ち上がりを鳴らすと16分音符ごとに独立したドラムとなるため、
+    // キックは残しつつ、それ以外は約8分音符より細かく重ならないよう間引く。
+    if (
+      sampleCode !== 0
+      && startCentisecond - lastKeptCentisecond < ADPCM_MIN_INTERVAL_CENTISECONDS
+    ) return;
+
+    playbackEvents.push(event);
+    lastKeptCentisecond = startCentisecond;
+  });
+
+  return playbackEvents;
+}
+
+const adpcmPlaybackEvents = createAdpcmPlaybackEvents();
+
 type RuntimeChannel = {
   destination: GainNode;
   events: (typeof DESTINY_CHANNELS)[number];
@@ -103,7 +132,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt);
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt + FADE_START_SECONDS);
   master.gain.linearRampToValueAtTime(0.0001, startAt + DESTINY_DURATION_SECONDS);
-  adpcmBus.gain.setValueAtTime(0.92, startAt);
+  adpcmBus.gain.setValueAtTime(ADPCM_OUTPUT_GAIN, startAt);
   adpcmBus.connect(master);
 
   compressor.threshold.setValueAtTime(-16, startAt);
@@ -208,15 +237,15 @@ export function playDestinyTrack(context: AudioContext): () => void {
       }
     });
 
-    while (nextAdpcmEvent < DESTINY_ADPCM_EVENTS.length) {
-      const event = DESTINY_ADPCM_EVENTS[nextAdpcmEvent];
+    while (nextAdpcmEvent < adpcmPlaybackEvents.length) {
+      const event = adpcmPlaybackEvents[nextAdpcmEvent];
       if (startAt + event[0] / 100 > horizon) break;
       scheduleAdpcmEvent(...event);
       nextAdpcmEvent += 1;
     }
 
     const fmDone = channels.every((channel) => channel.nextEvent === channel.events.length);
-    if (fmDone && nextAdpcmEvent === DESTINY_ADPCM_EVENTS.length) {
+    if (fmDone && nextAdpcmEvent === adpcmPlaybackEvents.length) {
       if (schedulerTimer !== null) window.clearInterval(schedulerTimer);
       schedulerTimer = null;
     }

@@ -235,7 +235,7 @@ function CommandOutput({
   if (output === "destiny") {
     return (
       <div className="terminal-output">
-        <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
+        <p>YM2151 (OPM) SOUND SYSTEM</p>
         <p>NOW PLAYING... DESTINY.DAT</p>
       </div>
     );

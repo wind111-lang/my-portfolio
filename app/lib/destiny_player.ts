@@ -1,6 +1,4 @@
-import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
 import {
-  DESTINY_ADPCM_EVENTS,
   DESTINY_CHANNELS,
   DESTINY_DURATION_SECONDS,
   DESTINY_PATCHES,
@@ -14,9 +12,6 @@ import {
 
 const SCHEDULE_AHEAD_SECONDS = 3;
 const OUTPUT_GAIN = 0.9;
-const ADPCM_OUTPUT_GAIN = 0.66;
-const ADPCM_PLAYBACK_START_CENTISECONDS = 340;
-const ADPCM_MIN_INTERVAL_CENTISECONDS = 18;
 const FADE_START_SECONDS = DESTINY_DURATION_SECONDS - 3.5;
 const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
 const CHANNEL_GAINS = [0.94, 0.9, 0.92, 0.9, 0.86, 0.88, 0.72, 0.68] as const;
@@ -77,32 +72,6 @@ function convertPatch(source: DestinyPatch): FmPatch {
 
 const fmPatches = DESTINY_PATCHES.map(convertPatch);
 
-function createAdpcmPlaybackEvents() {
-  const playbackEvents: (typeof DESTINY_ADPCM_EVENTS)[number][] = [];
-  let lastKeptCentisecond = Number.NEGATIVE_INFINITY;
-
-  DESTINY_ADPCM_EVENTS.forEach((event) => {
-    const [startCentisecond, sampleCode] = event;
-    // FMが始まる1.72秒から約1小節（1.67秒）は打音を入れず、
-    // 3.41秒の明確なキックからMSM6258のリズムを加える。
-    if (startCentisecond < ADPCM_PLAYBACK_START_CENTISECONDS) return;
-
-    // 解析した全立ち上がりを鳴らすと16分音符ごとに独立したドラムとなるため、
-    // キックは残しつつ、それ以外は約8分音符より細かく重ならないよう間引く。
-    if (
-      sampleCode !== 0
-      && startCentisecond - lastKeptCentisecond < ADPCM_MIN_INTERVAL_CENTISECONDS
-    ) return;
-
-    playbackEvents.push(event);
-    lastKeptCentisecond = startCentisecond;
-  });
-
-  return playbackEvents;
-}
-
-const adpcmPlaybackEvents = createAdpcmPlaybackEvents();
-
 type RuntimeChannel = {
   destination: GainNode;
   events: (typeof DESTINY_CHANNELS)[number];
@@ -116,24 +85,19 @@ export function playDestinyTrack(context: AudioContext): () => void {
   const presence = context.createBiquadFilter();
   const highShelf = context.createBiquadFilter();
   const outputFilter = context.createBiquadFilter();
-  const adpcmBus = context.createGain();
   const channelBuses = CHANNEL_GAINS.map((gain) => {
     const bus = context.createGain();
     bus.gain.setValueAtTime(gain, startAt);
     bus.connect(master);
     return bus;
   });
-  const adpcmSamples = createAdpcmSampleBank(context);
   const sources: AudioScheduledSourceNode[] = [];
   let schedulerTimer: number | null = null;
-  let nextAdpcmEvent = 0;
   let disconnected = false;
 
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt);
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt + FADE_START_SECONDS);
   master.gain.linearRampToValueAtTime(0.0001, startAt + DESTINY_DURATION_SECONDS);
-  adpcmBus.gain.setValueAtTime(ADPCM_OUTPUT_GAIN, startAt);
-  adpcmBus.connect(master);
 
   compressor.threshold.setValueAtTime(-16, startAt);
   compressor.knee.setValueAtTime(13, startAt);
@@ -162,46 +126,6 @@ export function playDestinyTrack(context: AudioContext): () => void {
     events,
     nextEvent: 0,
   }));
-
-  const scheduleAdpcmEvent = (
-    startCentisecond: number,
-    sampleCode: 0 | 1 | 2 | 3,
-    velocity: number,
-    playbackRateHundredth: number,
-  ) => {
-    const normalizedVelocity = velocity / 127;
-    const measuredRate = playbackRateHundredth / 100;
-    const noteStart = startAt + startCentisecond / 100;
-    if (sampleCode === 0) {
-      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.kick, noteStart, {
-        gain: 0.055 + normalizedVelocity * 0.09,
-        playbackRate: Math.min(1.08, Math.max(0.78, 0.72 + measuredRate * 0.2)),
-        pan: -0.05,
-      });
-      return;
-    }
-    if (sampleCode === 1) {
-      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.snare, noteStart, {
-        gain: 0.022 + normalizedVelocity * 0.052,
-        playbackRate: Math.min(1.34, Math.max(0.9, 0.68 + measuredRate * 0.36)),
-        pan: 0.08,
-      });
-      return;
-    }
-    if (sampleCode === 2) {
-      scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.clap, noteStart, {
-        gain: 0.012 + normalizedVelocity * 0.033,
-        playbackRate: Math.min(1.8, Math.max(1.15, measuredRate)),
-        pan: -0.24,
-      });
-      return;
-    }
-    scheduleAdpcmSample(context, adpcmBus, sources, adpcmSamples.metal, noteStart, {
-      gain: 0.005 + normalizedVelocity * 0.014,
-      playbackRate: Math.min(3.15, Math.max(1.75, measuredRate * 1.28)),
-      pan: 0.28,
-    });
-  };
 
   const schedulePendingEvents = () => {
     if (disconnected) return;
@@ -237,15 +161,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
       }
     });
 
-    while (nextAdpcmEvent < adpcmPlaybackEvents.length) {
-      const event = adpcmPlaybackEvents[nextAdpcmEvent];
-      if (startAt + event[0] / 100 > horizon) break;
-      scheduleAdpcmEvent(...event);
-      nextAdpcmEvent += 1;
-    }
-
-    const fmDone = channels.every((channel) => channel.nextEvent === channel.events.length);
-    if (fmDone && nextAdpcmEvent === adpcmPlaybackEvents.length) {
+    if (channels.every((channel) => channel.nextEvent === channel.events.length)) {
       if (schedulerTimer !== null) window.clearInterval(schedulerTimer);
       schedulerTimer = null;
     }
@@ -258,7 +174,6 @@ export function playDestinyTrack(context: AudioContext): () => void {
     if (disconnected) return;
     disconnected = true;
     channelBuses.forEach((bus) => bus.disconnect());
-    adpcmBus.disconnect();
     master.disconnect();
     compressor.disconnect();
     presence.disconnect();

@@ -17,7 +17,8 @@ const systemMessages = [
 
 const SPLASH_DURATION_MS = 5000;
 const DRIVER_MESSAGES_START_MS = SPLASH_DURATION_MS + 180;
-const SYSTEM_BOOT_COMPLETE_MS = SPLASH_DURATION_MS + 1850;
+const DRIVER_SCREEN_DURATION_MS = 15000;
+const SYSTEM_BOOT_COMPLETE_MS = SPLASH_DURATION_MS + DRIVER_SCREEN_DURATION_MS;
 
 export default function BootScreen({ onComplete }: BootScreenProps): React.ReactNode {
   const [stage, setStage] = useState<"splash" | "drivers">("splash");

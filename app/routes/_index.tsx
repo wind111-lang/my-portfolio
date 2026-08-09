@@ -45,7 +45,7 @@ export const meta: MetaFunction = () => [
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
   const [startupPhase, setStartupPhase] = useState<"power" | "system" | "command" | "ready">("power");
-  const [isShuttingDown, setIsShuttingDown] = useState(false);
+  const [systemExitAction, setSystemExitAction] = useState<"shutdown" | "reboot" | null>(null);
   const isPoweringOnRef = React.useRef(false);
   const bootAudioContextRef = React.useRef<AudioContext | null>(null);
   const stopBootMusicRef = React.useRef<(() => void) | null>(null);
@@ -104,12 +104,20 @@ export default function Index(): React.ReactNode {
     setStartupPhase("ready");
   }, []);
 
-  const beginShutdown = React.useCallback(() => {
+  const beginSystemExit = React.useCallback((action: "shutdown" | "reboot") => {
     stopBootAudio();
-    setIsShuttingDown(true);
+    setSystemExitAction(action);
   }, [stopBootAudio]);
 
-  const completeShutdown = React.useCallback(() => {
+  const completeSystemExit = React.useCallback(() => {
+    if (systemExitAction === "reboot") {
+      isPoweringOnRef.current = false;
+      setMode("command");
+      setStartupPhase("power");
+      setSystemExitAction(null);
+      return;
+    }
+
     const isMobileDevice = window.matchMedia("(pointer: coarse)").matches
       || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobileDevice) {
@@ -119,7 +127,7 @@ export default function Index(): React.ReactNode {
       return;
     }
     window.location.assign("https://www.google.com/");
-  }, []);
+  }, [systemExitAction]);
 
   const handleGuiShortcut = React.useCallback((
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -135,7 +143,7 @@ export default function Index(): React.ReactNode {
       isPoweringOnRef.current = false;
       setMode("command");
       setStartupPhase("power");
-      setIsShuttingDown(false);
+      setSystemExitAction(null);
     };
 
     window.addEventListener("pageshow", resetShutdownAfterHistoryRestore);
@@ -145,7 +153,7 @@ export default function Index(): React.ReactNode {
   useEffect(() => () => stopBootAudio(), [stopBootAudio]);
 
   useEffect(() => {
-    if (startupPhase !== "ready" || isShuttingDown) return;
+    if (startupPhase !== "ready" || systemExitAction !== null) return;
 
     const handleFunctionKey = (event: KeyboardEvent) => {
       if (event.key === "F1") {
@@ -160,7 +168,7 @@ export default function Index(): React.ReactNode {
 
     window.addEventListener("keydown", handleFunctionKey);
     return () => window.removeEventListener("keydown", handleFunctionKey);
-  }, [isShuttingDown, startupPhase]);
+  }, [startupPhase, systemExitAction]);
 
   if (startupPhase === "power") {
     return <PowerOnScreen onPowerOn={powerOn} />;
@@ -170,8 +178,13 @@ export default function Index(): React.ReactNode {
     return <BootScreen onComplete={beginCommandStartup} />;
   }
 
-  if (isShuttingDown) {
-    return <ShutdownScreen onComplete={completeShutdown} />;
+  if (systemExitAction !== null) {
+    return (
+      <ShutdownScreen
+        command={systemExitAction === "reboot" ? "REBOOT" : "SHUTDOWN"}
+        onComplete={completeSystemExit}
+      />
+    );
   }
 
   return (
@@ -183,7 +196,7 @@ export default function Index(): React.ReactNode {
         onInitializationComplete={completeStartup}
         isActive={mode === "command"}
         onMusicPlaybackStart={stopBootAudio}
-        onShutdown={beginShutdown}
+        onSystemExit={beginSystemExit}
       />
       {mode === "gui" && (
         <div className="sx-workspace">

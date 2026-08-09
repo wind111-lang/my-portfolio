@@ -1,32 +1,24 @@
 import {
-  trackScheduledSource,
-  x68000VgmMidiToFrequency,
-} from "~/lib/fm_synth";
-import {
-  MORNING_MUSIC_CHANNELS,
-  MORNING_MUSIC_DURATION_SECONDS,
-} from "~/lib/morning_music_vgm_score";
+  BUBBLE_SYSTEM_BPM,
+  BUBBLE_SYSTEM_CHANNELS,
+  BUBBLE_SYSTEM_DURATION_BEATS,
+} from "~/lib/bubble_system_morning_score";
+import { midiToFrequency, trackScheduledSource } from "~/lib/fm_synth";
 
-const SCHEDULE_AHEAD_SECONDS = 5;
+const SCHEDULE_AHEAD_SECONDS = 6;
 const OUTPUT_GAIN = 1.35;
-// Bubble System版のゆったりしたウォームアップ感へ寄せるため、
-// X68000移植版から採譜したイベントを約14%遅く再生する。
-const TEMPO_SCALE = 1.16;
+const SECONDS_PER_BEAT = 60 / BUBBLE_SYSTEM_BPM;
 export const BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS =
-  MORNING_MUSIC_DURATION_SECONDS * TEMPO_SCALE;
-const FADE_START_SECONDS = BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS - 3.2;
-const CHANNEL_GAINS = [0.82, 0.8, 0.72, 0.68, 0.78, 0.74, 0.7, 0.66] as const;
+  BUBBLE_SYSTEM_DURATION_BEATS * SECONDS_PER_BEAT;
+const FADE_START_SECONDS = BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS - 2.8;
 
-// K005289の32段階ウェーブテーブルを意識した4bit風の波形。
-// 元データのFM音色は使わず、Bubble SystemらしいPSG/WSGの輪郭へ置き換える。
-const BUBBLE_WAVE_TABLES = [
-  [-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7],
-  [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,7,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-7],
-  [-7,-7,-6,-6,-5,-4,-2,0,3,5,7,7,6,4,2,0,-2,-4,-5,-5,-4,-2,0,2,4,6,7,6,4,1,-3,-6],
-  [-7,-5,-3,-1,1,3,5,7,7,5,3,1,-1,-3,-5,-7,-7,-4,-1,2,5,7,5,2,-1,-4,-6,-4,-2,0,2,4],
+// K005289の2音を、32サンプル・4bitの独立した波形メモリとして再現する。
+const K005289_WAVES = [
+  [-7,-7,-6,-5,-3,-1,2,5,7,7,6,4,1,-2,-5,-7,-7,-5,-2,1,4,6,7,5,2,-1,-4,-6,-7,-5,-2,1],
+  [-7,-5,-3,-1,1,3,5,7,6,4,2,0,-2,-4,-6,-7,-5,-2,1,4,7,5,2,-1,-4,-6,-4,-1,2,5,3,0],
 ] as const;
 
-function createBubbleWave(context: AudioContext, samples: readonly number[]): PeriodicWave {
+function createK005289Wave(context: AudioContext, samples: readonly number[]): PeriodicWave {
   const harmonics = samples.length / 2;
   const real = new Float32Array(harmonics + 1);
   const imag = new Float32Array(harmonics + 1);
@@ -43,66 +35,66 @@ function createBubbleWave(context: AudioContext, samples: readonly number[]): Pe
   return context.createPeriodicWave(real, imag, { disableNormalization: false });
 }
 
-function createBubbleSystemVoice(
+function scheduleHardwareVoice(
   context: AudioContext,
   destination: AudioNode,
   sources: AudioScheduledSourceNode[],
   waves: readonly PeriodicWave[],
-  frequency: number,
+  kind: (typeof BUBBLE_SYSTEM_CHANNELS)[number]["kind"],
+  midiNote: number,
   startAt: number,
   duration: number,
-  channelIndex: number,
-  patchId: number,
 ): void {
   const oscillator = context.createOscillator();
   const envelope = context.createGain();
-  const panner = context.createStereoPanner();
-  const isLead = channelIndex === 0 || channelIndex === 2;
-  const release = isLead ? 0.1 : 0.045;
-  const soundEnd = startAt + duration + release;
-  const peak = isLead ? 0.034 : 0.025;
+  const isPsg = kind === "psg";
+  const release = isPsg ? 0.018 : 0.045;
+  const peak = isPsg ? 0.072 : 0.058;
+  const noteEnd = startAt + duration;
+  const soundEnd = noteEnd + release;
 
-  oscillator.setPeriodicWave(waves[(channelIndex + patchId) % waves.length]);
-  oscillator.frequency.setValueAtTime(frequency, startAt);
+  if (isPsg) {
+    // AY-3-8910の矩形波。FM変調やステレオ化は行わない。
+    oscillator.type = "square";
+  } else {
+    oscillator.setPeriodicWave(waves[kind === "wsg1" ? 0 : 1]);
+  }
+  oscillator.frequency.setValueAtTime(midiToFrequency(midiNote), startAt);
+
+  // 実機の4bit音量段階に近い、立ち上がりの速いキーオン／キーオフ。
   envelope.gain.setValueAtTime(0.0001, startAt);
-  envelope.gain.exponentialRampToValueAtTime(peak, startAt + 0.006);
-  envelope.gain.setValueAtTime(peak * 0.82, startAt + Math.min(0.055, duration * 0.4));
-  envelope.gain.setValueAtTime(peak * 0.82, startAt + duration);
+  envelope.gain.exponentialRampToValueAtTime(peak, startAt + 0.003);
+  envelope.gain.setValueAtTime(peak, noteEnd);
   envelope.gain.exponentialRampToValueAtTime(0.0001, soundEnd);
-  panner.pan.setValueAtTime((channelIndex % 2 === 0 ? -1 : 1) * 0.12, startAt);
 
   oscillator.connect(envelope);
-  envelope.connect(panner);
-  panner.connect(destination);
+  envelope.connect(destination);
   oscillator.start(startAt);
-  oscillator.stop(soundEnd + 0.02);
-  trackScheduledSource(sources, oscillator, () => {
-    envelope.disconnect();
-    panner.disconnect();
-  });
+  oscillator.stop(soundEnd + 0.015);
+  trackScheduledSource(sources, oscillator, () => envelope.disconnect());
 }
 
 type RuntimeChannel = {
   destination: GainNode;
-  events: (typeof MORNING_MUSIC_CHANNELS)[number];
-  nextEvent: number;
+  kind: (typeof BUBBLE_SYSTEM_CHANNELS)[number]["kind"];
+  notes: (typeof BUBBLE_SYSTEM_CHANNELS)[number]["notes"];
+  nextNote: number;
 };
 
 export function playMorningMusic(context: AudioContext): () => void {
-  const startAt = context.currentTime + 0.025;
+  const startAt = context.currentTime + 0.035;
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
-  const presence = context.createBiquadFilter();
-  const highShelf = context.createBiquadFilter();
+  const highPass = context.createBiquadFilter();
   const outputFilter = context.createBiquadFilter();
-  const channelBuses = CHANNEL_GAINS.map((gain) => {
+  const sources: AudioScheduledSourceNode[] = [];
+  const waves = K005289_WAVES.map((samples) => createK005289Wave(context, samples));
+  const channelBuses = BUBBLE_SYSTEM_CHANNELS.map((channel) => {
     const bus = context.createGain();
-    bus.gain.setValueAtTime(gain, startAt);
+    bus.gain.setValueAtTime(channel.gain, startAt);
     bus.connect(master);
     return bus;
   });
-  const sources: AudioScheduledSourceNode[] = [];
-  const bubbleWaves = BUBBLE_WAVE_TABLES.map((samples) => createBubbleWave(context, samples));
   let schedulerTimer: number | null = null;
   let disconnected = false;
 
@@ -112,76 +104,62 @@ export function playMorningMusic(context: AudioContext): () => void {
     0.0001,
     startAt + BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS,
   );
-  compressor.threshold.setValueAtTime(-17, startAt);
-  compressor.knee.setValueAtTime(12, startAt);
-  compressor.ratio.setValueAtTime(2.4, startAt);
-  compressor.attack.setValueAtTime(0.005, startAt);
-  compressor.release.setValueAtTime(0.18, startAt);
-  presence.type = "peaking";
-  presence.frequency.setValueAtTime(2800, startAt);
-  presence.Q.setValueAtTime(0.78, startAt);
-  presence.gain.setValueAtTime(1.6, startAt);
-  highShelf.type = "highshelf";
-  highShelf.frequency.setValueAtTime(5200, startAt);
-  highShelf.gain.setValueAtTime(-1.8, startAt);
+  compressor.threshold.setValueAtTime(-14, startAt);
+  compressor.knee.setValueAtTime(8, startAt);
+  compressor.ratio.setValueAtTime(3.4, startAt);
+  compressor.attack.setValueAtTime(0.004, startAt);
+  compressor.release.setValueAtTime(0.12, startAt);
+  highPass.type = "highpass";
+  highPass.frequency.setValueAtTime(72, startAt);
+  highPass.Q.setValueAtTime(0.45, startAt);
   outputFilter.type = "lowpass";
-  outputFilter.frequency.setValueAtTime(11200, startAt);
-  outputFilter.Q.setValueAtTime(0.45, startAt);
+  outputFilter.frequency.setValueAtTime(9800, startAt);
+  outputFilter.Q.setValueAtTime(0.52, startAt);
 
   master.connect(compressor);
-  compressor.connect(presence);
-  presence.connect(highShelf);
-  highShelf.connect(outputFilter);
+  compressor.connect(highPass);
+  highPass.connect(outputFilter);
   outputFilter.connect(context.destination);
 
-  const channels: RuntimeChannel[] = MORNING_MUSIC_CHANNELS.map((events, index) => ({
+  const channels: RuntimeChannel[] = BUBBLE_SYSTEM_CHANNELS.map((channel, index) => ({
     destination: channelBuses[index],
-    events,
-    nextEvent: 0,
+    kind: channel.kind,
+    notes: channel.notes,
+    nextNote: 0,
   }));
 
-  const schedulePendingEvents = () => {
+  const schedulePendingNotes = () => {
     if (disconnected) return;
     const horizon = context.currentTime + SCHEDULE_AHEAD_SECONDS;
 
-    channels.forEach((channel, channelIndex) => {
-      while (channel.nextEvent < channel.events.length) {
-        const [startCentisecond, midiSixtyFourth, gateCentisecond, patchId] =
-          channel.events[channel.nextEvent];
-        const eventOffset = startCentisecond / 100 * TEMPO_SCALE;
-        const noteStart = startAt + eventOffset;
+    channels.forEach((channel) => {
+      while (channel.nextNote < channel.notes.length) {
+        const [startBeat, midiNote, durationBeats] = channel.notes[channel.nextNote];
+        const noteStart = startAt + startBeat * SECONDS_PER_BEAT;
         if (noteStart > horizon) break;
 
-        const remainingTrackTime = BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS - eventOffset;
-        const duration = Math.min(
-          Math.max(0.025, gateCentisecond / 100 * TEMPO_SCALE - 0.008),
-          remainingTrackTime,
+        scheduleHardwareVoice(
+          context,
+          channel.destination,
+          sources,
+          waves,
+          channel.kind,
+          midiNote,
+          noteStart,
+          Math.max(0.035, durationBeats * SECONDS_PER_BEAT - 0.012),
         );
-        if (duration > 0.01) {
-          createBubbleSystemVoice(
-            context,
-            channel.destination,
-            sources,
-            bubbleWaves,
-            x68000VgmMidiToFrequency(midiSixtyFourth / 64),
-            noteStart,
-            duration,
-            channelIndex,
-            patchId,
-          );
-        }
-        channel.nextEvent += 1;
+        channel.nextNote += 1;
       }
     });
 
-    if (channels.every((channel) => channel.nextEvent === channel.events.length)) {
+    if (channels.every((channel) => channel.nextNote === channel.notes.length)) {
       if (schedulerTimer !== null) window.clearInterval(schedulerTimer);
       schedulerTimer = null;
     }
   };
 
-  schedulePendingEvents();
-  schedulerTimer = window.setInterval(schedulePendingEvents, 500);
+  schedulePendingNotes();
+  schedulerTimer = window.setInterval(schedulePendingNotes, 500);
 
   const disconnectGraph = () => {
     if (disconnected) return;
@@ -189,8 +167,7 @@ export function playMorningMusic(context: AudioContext): () => void {
     channelBuses.forEach((bus) => bus.disconnect());
     master.disconnect();
     compressor.disconnect();
-    presence.disconnect();
-    highShelf.disconnect();
+    highPass.disconnect();
     outputFilter.disconnect();
   };
   const cleanupTimer = window.setTimeout(

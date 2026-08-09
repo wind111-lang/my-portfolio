@@ -42,7 +42,7 @@ type CommandViewProps = {
   onInitializationComplete: () => void;
   isActive: boolean;
   onMusicPlaybackStart: () => void;
-  onShutdown: () => void;
+  onSystemExit: (action: "shutdown" | "reboot") => void;
 };
 
 const startupMessages = [
@@ -125,6 +125,7 @@ function CommandOutput({
           <div><dt><span>OPM2</span><span /></dt><dd>？？？？？？</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
           <div><dt><span>SHUTDOWN</span><span /></dt><dd>システムを終了</dd></div>
+          <div><dt><span>REBOOT</span><span /></dt><dd>システムを再起動</dd></div>
           <div><dt><span>HELP</span><span>/ ?</span></dt><dd>この一覧を表示</dd></div>
         </dl>
       </div>
@@ -259,7 +260,7 @@ export default function CommandView({
   onInitializationComplete,
   isActive,
   onMusicPlaybackStart,
-  onShutdown,
+  onSystemExit,
 }: CommandViewProps): React.ReactNode {
   const [input, setInput] = useState("");
   const [inputHistory, setInputHistory] = useState<string[]>([]);
@@ -397,10 +398,10 @@ export default function CommandView({
       onModeChange("gui");
       return;
     }
-    if (command === "SHUTDOWN") {
+    if (command === "SHUTDOWN" || command === "REBOOT") {
       stopMusicRef.current?.();
       stopMusicRef.current = null;
-      onShutdown();
+      onSystemExit(command === "REBOOT" ? "reboot" : "shutdown");
       return;
     }
     if (command === "OPM") {

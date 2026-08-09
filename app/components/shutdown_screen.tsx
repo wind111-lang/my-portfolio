@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 
 type ShutdownScreenProps = {
+  command: "SHUTDOWN" | "REBOOT";
   onComplete: () => void;
 };
 
 type ShutdownStage = "unloading" | "poweroff";
 
 const shutdownMessages = [
-  "A:\\>SHUTDOWN",
   "",
   "Stopping YM2151 (OPM) + MSM6258 SOUND SYSTEM...",
   "Closing SX-WINDOW...",
@@ -31,9 +31,11 @@ const blockedEvents = [
   "touchmove",
 ] as const;
 
-export default function ShutdownScreen({ onComplete }: ShutdownScreenProps): React.ReactNode {
+export default function ShutdownScreen({ command, onComplete }: ShutdownScreenProps): React.ReactNode {
   const [stage, setStage] = useState<ShutdownStage>("unloading");
   const [visibleMessageCount, setVisibleMessageCount] = useState(1);
+  const isRebooting = command === "REBOOT";
+  const messages = [`A:\\>${command}`, ...shutdownMessages];
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -55,7 +57,7 @@ export default function ShutdownScreen({ onComplete }: ShutdownScreenProps): Rea
       window.addEventListener(eventName, blockInput, eventOptions);
     });
 
-    shutdownMessages.slice(1).forEach((_, index) => {
+    shutdownMessages.forEach((_, index) => {
       schedule(() => setVisibleMessageCount(index + 2), 240 + index * 235);
     });
     schedule(() => setStage("poweroff"), 2350);
@@ -74,12 +76,12 @@ export default function ShutdownScreen({ onComplete }: ShutdownScreenProps): Rea
     <main
       className="x68k-shutdown-screen"
       data-stage={stage}
-      aria-label="システム終了中"
+      aria-label={isRebooting ? "システム再起動中" : "システム終了中"}
       aria-busy="true"
     >
       {stage === "unloading" && (
         <section className="x68k-shutdown-console" aria-live="assertive" aria-atomic="false">
-          {shutdownMessages.slice(0, visibleMessageCount).map((message, index) => (
+          {messages.slice(0, visibleMessageCount).map((message, index) => (
             message
               ? <p key={`${index}-${message}`}>{message}</p>
               : <br key={`space-${index}`} />
@@ -103,9 +105,9 @@ export default function ShutdownScreen({ onComplete }: ShutdownScreenProps): Rea
           <p
             className="x68k-boot-status"
             role="status"
-            aria-label="システム終了中。入力は無効です。"
+            aria-label={`${isRebooting ? "システム再起動中" : "システム終了中"}。入力は無効です。`}
           >
-            SYSTEM SHUTTING DOWN...
+            {isRebooting ? "SYSTEM REBOOTING..." : "SYSTEM SHUTTING DOWN..."}
           </p>
         </>
       )}

@@ -16,7 +16,7 @@ export default function AboutSection(): React.ReactNode {
           <br /> one command at a time.
         </p>
         <p className="destiny-hint">
-          YOUR CHOICES DEFINE YOUR <strong>DESTINY</strong>.
+          YOUR CHOICES DECIDE YOUR <strong>DESTINY</strong>.
         </p>
         <div className="command-line" aria-hidden="true">
           A:\&gt; show portfolio<span className="cursor">_</span>

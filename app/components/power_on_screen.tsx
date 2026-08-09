@@ -34,10 +34,6 @@ export default function PowerOnScreen({ onPowerOn }: PowerOnScreenProps): React.
     <main
       className="x68k-power-on-screen"
       aria-label="X68000 PORTFOLIO 電源待機中"
-      onPointerDown={(event) => {
-        event.preventDefault();
-        activate();
-      }}
     >
       <button type="button" className="x68k-power-switch" onClick={activate}>
         <span aria-hidden="true" />

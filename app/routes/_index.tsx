@@ -12,8 +12,10 @@ import CommandView from "~/components/command_view";
 import BootScreen from "~/components/boot_screen";
 import PowerOnScreen from "~/components/power_on_screen";
 import ShutdownScreen from "~/components/shutdown_screen";
-import { playMorningMusic } from "~/lib/morning_music_player";
-import { MORNING_MUSIC_DURATION_SECONDS } from "~/lib/morning_music_vgm_score";
+import {
+  BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS,
+  playMorningMusic,
+} from "~/lib/morning_music_player";
 import type { MetaFunction } from "@remix-run/node";
 
 export const meta: MetaFunction = () => [
@@ -71,15 +73,22 @@ export default function Index(): React.ReactNode {
     try {
       const context = new AudioContext({ latencyHint: "playback" });
       bootAudioContextRef.current = context;
-      stopBootMusicRef.current = playMorningMusic(context);
-      closeBootAudioTimerRef.current = window.setTimeout(
-        stopBootAudio,
-        (MORNING_MUSIC_DURATION_SECONDS + 0.8) * 1000,
-      );
+
+      const startBootMusic = () => {
+        if (bootAudioContextRef.current !== context || context.state === "closed") return;
+        stopBootMusicRef.current = playMorningMusic(context);
+        closeBootAudioTimerRef.current = window.setTimeout(
+          stopBootAudio,
+          (BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS + 0.8) * 1000,
+        );
+      };
+
       if (context.state === "suspended") {
-        void context.resume().catch(() => {
-          stopBootAudio();
-        });
+        // Mobile browsers only unlock Web Audio from a completed user gesture.
+        // Resume inside the tap/click handler, then schedule the track once active.
+        void context.resume().then(startBootMusic).catch(stopBootAudio);
+      } else {
+        startBootMusic();
       }
       showSplash();
     } catch {

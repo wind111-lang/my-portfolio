@@ -1,77 +1,86 @@
 import {
-  createFmVoice,
-  type FmPatch,
+  trackScheduledSource,
   x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
 import {
   MORNING_MUSIC_CHANNELS,
   MORNING_MUSIC_DURATION_SECONDS,
-  MORNING_MUSIC_PATCHES,
-  type MorningMusicPatch,
 } from "~/lib/morning_music_vgm_score";
 
 const SCHEDULE_AHEAD_SECONDS = 5;
-const OUTPUT_GAIN = 0.88;
-const FADE_START_SECONDS = MORNING_MUSIC_DURATION_SECONDS - 2.5;
-const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
-const CHANNEL_GAINS = [0.92, 0.88, 0.94, 0.86, 0.86, 0.88, 0.9, 0.84] as const;
+const OUTPUT_GAIN = 1.35;
+// Bubble System版のゆったりしたウォームアップ感へ寄せるため、
+// X68000移植版から採譜したイベントを約14%遅く再生する。
+const TEMPO_SCALE = 1.16;
+export const BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS =
+  MORNING_MUSIC_DURATION_SECONDS * TEMPO_SCALE;
+const FADE_START_SECONDS = BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS - 3.2;
+const CHANNEL_GAINS = [0.82, 0.8, 0.72, 0.68, 0.78, 0.74, 0.7, 0.66] as const;
 
-function carrierIndices(algorithm: MorningMusicPatch["algorithm"]): readonly number[] {
-  if (algorithm <= 3) return [3];
-  if (algorithm === 4) return [1, 3];
-  if (algorithm <= 6) return [1, 2, 3];
-  return [0, 1, 2, 3];
+// K005289の32段階ウェーブテーブルを意識した4bit風の波形。
+// 元データのFM音色は使わず、Bubble SystemらしいPSG/WSGの輪郭へ置き換える。
+const BUBBLE_WAVE_TABLES = [
+  [-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,-7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7],
+  [-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,7,7,6,5,4,3,2,1,0,-1,-2,-3,-4,-5,-6,-7,-7],
+  [-7,-7,-6,-6,-5,-4,-2,0,3,5,7,7,6,4,2,0,-2,-4,-5,-5,-4,-2,0,2,4,6,7,6,4,1,-3,-6],
+  [-7,-5,-3,-1,1,3,5,7,7,5,3,1,-1,-3,-5,-7,-7,-4,-1,2,5,7,5,2,-1,-4,-6,-4,-2,0,2,4],
+] as const;
+
+function createBubbleWave(context: AudioContext, samples: readonly number[]): PeriodicWave {
+  const harmonics = samples.length / 2;
+  const real = new Float32Array(harmonics + 1);
+  const imag = new Float32Array(harmonics + 1);
+
+  for (let harmonic = 1; harmonic <= harmonics; harmonic += 1) {
+    for (let index = 0; index < samples.length; index += 1) {
+      const phase = 2 * Math.PI * harmonic * index / samples.length;
+      const sample = samples[index] / 7;
+      real[harmonic] += 2 * sample * Math.cos(phase) / samples.length;
+      imag[harmonic] += 2 * sample * Math.sin(phase) / samples.length;
+    }
+  }
+
+  return context.createPeriodicWave(real, imag, { disableNormalization: false });
 }
 
-function average(values: readonly number[], indices: readonly number[]): number {
-  return indices.reduce((sum, index) => sum + values[index], 0) / indices.length;
+function createBubbleSystemVoice(
+  context: AudioContext,
+  destination: AudioNode,
+  sources: AudioScheduledSourceNode[],
+  waves: readonly PeriodicWave[],
+  frequency: number,
+  startAt: number,
+  duration: number,
+  channelIndex: number,
+  patchId: number,
+): void {
+  const oscillator = context.createOscillator();
+  const envelope = context.createGain();
+  const panner = context.createStereoPanner();
+  const isLead = channelIndex === 0 || channelIndex === 2;
+  const release = isLead ? 0.1 : 0.045;
+  const soundEnd = startAt + duration + release;
+  const peak = isLead ? 0.034 : 0.025;
+
+  oscillator.setPeriodicWave(waves[(channelIndex + patchId) % waves.length]);
+  oscillator.frequency.setValueAtTime(frequency, startAt);
+  envelope.gain.setValueAtTime(0.0001, startAt);
+  envelope.gain.exponentialRampToValueAtTime(peak, startAt + 0.006);
+  envelope.gain.setValueAtTime(peak * 0.82, startAt + Math.min(0.055, duration * 0.4));
+  envelope.gain.setValueAtTime(peak * 0.82, startAt + duration);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, soundEnd);
+  panner.pan.setValueAtTime((channelIndex % 2 === 0 ? -1 : 1) * 0.12, startAt);
+
+  oscillator.connect(envelope);
+  envelope.connect(panner);
+  panner.connect(destination);
+  oscillator.start(startAt);
+  oscillator.stop(soundEnd + 0.02);
+  trackScheduledSource(sources, oscillator, () => {
+    envelope.disconnect();
+    panner.disconnect();
+  });
 }
-
-function convertPatch(source: MorningMusicPatch): FmPatch {
-  const carriers = carrierIndices(source.algorithm);
-  const carrierSet = new Set(carriers);
-  const operatorLevels = source.totalLevels.map((level) => 2 ** (-level / 8));
-  const strongestCarrier = Math.max(...carriers.map((index) => operatorLevels[index]));
-  const carrierGains = operatorLevels.map((level, index) => (
-    carrierSet.has(index) ? level / strongestCarrier : 0
-  )) as [number, number, number, number];
-  // YM2151の高いフィードバックで生じる鋭い倍音をWeb Audio上でも残す。
-  // 実機の自己帰還演算器はないため、変調量とM1の波形で近似する。
-  const modulationScale = 9 + source.feedback * 0.9;
-  const operatorModulation = operatorLevels.map((level, index) => (
-    carrierSet.has(index) ? 0 : Math.min(6.2, Math.max(0.05, level * modulationScale))
-  )) as [number, number, number, number];
-  const carrierAttackRate = average(source.attackRates, carriers);
-  const carrierDecayRate = average(source.decayRates, carriers);
-  const carrierSustainLevel = average(source.sustainLevels, carriers);
-  const carrierReleaseRate = average(source.releaseRates, carriers);
-  const peakGain = 0.0205 * strongestCarrier / Math.sqrt(carriers.length);
-  const sustainRatio = Math.max(0.002, 2 ** (-carrierSustainLevel / 2));
-
-  return {
-    algorithm: source.algorithm,
-    ratios: source.ratios,
-    modulation: [0, 0, 0],
-    operatorModulation,
-    waveforms: [source.feedback >= 5 ? "triangle" : "sine", "sine", "sine", "sine"],
-    operatorDetuneCents: source.detune1.map((detune) => DT1_CENTS[detune]) as [
-      number,
-      number,
-      number,
-      number,
-    ],
-    carrierGains,
-    filterFrequency: 17800,
-    filterQ: 0.62,
-    attack: 0.004 + ((31 - carrierAttackRate) / 31) ** 2 * 0.34,
-    decay: 0.07 + ((31 - carrierDecayRate) / 31) ** 2 * 1.25,
-    peakGain,
-    sustainGain: peakGain * sustainRatio,
-    release: 0.045 + ((15 - carrierReleaseRate) / 15) ** 2 * 0.64,
-  };
-}
-
-const fmPatches = MORNING_MUSIC_PATCHES.map(convertPatch);
 
 type RuntimeChannel = {
   destination: GainNode;
@@ -93,26 +102,30 @@ export function playMorningMusic(context: AudioContext): () => void {
     return bus;
   });
   const sources: AudioScheduledSourceNode[] = [];
+  const bubbleWaves = BUBBLE_WAVE_TABLES.map((samples) => createBubbleWave(context, samples));
   let schedulerTimer: number | null = null;
   let disconnected = false;
 
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt);
   master.gain.setValueAtTime(OUTPUT_GAIN, startAt + FADE_START_SECONDS);
-  master.gain.linearRampToValueAtTime(0.0001, startAt + MORNING_MUSIC_DURATION_SECONDS);
-  compressor.threshold.setValueAtTime(-15, startAt);
+  master.gain.linearRampToValueAtTime(
+    0.0001,
+    startAt + BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS,
+  );
+  compressor.threshold.setValueAtTime(-17, startAt);
   compressor.knee.setValueAtTime(12, startAt);
-  compressor.ratio.setValueAtTime(2.2, startAt);
+  compressor.ratio.setValueAtTime(2.4, startAt);
   compressor.attack.setValueAtTime(0.005, startAt);
   compressor.release.setValueAtTime(0.18, startAt);
   presence.type = "peaking";
-  presence.frequency.setValueAtTime(3900, startAt);
+  presence.frequency.setValueAtTime(2800, startAt);
   presence.Q.setValueAtTime(0.78, startAt);
-  presence.gain.setValueAtTime(2.4, startAt);
+  presence.gain.setValueAtTime(1.6, startAt);
   highShelf.type = "highshelf";
-  highShelf.frequency.setValueAtTime(6200, startAt);
-  highShelf.gain.setValueAtTime(3.2, startAt);
+  highShelf.frequency.setValueAtTime(5200, startAt);
+  highShelf.gain.setValueAtTime(-1.8, startAt);
   outputFilter.type = "lowpass";
-  outputFilter.frequency.setValueAtTime(18400, startAt);
+  outputFilter.frequency.setValueAtTime(11200, startAt);
   outputFilter.Q.setValueAtTime(0.45, startAt);
 
   master.connect(compressor);
@@ -131,30 +144,30 @@ export function playMorningMusic(context: AudioContext): () => void {
     if (disconnected) return;
     const horizon = context.currentTime + SCHEDULE_AHEAD_SECONDS;
 
-    channels.forEach((channel) => {
+    channels.forEach((channel, channelIndex) => {
       while (channel.nextEvent < channel.events.length) {
         const [startCentisecond, midiSixtyFourth, gateCentisecond, patchId] =
           channel.events[channel.nextEvent];
-        const eventOffset = startCentisecond / 100;
+        const eventOffset = startCentisecond / 100 * TEMPO_SCALE;
         const noteStart = startAt + eventOffset;
         if (noteStart > horizon) break;
 
-        const remainingTrackTime = MORNING_MUSIC_DURATION_SECONDS - eventOffset;
+        const remainingTrackTime = BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS - eventOffset;
         const duration = Math.min(
-          Math.max(0.025, gateCentisecond / 100 - 0.006),
+          Math.max(0.025, gateCentisecond / 100 * TEMPO_SCALE - 0.008),
           remainingTrackTime,
         );
         if (duration > 0.01) {
-          const sourcePatch = MORNING_MUSIC_PATCHES[patchId];
-          createFmVoice(
+          createBubbleSystemVoice(
             context,
             channel.destination,
             sources,
+            bubbleWaves,
             x68000VgmMidiToFrequency(midiSixtyFourth / 64),
             noteStart,
             duration,
-            sourcePatch.pan === 2 ? -0.72 : sourcePatch.pan === 1 ? 0.72 : 0,
-            fmPatches[patchId],
+            channelIndex,
+            patchId,
           );
         }
         channel.nextEvent += 1;
@@ -182,7 +195,7 @@ export function playMorningMusic(context: AudioContext): () => void {
   };
   const cleanupTimer = window.setTimeout(
     disconnectGraph,
-    (MORNING_MUSIC_DURATION_SECONDS + 0.7) * 1000,
+    (BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS + 0.7) * 1000,
   );
 
   return () => {

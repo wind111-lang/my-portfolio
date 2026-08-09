@@ -7,9 +7,15 @@ type BootScreenProps = {
 const systemMessages = [
   "Printer driver version 1.00",
   "RS-232C driver version 2.02",
+  "SCSI device driver version 1.10",
+  "CD-ROM extension driver version 1.20",
+  "RAM Disk driver version 1.02",
+  "Mouse driver version 1.01",
   "Floating Point Package version 2.03 (IEEE format)",
   "Japanese Front-end Processor ASK68k version 3.02",
   "Console/Graphic IOCS version 1.50",
+  "MIDI interface driver version 1.00",
+  "PCM8 extended sound driver version 0.48",
   "History DRIVER version 1.10",
   "Command version 3.00",
   "PORTFOLIO DEVICE DRIVER version 1.01",
@@ -17,6 +23,7 @@ const systemMessages = [
 
 const SPLASH_DURATION_MS = 5000;
 const DRIVER_MESSAGES_START_MS = SPLASH_DURATION_MS + 180;
+const DRIVER_MESSAGE_INTERVAL_MS = 360;
 const DRIVER_SCREEN_DURATION_MS = 15000;
 const SYSTEM_BOOT_COMPLETE_MS = SPLASH_DURATION_MS + DRIVER_SCREEN_DURATION_MS;
 
@@ -46,7 +53,9 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     systemMessages.forEach((_, index) => {
       schedule(
         () => setVisibleMessageCount(index + 1),
-        SPLASH_DURATION_MS + (DRIVER_MESSAGES_START_MS - SPLASH_DURATION_MS + index * 150) * scale,
+        SPLASH_DURATION_MS
+          + (DRIVER_MESSAGES_START_MS - SPLASH_DURATION_MS + index * DRIVER_MESSAGE_INTERVAL_MS)
+          * scale,
       );
     });
     schedule(

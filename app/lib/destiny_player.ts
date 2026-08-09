@@ -11,7 +11,7 @@ import {
 } from "~/lib/fm_synth";
 
 const SCHEDULE_AHEAD_SECONDS = 3;
-const OUTPUT_GAIN = 0.9;
+const OUTPUT_GAIN = 1.38;
 const FADE_START_SECONDS = DESTINY_DURATION_SECONDS - 3.5;
 const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
 const CHANNEL_GAINS = [0.94, 0.9, 0.92, 0.9, 0.86, 0.88, 0.72, 0.68] as const;

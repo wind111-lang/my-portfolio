@@ -597,10 +597,6 @@ button:focus-visible {
   margin: 0;
 }
 
-.boot-message p {
-  margin-bottom: 1.22em;
-}
-
 .command-entry {
   margin: 0 0 1.15rem;
 }

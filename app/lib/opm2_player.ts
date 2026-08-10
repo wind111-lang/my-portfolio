@@ -3,6 +3,7 @@ import {
   type FmPatch,
   x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
+import { createLimitedOutput } from "~/lib/audio_output";
 import {
   STROLLING_PLAYER_CHANNELS,
   STROLLING_PLAYER_DURATION_SECONDS,
@@ -85,6 +86,7 @@ type RuntimeChannel = {
 
 export function playStrollingPlayerTrack(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
+  const finalOutput = createLimitedOutput(context, startAt);
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
   const presence = context.createBiquadFilter();
@@ -116,7 +118,7 @@ export function playStrollingPlayerTrack(context: AudioContext): () => void {
   master.connect(compressor);
   compressor.connect(presence);
   presence.connect(outputFilter);
-  outputFilter.connect(context.destination);
+  outputFilter.connect(finalOutput.input);
 
   const channels: RuntimeChannel[] = STROLLING_PLAYER_CHANNELS.map((events, index) => ({
     destination: channelBuses[index],
@@ -180,6 +182,7 @@ export function playStrollingPlayerTrack(context: AudioContext): () => void {
     compressor.disconnect();
     presence.disconnect();
     outputFilter.disconnect();
+    finalOutput.disconnect();
   };
   const cleanupTimer = window.setTimeout(
     disconnectGraph,

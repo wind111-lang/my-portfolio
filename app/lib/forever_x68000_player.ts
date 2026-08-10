@@ -1,4 +1,5 @@
 import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
+import { createLimitedOutput } from "~/lib/audio_output";
 import {
   createFmVoice,
   type FmPatch,
@@ -431,6 +432,7 @@ function scheduleDrumPhrase(
 
 export function playForeverX68000Track(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
+  const finalOutput = createLimitedOutput(context, startAt);
   const entryAt = startAt + FM_ENTRY_SECONDS;
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
@@ -477,7 +479,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
   percussionBus.connect(softClip);
   softClip.connect(compressor);
   compressor.connect(master);
-  master.connect(context.destination);
+  master.connect(finalOutput.input);
 
   introHits.forEach(([offset, sampleName, gain, playbackRate, pan]) => {
     scheduleAdpcmSample(context, percussionBus, sources, samples[sampleName], startAt + offset, {
@@ -569,6 +571,7 @@ export function playForeverX68000Track(context: AudioContext): () => void {
     softClip.disconnect();
     compressor.disconnect();
     master.disconnect();
+    finalOutput.disconnect();
   };
   const cleanupTimer = window.setTimeout(disconnectGraph, (TRACK_DURATION + 0.3) * 1000);
 

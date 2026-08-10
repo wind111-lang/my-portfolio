@@ -31,8 +31,8 @@ type OutputName =
   | "speak"
   | "destiny"
   | "forever"
-  | "opm"
-  | "opm2"
+  | "troika"
+  | "strolling"
   | "korobushka"
   | "karinka"
   | "katyusha"
@@ -135,12 +135,15 @@ const commandAliases: Record<string, OutputName> = {
   DESTINY: "destiny",
   FOREVERX68000: "forever",
   FOREVERX68K: "forever",
-  OPM: "opm",
-  OPM2: "opm2",
-  OPM3: "korobushka",
+  OPM: "korobushka",
+  OPM2: "strolling",
+  OPM3: "technotris",
   OPM4: "karinka",
-  OPM5: "katyusha",
-  OPM6: "technotris",
+  OPM5: "troika",
+  OPM6: "katyusha",
+  TROIKA: "troika",
+  "STROLLING PLAYER": "strolling",
+  STROLLINGPLAYER: "strolling",
   KOROBUSHKA: "korobushka",
   PEDDLER: "korobushka",
   KARINKA: "karinka",
@@ -154,28 +157,35 @@ const commandAliases: Record<string, OutputName> = {
   VER: "version",
 };
 
-const tetrisTrackPlayers: Record<string, typeof playOpmTrack> = {
-  OPM3: playKorobushkaTrack,
+const opmTrackPlayers: Record<string, typeof playOpmTrack> = {
+  OPM: playKorobushkaTrack,
   KOROBUSHKA: playKorobushkaTrack,
   PEDDLER: playKorobushkaTrack,
+  OPM2: playStrollingPlayerTrack,
+  "STROLLING PLAYER": playStrollingPlayerTrack,
+  STROLLINGPLAYER: playStrollingPlayerTrack,
+  OPM3: playTechnotrisTrack,
+  TECHNOTRIS: playTechnotrisTrack,
+  TECHNOTORIS: playTechnotrisTrack,
   OPM4: playKarinkaTrack,
   KARINKA: playKarinkaTrack,
   KALINKA: playKarinkaTrack,
-  OPM5: playKatyushaTrack,
+  OPM5: playOpmTrack,
+  TROIKA: playOpmTrack,
+  OPM6: playKatyushaTrack,
   KATYUSHA: playKatyushaTrack,
   KATHUSHA: playKatyushaTrack,
   CELEBRATION2: playKatyushaTrack,
   "CELEBRATION 2": playKatyushaTrack,
-  OPM6: playTechnotrisTrack,
-  TECHNOTRIS: playTechnotrisTrack,
-  TECHNOTORIS: playTechnotrisTrack,
 };
 
-const tetrisTrackFiles = {
-  korobushka: "KOROBUSHKA.DAT",
-  karinka: "KARINKA.DAT",
-  katyusha: "KATYUSHA.DAT",
-  technotris: "TECHNOTRIS.DAT",
+const opmTrackFiles = {
+  korobushka: "MUSIC1.DAT",
+  strolling: "MUSIC2.DAT",
+  technotris: "MUSIC3.DAT",
+  karinka: "MUSIC4.DAT",
+  troika: "MUSIC5.DAT",
+  katyusha: "MUSIC6.DAT",
 } as const;
 
 function CommandOutput({
@@ -306,26 +316,8 @@ function CommandOutput({
     );
   }
 
-  if (output === "opm") {
-    return (
-      <div className="terminal-output">
-        <p>YM2151 (OPM) + MSM6258 SOUND SYSTEM</p>
-        <p>NOW PLAYING... MUSIC.DAT</p>
-      </div>
-    );
-  }
-
-  if (output === "opm2") {
-    return (
-      <div className="terminal-output">
-        <p>YM2151 (OPM) SOUND SYSTEM</p>
-        <p>NOW PLAYING... MUSIC2.DAT</p>
-      </div>
-    );
-  }
-
-  if (output in tetrisTrackFiles) {
-    const fileName = tetrisTrackFiles[output as keyof typeof tetrisTrackFiles];
+  if (output in opmTrackFiles) {
+    const fileName = opmTrackFiles[output as keyof typeof opmTrackFiles];
     return (
       <div className="terminal-output">
         <p>YM2151 (OPM) SOUND SYSTEM</p>
@@ -526,15 +518,9 @@ export default function CommandView({
       onSystemExit(command === "REBOOT" ? "reboot" : "shutdown");
       return;
     }
-    if (command === "OPM") {
-      runMusicCommand(playOpmTrack);
-    }
-    if (command === "OPM2") {
-      runMusicCommand(playStrollingPlayerTrack);
-    }
-    const tetrisTrackPlayer = tetrisTrackPlayers[command];
-    if (tetrisTrackPlayer) {
-      runMusicCommand(tetrisTrackPlayer);
+    const opmTrackPlayer = opmTrackPlayers[command];
+    if (opmTrackPlayer) {
+      runMusicCommand(opmTrackPlayer);
     }
     if (command === "DESTINY") {
       runMusicCommand(playDestinyTrack);

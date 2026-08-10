@@ -3,6 +3,12 @@ import { playDestinyTrack } from "~/lib/destiny_player";
 import { playForeverX68000Track } from "~/lib/forever_x68000_player";
 import { playOpmTrack } from "~/lib/opm_player";
 import { playStrollingPlayerTrack } from "~/lib/opm2_player";
+import {
+  playKarinkaTrack,
+  playKatyushaTrack,
+  playKorobushkaTrack,
+  playTechnotrisTrack,
+} from "~/lib/tetris_track_player";
 
 const articles = [
   ["GoオンリーでGUI上からQRコード読み取りをしてみた", "https://qiita.com/wind111-lang/items/af7e3fadeb1c71673cda"],
@@ -27,6 +33,10 @@ type OutputName =
   | "forever"
   | "opm"
   | "opm2"
+  | "korobushka"
+  | "karinka"
+  | "katyusha"
+  | "technotris"
   | "version"
   | "error";
 
@@ -127,8 +137,46 @@ const commandAliases: Record<string, OutputName> = {
   FOREVERX68K: "forever",
   OPM: "opm",
   OPM2: "opm2",
+  OPM3: "korobushka",
+  OPM4: "karinka",
+  OPM5: "katyusha",
+  OPM6: "technotris",
+  KOROBUSHKA: "korobushka",
+  PEDDLER: "korobushka",
+  KARINKA: "karinka",
+  KALINKA: "karinka",
+  KATYUSHA: "katyusha",
+  KATHUSHA: "katyusha",
+  CELEBRATION2: "katyusha",
+  "CELEBRATION 2": "katyusha",
+  TECHNOTRIS: "technotris",
+  TECHNOTORIS: "technotris",
   VER: "version",
 };
+
+const tetrisTrackPlayers: Record<string, typeof playOpmTrack> = {
+  OPM3: playKorobushkaTrack,
+  KOROBUSHKA: playKorobushkaTrack,
+  PEDDLER: playKorobushkaTrack,
+  OPM4: playKarinkaTrack,
+  KARINKA: playKarinkaTrack,
+  KALINKA: playKarinkaTrack,
+  OPM5: playKatyushaTrack,
+  KATYUSHA: playKatyushaTrack,
+  KATHUSHA: playKatyushaTrack,
+  CELEBRATION2: playKatyushaTrack,
+  "CELEBRATION 2": playKatyushaTrack,
+  OPM6: playTechnotrisTrack,
+  TECHNOTRIS: playTechnotrisTrack,
+  TECHNOTORIS: playTechnotrisTrack,
+};
+
+const tetrisTrackFiles = {
+  korobushka: "KOROBUSHKA.DAT",
+  karinka: "KARINKA.DAT",
+  katyusha: "KATYUSHA.DAT",
+  technotris: "TECHNOTRIS.DAT",
+} as const;
 
 function CommandOutput({
   output,
@@ -171,6 +219,10 @@ function CommandOutput({
           <div><dt><span>VER</span><span /></dt><dd>システムのバージョンを表示</dd></div>
           <div><dt><span>OPM</span><span /></dt><dd>？？？？？？</dd></div>
           <div><dt><span>OPM2</span><span /></dt><dd>？？？？？？</dd></div>
+          <div><dt><span>OPM3</span><span /></dt><dd>？？？？？？</dd></div>
+          <div><dt><span>OPM4</span><span /></dt><dd>？？？？？？</dd></div>
+          <div><dt><span>OPM5</span><span /></dt><dd>？？？？？？</dd></div>
+          <div><dt><span>OPM6</span><span /></dt><dd>？？？？？？</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
           <div><dt><span>SHUTDOWN</span><span /></dt><dd>システムを終了</dd></div>
           <div><dt><span>REBOOT</span><span /></dt><dd>システムを再起動</dd></div>
@@ -268,6 +320,16 @@ function CommandOutput({
       <div className="terminal-output">
         <p>YM2151 (OPM) SOUND SYSTEM</p>
         <p>NOW PLAYING... MUSIC2.DAT</p>
+      </div>
+    );
+  }
+
+  if (output in tetrisTrackFiles) {
+    const fileName = tetrisTrackFiles[output as keyof typeof tetrisTrackFiles];
+    return (
+      <div className="terminal-output">
+        <p>YM2151 (OPM) SOUND SYSTEM</p>
+        <p>NOW PLAYING... {fileName}</p>
       </div>
     );
   }
@@ -469,6 +531,10 @@ export default function CommandView({
     }
     if (command === "OPM2") {
       runMusicCommand(playStrollingPlayerTrack);
+    }
+    const tetrisTrackPlayer = tetrisTrackPlayers[command];
+    if (tetrisTrackPlayer) {
+      runMusicCommand(tetrisTrackPlayer);
     }
     if (command === "DESTINY") {
       runMusicCommand(playDestinyTrack);

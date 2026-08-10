@@ -3,6 +3,7 @@ import {
   type FmPatch,
   x68000VgmMidiToFrequency,
 } from "~/lib/fm_synth";
+import { createLimitedOutput } from "~/lib/audio_output";
 import {
   ARPEGGIO_BLOCK_ORDER,
   ARPEGGIO_PATTERN_A,
@@ -235,6 +236,7 @@ type RuntimeChannel = {
 
 export function playOpmTrack(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
+  const finalOutput = createLimitedOutput(context, startAt);
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
   const outputFilter = context.createBiquadFilter();
@@ -272,7 +274,7 @@ export function playOpmTrack(context: AudioContext): () => void {
   arpeggioBus.connect(master);
   master.connect(compressor);
   compressor.connect(outputFilter);
-  outputFilter.connect(context.destination);
+  outputFilter.connect(finalOutput.input);
 
   const channels: RuntimeChannel[] = [
     { events: channelEvents[0], patch: stereoLeadPatch, destination: leadBus, pan: -0.72, nextEvent: 0 },
@@ -338,6 +340,7 @@ export function playOpmTrack(context: AudioContext): () => void {
     master.disconnect();
     compressor.disconnect();
     outputFilter.disconnect();
+    finalOutput.disconnect();
   };
   const cleanupTimer = window.setTimeout(
     disconnectGraph,

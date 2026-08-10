@@ -6,6 +6,7 @@ import {
   type DestinyPatch,
 } from "~/lib/destiny_vgm_score";
 import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
+import { createLimitedOutput } from "~/lib/audio_output";
 import {
   createFmVoice,
   type FmPatch,
@@ -85,6 +86,7 @@ type RuntimeChannel = {
 
 export function playDestinyTrack(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.04;
+  const finalOutput = createLimitedOutput(context, startAt);
   const master = context.createGain();
   const compressor = context.createDynamicsCompressor();
   const presence = context.createBiquadFilter();
@@ -129,7 +131,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
   compressor.connect(presence);
   presence.connect(highShelf);
   highShelf.connect(outputFilter);
-  outputFilter.connect(context.destination);
+  outputFilter.connect(finalOutput.input);
 
   const channels: RuntimeChannel[] = DESTINY_CHANNELS.map((events, index) => ({
     destination: channelBuses[index],
@@ -214,6 +216,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
     presence.disconnect();
     highShelf.disconnect();
     outputFilter.disconnect();
+    finalOutput.disconnect();
   };
   const cleanupTimer = window.setTimeout(
     disconnectGraph,

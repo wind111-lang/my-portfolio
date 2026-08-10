@@ -592,6 +592,10 @@ button:focus-visible {
   margin-bottom: 1.5rem;
 }
 
+.boot-message-group + .boot-message-group {
+  margin-top: 1.22em;
+}
+
 .boot-message p,
 .terminal-output p {
   margin: 0;

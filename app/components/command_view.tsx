@@ -49,11 +49,37 @@ const startupMessages = [
   "Human68k for X680x0 version 3.02",
   "Copyright 1987-93 SHARP/Hudson",
   "",
-  "Command version 3.00",
+  "PRINTER DRIVER for X68000 version 1.00",
+  "PRN/LPT のファイル名でプリンターに印字可能です",
+  "RS-232C DRIVER for X68000 version 2.02",
+  "AUX0 から AUX5 のファイル名で通信が可能です",
+  "SCSI DEVICE DRIVER version 1.10",
+  "SCSI機器を検索しています...",
+  "CD-ROM 拡張ドライバ version 1.20",
+  "RAMディスクに 2048Kバイトを確保しました",
+  "マウス DRIVER for X68000 version 1.01",
+  "浮動小数点演算パッケージ for X680x0 version 2.03",
+  "（IEEEフォーマット）",
+  "日本語フロントプロセッサ ASK68K for X68000 version 3.02",
+  "Console/Graphic IOCS Version 1.50",
+  "MIDIインターフェース DRIVER version 1.00",
+  "PCM8 拡張サウンドドライバ version 0.48",
+  "PCMのバッファに 64Kバイトを確保しました",
+  "ヒストリ DRIVER for X68000 version 1.10",
+  "ヒストリが使用できます",
   "PORTFOLIO DEVICE DRIVER version 1.01",
   "プロフィール情報を表示できます",
+  "",
+  "Command version 3.00",
   "F1: COMMAND / F2: GUI (SX-WINDOW) でポートフォリオ画面を切り替えられます",
 ] as const;
+
+const STARTUP_MESSAGE_START_MS = 100;
+const STARTUP_MESSAGE_INTERVAL_MS = 85;
+const STARTUP_MESSAGES_COMPLETE_MS = STARTUP_MESSAGE_START_MS
+  + (startupMessages.length - 1) * STARTUP_MESSAGE_INTERVAL_MS;
+const INITIAL_DIRECTORY_DELAY_MS = STARTUP_MESSAGES_COMPLETE_MS + 180;
+const INITIALIZATION_COMPLETE_MS = INITIAL_DIRECTORY_DELAY_MS + 650;
 
 const commandAliases: Record<string, OutputName> = {
   "?": "help",
@@ -272,6 +298,7 @@ export default function CommandView({
   ]);
   const nextId = useRef(1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const startupEndRef = useRef<HTMLDivElement>(null);
   const inputDraftRef = useRef("");
   const audioContextRef = useRef<AudioContext | null>(null);
   const stopMusicRef = useRef<(() => void) | null>(null);
@@ -315,6 +342,14 @@ export default function CommandView({
   }, [history, input, isActive, isInitializing, scrollInputIntoView]);
 
   useEffect(() => {
+    if (!isActive || !isInitializing) return;
+    const frame = window.requestAnimationFrame(() => {
+      startupEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [visibleStartupMessageCount, showInitialDirectory, isActive, isInitializing]);
+
+  useEffect(() => {
     if (!isActive || isInitializing || !window.visualViewport) return;
     const viewport = window.visualViewport;
     const handleViewportResize = () => {
@@ -335,10 +370,13 @@ export default function CommandView({
     };
 
     startupMessages.forEach((_, index) => {
-      schedule(() => setVisibleStartupMessageCount(index + 1), 120 + index * 155);
+      schedule(
+        () => setVisibleStartupMessageCount(index + 1),
+        STARTUP_MESSAGE_START_MS + index * STARTUP_MESSAGE_INTERVAL_MS,
+      );
     });
-    schedule(() => setShowInitialDirectory(true), 1250);
-    schedule(onInitializationComplete, 1800);
+    schedule(() => setShowInitialDirectory(true), INITIAL_DIRECTORY_DELAY_MS);
+    schedule(onInitializationComplete, INITIALIZATION_COMPLETE_MS);
 
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [isInitializing, onInitializationComplete]);
@@ -477,6 +515,8 @@ export default function CommandView({
           </section>
         ))}
       </div>
+
+      <div ref={startupEndRef} aria-hidden="true" />
 
       {!isInitializing && (
         <>

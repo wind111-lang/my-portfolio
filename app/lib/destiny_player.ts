@@ -1,9 +1,11 @@
 import {
+  DESTINY_ADPCM_EVENTS,
   DESTINY_CHANNELS,
   DESTINY_DURATION_SECONDS,
   DESTINY_PATCHES,
   type DestinyPatch,
 } from "~/lib/destiny_vgm_score";
+import { createAdpcmSampleBank, scheduleAdpcmSample } from "~/lib/adpcm_synth";
 import {
   createFmVoice,
   type FmPatch,
@@ -15,6 +17,8 @@ const OUTPUT_GAIN = 1.78;
 const FADE_START_SECONDS = DESTINY_DURATION_SECONDS - 3.5;
 const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
 const CHANNEL_GAINS = [0.94, 0.9, 0.92, 0.9, 0.86, 0.88, 0.72, 0.68] as const;
+const ADPCM_SAMPLE_NAMES = ["kick", "metal", "snare", "clap"] as const;
+const ADPCM_SAMPLE_GAINS = [0.22, 0.045, 0.16, 0.12] as const;
 
 function carrierIndices(algorithm: DestinyPatch["algorithm"]): readonly number[] {
   if (algorithm <= 3) return [3];
@@ -85,6 +89,8 @@ export function playDestinyTrack(context: AudioContext): () => void {
   const presence = context.createBiquadFilter();
   const highShelf = context.createBiquadFilter();
   const outputFilter = context.createBiquadFilter();
+  const adpcmBus = context.createGain();
+  const adpcmSamples = createAdpcmSampleBank(context);
   const channelBuses = CHANNEL_GAINS.map((gain) => {
     const bus = context.createGain();
     bus.gain.setValueAtTime(gain, startAt);
@@ -92,6 +98,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
     return bus;
   });
   const sources: AudioScheduledSourceNode[] = [];
+  let nextAdpcmEvent = 0;
   let schedulerTimer: number | null = null;
   let disconnected = false;
 
@@ -114,7 +121,9 @@ export function playDestinyTrack(context: AudioContext): () => void {
   outputFilter.type = "lowpass";
   outputFilter.frequency.setValueAtTime(17_200, startAt);
   outputFilter.Q.setValueAtTime(0.48, startAt);
+  adpcmBus.gain.setValueAtTime(0.9, startAt);
 
+  adpcmBus.connect(master);
   master.connect(compressor);
   compressor.connect(presence);
   presence.connect(highShelf);
@@ -161,7 +170,31 @@ export function playDestinyTrack(context: AudioContext): () => void {
       }
     });
 
-    if (channels.every((channel) => channel.nextEvent === channel.events.length)) {
+    while (nextAdpcmEvent < DESTINY_ADPCM_EVENTS.length) {
+      const [startCentisecond, sampleCode, velocity, playbackRateHundredth] =
+        DESTINY_ADPCM_EVENTS[nextAdpcmEvent];
+      const eventStart = startAt + startCentisecond / 100;
+      if (eventStart > horizon) break;
+
+      const sampleName = ADPCM_SAMPLE_NAMES[sampleCode];
+      scheduleAdpcmSample(
+        context,
+        adpcmBus,
+        sources,
+        adpcmSamples[sampleName],
+        eventStart,
+        {
+          gain: ADPCM_SAMPLE_GAINS[sampleCode] * velocity / 127,
+          playbackRate: playbackRateHundredth / 100,
+        },
+      );
+      nextAdpcmEvent += 1;
+    }
+
+    if (
+      channels.every((channel) => channel.nextEvent === channel.events.length)
+      && nextAdpcmEvent === DESTINY_ADPCM_EVENTS.length
+    ) {
       if (schedulerTimer !== null) window.clearInterval(schedulerTimer);
       schedulerTimer = null;
     }
@@ -174,6 +207,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
     if (disconnected) return;
     disconnected = true;
     channelBuses.forEach((bus) => bus.disconnect());
+    adpcmBus.disconnect();
     master.disconnect();
     compressor.disconnect();
     presence.disconnect();

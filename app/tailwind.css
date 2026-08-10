@@ -122,6 +122,7 @@ button:focus-visible {
   background: #000;
   cursor: wait;
   overflow: hidden;
+  touch-action: none;
   user-select: none;
 }
 
@@ -284,26 +285,10 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-.x68k-boot-console {
-  width: min(1120px, 100%);
-  height: 100dvh;
-  margin: 0 auto;
-  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 3rem) 5rem;
-  font-size: clamp(0.77rem, 1.65vw, 1.02rem);
-  line-height: 1.55;
-  overflow-y: auto;
-  scrollbar-width: none;
-  text-shadow: 0 0 7px rgb(190 255 218 / 24%);
-  animation: x68k-screen-on 70ms steps(2, end) both;
-}
-
-.x68k-boot-console::-webkit-scrollbar {
-  display: none;
-}
-
-.x68k-boot-console p {
-  min-height: 1.55em;
-  margin: 0 0 1.55em;
+.x68k-boot-blackout {
+  width: 100%;
+  min-height: 100dvh;
+  background: #000;
 }
 
 .x68k-boot-cursor {
@@ -604,13 +589,16 @@ button:focus-visible {
 }
 
 .boot-message {
-  min-height: 7.4em;
   margin-bottom: 1.5rem;
 }
 
 .boot-message p,
 .terminal-output p {
   margin: 0;
+}
+
+.boot-message p {
+  margin-bottom: 1.22em;
 }
 
 .command-entry {
@@ -1697,7 +1685,6 @@ button:focus-visible {
 
   .cursor,
   .block-cursor,
-  .x68k-boot-console,
   .x68k-custom-splash,
   .x68k-boot-cursor,
   .x68k-drive-status > span.is-active {

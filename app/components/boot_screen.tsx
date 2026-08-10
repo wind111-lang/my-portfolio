@@ -4,44 +4,13 @@ type BootScreenProps = {
   onComplete: () => void;
 };
 
-const systemMessages = [
-  "PRINTER DRIVER for X68000 version 1.00",
-  "PRN/LPT のファイル名でプリンターに印字可能です",
-  "RS-232C DRIVER for X68000 version 2.02",
-  "AUX0 から AUX5 のファイル名で通信が可能です",
-  "SCSI DEVICE DRIVER version 1.10",
-  "SCSI機器を検索しています...",
-  "CD-ROM 拡張ドライバ version 1.20",
-  "RAMディスクに 2048Kバイトを確保しました",
-  "マウス DRIVER for X68000 version 1.01",
-  "浮動小数点演算パッケージ for X680x0 version 2.03",
-  "（IEEEフォーマット）",
-  "日本語フロントプロセッサ ASK68K for X68000 version 3.02",
-  "Console/Graphic IOCS Version 1.50",
-  "MIDIインターフェース DRIVER version 1.00",
-  "PCM8 拡張サウンドドライバ version 0.48",
-  "PCMのバッファに 64Kバイトを確保しました",
-  "ヒストリ DRIVER for X68000 version 1.10",
-  "ヒストリが使用できます",
-  "Command version 3.00",
-  "PORTFOLIO DEVICE DRIVER version 1.01",
-  "プロフィールデータを読み込みました",
-] as const;
-
 const SPLASH_DURATION_MS = 5000;
-const DRIVER_MESSAGES_START_MS = SPLASH_DURATION_MS + 180;
-const DRIVER_MESSAGE_INTERVAL_MS = 360;
-const DRIVER_SCREEN_DURATION_MS = 15000;
-const SYSTEM_BOOT_COMPLETE_MS = SPLASH_DURATION_MS + DRIVER_SCREEN_DURATION_MS;
+const BLACKOUT_DURATION_MS = 2000;
 
 export default function BootScreen({ onComplete }: BootScreenProps): React.ReactNode {
-  const [stage, setStage] = useState<"splash" | "drivers">("splash");
-  const [visibleMessageCount, setVisibleMessageCount] = useState(0);
-  const consoleRef = React.useRef<HTMLElement>(null);
+  const [stage, setStage] = useState<"splash" | "blackout">("splash");
 
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const scale = reducedMotion ? 0.3 : 1;
     const timers: number[] = [];
     const schedule = (callback: () => void, delay: number) => {
       timers.push(window.setTimeout(callback, delay));
@@ -57,19 +26,8 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
     window.addEventListener("keydown", blockInput, true);
 
-    schedule(() => setStage("drivers"), SPLASH_DURATION_MS);
-    systemMessages.forEach((_, index) => {
-      schedule(
-        () => setVisibleMessageCount(index + 1),
-        SPLASH_DURATION_MS
-          + (DRIVER_MESSAGES_START_MS - SPLASH_DURATION_MS + index * DRIVER_MESSAGE_INTERVAL_MS)
-          * scale,
-      );
-    });
-    schedule(
-      onComplete,
-      SPLASH_DURATION_MS + (SYSTEM_BOOT_COMPLETE_MS - SPLASH_DURATION_MS) * scale,
-    );
+    schedule(() => setStage("blackout"), SPLASH_DURATION_MS);
+    schedule(onComplete, SPLASH_DURATION_MS + BLACKOUT_DURATION_MS);
 
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
@@ -78,14 +36,8 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
   }, [onComplete]);
 
-  useEffect(() => {
-    const consoleElement = consoleRef.current;
-    if (!consoleElement) return;
-    consoleElement.scrollTop = consoleElement.scrollHeight;
-  }, [visibleMessageCount]);
-
   return (
-    <main className="x68k-boot-screen" aria-label="システム起動中">
+    <main className="x68k-boot-screen" aria-label="システム起動中" aria-busy="true">
       {stage === "splash" ? (
         <section className="x68k-custom-splash" aria-live="polite">
           <div className="x68k-splash-card">
@@ -123,35 +75,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
           </div>
         </section>
       ) : (
-        <section
-          ref={consoleRef}
-          className="x68k-boot-console"
-          aria-live="polite"
-          aria-atomic="false"
-        >
-          {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
-            message
-              ? <p key={`${index}-${message}`}>{message}</p>
-              : <br key={`space-${index}`} />
-          ))}
-          <span className="x68k-boot-cursor" aria-hidden="true" />
-        </section>
-      )}
-
-      {stage === "drivers" && (
-        <>
-          <div className="x68k-drive-status" aria-hidden="true">
-            <span className="is-active" />
-            <small>FDD 0</small>
-          </div>
-          <p
-            className="x68k-boot-status"
-            role="status"
-            aria-label="システム起動中。入力は無効です。"
-          >
-            SYSTEM STARTING...
-          </p>
-        </>
+        <section className="x68k-boot-blackout" aria-label="画面暗転中" />
       )}
     </main>
   );

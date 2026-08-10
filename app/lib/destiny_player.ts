@@ -19,6 +19,7 @@ const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
 const CHANNEL_GAINS = [0.94, 0.9, 0.92, 0.9, 0.86, 0.88, 0.72, 0.68] as const;
 const ADPCM_SAMPLE_NAMES = ["kick", "metal", "snare", "clap"] as const;
 const ADPCM_SAMPLE_GAINS = [0.22, 0.045, 0.16, 0.12] as const;
+const ADPCM_BUS_GAIN = 0.18;
 
 function carrierIndices(algorithm: DestinyPatch["algorithm"]): readonly number[] {
   if (algorithm <= 3) return [3];
@@ -121,7 +122,7 @@ export function playDestinyTrack(context: AudioContext): () => void {
   outputFilter.type = "lowpass";
   outputFilter.frequency.setValueAtTime(17_200, startAt);
   outputFilter.Q.setValueAtTime(0.48, startAt);
-  adpcmBus.gain.setValueAtTime(0.9, startAt);
+  adpcmBus.gain.setValueAtTime(ADPCM_BUS_GAIN, startAt);
 
   adpcmBus.connect(master);
   master.connect(compressor);

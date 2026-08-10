@@ -121,9 +121,7 @@ export default function Index(): React.ReactNode {
     const isMobileDevice = window.matchMedia("(pointer: coarse)").matches
       || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobileDevice) {
-      window.location.assign(
-        new URL(`${import.meta.env.BASE_URL}poweroff.html`, window.location.origin).href,
-      );
+      window.location.replace("https://www.google.com/");
       return;
     }
     window.location.assign("https://www.google.com/");

@@ -45,49 +45,61 @@ type CommandViewProps = {
   onSystemExit: (action: "shutdown" | "reboot") => void;
 };
 
-const startupMessages = [
-  "Human68k for X680x0 version 3.02",
-  "Copyright 1987-93 SHARP/Hudson",
-  "",
-  "PRINTER DRIVER for X68000 version 1.00",
-  "PRN/LPT のファイル名でプリンターに印字可能です",
-  "",
-  "RS-232C DRIVER for X68000 version 2.02",
-  "AUX0 から AUX5 のファイル名で通信が可能です",
-  "",
-  "浮動小数点演算パッケージ for X680x0 version 2.03",
-  "（IEEEフォーマット）",
-  "",
-  "日本語フロントプロセッサ ASK68K for X68000 version 3.02",
-  "Copyright 1987-94 SHARP Corp./ACCESS CO.,LTD.",
-  "",
-  "Music Device Driver for X68000 version 1.00",
-  "Copyright 1992 by SHARP/SAN/Luvex",
-  "OPM のデバイス名でミュージックデータの演奏が可能です",
-  "PCM のデバイス名で録音・再生が可能です",
-  "トラックバッファに 180Kバイトを確保しました",
-  "PCMのバッファに 64Kバイトを確保しました",
-  "",
-  "X68k FD driver extention version 1.00 Copyright 1993 SHARP/Hudson",
-  "拡張ドライブで 2DD(640KB/720KB)・2HD(1.44MB) の読み書きが可能です",
-  "",
-  "Console/Graphic IOCS Version 1.50",
-  "Copyright 1990,91,92,93 SHARP",
-  "",
-  "ヒストリ DRIVER for X68000 version 1.10",
-  "ヒストリが使用できます",
-  "",
-  "PORTFOLIO DEVICE DRIVER version 1.01",
-  "プロフィール情報を表示できます",
-  "",
-  "Command version 3.00",
-  "F1: COMMAND / F2: GUI (SX-WINDOW) でポートフォリオ画面を切り替えられます",
+const startupMessageGroups = [
+  [
+    "Human68k for X680x0 version 3.02",
+    "Copyright 1987-93 SHARP/Hudson",
+  ],
+  [
+    "PRINTER DRIVER for X68000 version 1.00",
+    "PRN/LPT のファイル名でプリンターに印字可能です",
+  ],
+  [
+    "RS-232C DRIVER for X68000 version 2.02",
+    "AUX0 から AUX5 のファイル名で通信が可能です",
+  ],
+  [
+    "浮動小数点演算パッケージ for X680x0 version 2.03",
+    "（IEEEフォーマット）",
+  ],
+  [
+    "日本語フロントプロセッサ ASK68K for X68000 version 3.02",
+    "Copyright 1987-94 SHARP Corp./ACCESS CO.,LTD.",
+  ],
+  [
+    "Music Device Driver for X68000 version 1.00",
+    "Copyright 1992 by SHARP/SAN/Luvex",
+    "OPM のデバイス名でミュージックデータの演奏が可能です",
+    "PCM のデバイス名で録音・再生が可能です",
+    "トラックバッファに 180Kバイトを確保しました",
+    "PCMのバッファに 64Kバイトを確保しました",
+  ],
+  [
+    "X68k FD driver extention version 1.00 Copyright 1993 SHARP/Hudson",
+    "拡張ドライブで 2DD(640KB/720KB)・2HD(1.44MB) の読み書きが可能です",
+  ],
+  [
+    "Console/Graphic IOCS Version 1.50",
+    "Copyright 1990,91,92,93 SHARP",
+  ],
+  [
+    "ヒストリ DRIVER for X68000 version 1.10",
+    "ヒストリが使用できます",
+  ],
+  [
+    "PORTFOLIO DEVICE DRIVER version 1.01",
+    "プロフィール情報を表示できます",
+  ],
+  [
+    "Command version 3.00",
+    "F1: COMMAND / F2: GUI (SX-WINDOW) でポートフォリオ画面を切り替えられます",
+  ],
 ] as const;
 
 const STARTUP_MESSAGE_START_MS = 100;
-const STARTUP_MESSAGE_INTERVAL_MS = 85;
+const STARTUP_MESSAGE_INTERVAL_MS = 340;
 const STARTUP_MESSAGES_COMPLETE_MS = STARTUP_MESSAGE_START_MS
-  + (startupMessages.length - 1) * STARTUP_MESSAGE_INTERVAL_MS;
+  + (startupMessageGroups.length - 1) * STARTUP_MESSAGE_INTERVAL_MS;
 const INITIAL_DIRECTORY_DELAY_MS = STARTUP_MESSAGES_COMPLETE_MS + 180;
 const INITIALIZATION_COMPLETE_MS = INITIAL_DIRECTORY_DELAY_MS + 650;
 
@@ -301,7 +313,7 @@ export default function CommandView({
   const [input, setInput] = useState("");
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const [inputHistoryIndex, setInputHistoryIndex] = useState<number | null>(null);
-  const [visibleStartupMessageCount, setVisibleStartupMessageCount] = useState(0);
+  const [visibleStartupGroupCount, setVisibleStartupGroupCount] = useState(0);
   const [showInitialDirectory, setShowInitialDirectory] = useState(!isInitializing);
   const [history, setHistory] = useState<HistoryEntry[]>([
     { id: 0, command: "DIR", output: "dir" },
@@ -357,7 +369,7 @@ export default function CommandView({
       startupEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [visibleStartupMessageCount, showInitialDirectory, isActive, isInitializing]);
+  }, [visibleStartupGroupCount, showInitialDirectory, isActive, isInitializing]);
 
   useEffect(() => {
     if (!isActive || isInitializing || !window.visualViewport) return;
@@ -379,9 +391,9 @@ export default function CommandView({
       timers.push(window.setTimeout(callback, delay * scale));
     };
 
-    startupMessages.forEach((_, index) => {
+    startupMessageGroups.forEach((_, index) => {
       schedule(
-        () => setVisibleStartupMessageCount(index + 1),
+        () => setVisibleStartupGroupCount(index + 1),
         STARTUP_MESSAGE_START_MS + index * STARTUP_MESSAGE_INTERVAL_MS,
       );
     });
@@ -502,18 +514,18 @@ export default function CommandView({
     setInput(inputHistory[nextIndex]);
   };
 
-  const displayedStartupMessageCount = isInitializing
-    ? visibleStartupMessageCount
-    : startupMessages.length;
+  const displayedStartupGroupCount = isInitializing
+    ? visibleStartupGroupCount
+    : startupMessageGroups.length;
   const shouldShowInitialDirectory = !isInitializing || showInitialDirectory;
 
   return (
     <main className="terminal-screen" id="top" hidden={!isActive}>
       <div className="boot-message" aria-live="polite" aria-atomic="false">
-        {startupMessages.slice(0, displayedStartupMessageCount).map((message, index) => (
-          message
-            ? <p key={`${index}-${message}`}>{message}</p>
-            : <br key={`space-${index}`} />
+        {startupMessageGroups.slice(0, displayedStartupGroupCount).map((group) => (
+          <div className="boot-message-group" key={group[0]}>
+            {group.map((message) => <p key={message}>{message}</p>)}
+          </div>
         ))}
       </div>
 

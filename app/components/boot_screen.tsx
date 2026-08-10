@@ -37,6 +37,7 @@ const SYSTEM_BOOT_COMPLETE_MS = SPLASH_DURATION_MS + DRIVER_SCREEN_DURATION_MS;
 export default function BootScreen({ onComplete }: BootScreenProps): React.ReactNode {
   const [stage, setStage] = useState<"splash" | "drivers">("splash");
   const [visibleMessageCount, setVisibleMessageCount] = useState(0);
+  const consoleRef = React.useRef<HTMLElement>(null);
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -77,6 +78,12 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
     };
   }, [onComplete]);
 
+  useEffect(() => {
+    const consoleElement = consoleRef.current;
+    if (!consoleElement) return;
+    consoleElement.scrollTop = consoleElement.scrollHeight;
+  }, [visibleMessageCount]);
+
   return (
     <main className="x68k-boot-screen" aria-label="システム起動中">
       {stage === "splash" ? (
@@ -116,7 +123,12 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
           </div>
         </section>
       ) : (
-        <section className="x68k-boot-console" aria-live="polite" aria-atomic="false">
+        <section
+          ref={consoleRef}
+          className="x68k-boot-console"
+          aria-live="polite"
+          aria-atomic="false"
+        >
           {systemMessages.slice(0, visibleMessageCount).map((message, index) => (
             message
               ? <p key={`${index}-${message}`}>{message}</p>

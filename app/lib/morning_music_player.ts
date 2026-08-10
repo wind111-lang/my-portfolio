@@ -6,7 +6,7 @@ import {
 import { midiToFrequency, trackScheduledSource } from "~/lib/fm_synth";
 
 const SCHEDULE_AHEAD_SECONDS = 6;
-const OUTPUT_GAIN = 1.35;
+const OUTPUT_GAIN = 1.15;
 const SECONDS_PER_BEAT = 60 / BUBBLE_SYSTEM_BPM;
 export const BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS =
   BUBBLE_SYSTEM_DURATION_BEATS * SECONDS_PER_BEAT;

@@ -286,18 +286,24 @@ button:focus-visible {
 
 .x68k-boot-console {
   width: min(1120px, 100%);
-  min-height: 100%;
+  height: 100dvh;
   margin: 0 auto;
   padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 3rem) 5rem;
   font-size: clamp(0.77rem, 1.65vw, 1.02rem);
   line-height: 1.55;
+  overflow-y: auto;
+  scrollbar-width: none;
   text-shadow: 0 0 7px rgb(190 255 218 / 24%);
   animation: x68k-screen-on 70ms steps(2, end) both;
 }
 
+.x68k-boot-console::-webkit-scrollbar {
+  display: none;
+}
+
 .x68k-boot-console p {
   min-height: 1.55em;
-  margin: 0;
+  margin: 0 0 1.55em;
 }
 
 .x68k-boot-cursor {

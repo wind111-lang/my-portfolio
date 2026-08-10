@@ -12,7 +12,7 @@ import {
 } from "~/lib/strolling_player_vgm_score";
 
 const SCHEDULE_AHEAD_SECONDS = 5;
-const OUTPUT_GAIN = 1.35;
+const OUTPUT_GAIN = 1.75;
 const FADE_START_SECONDS = STROLLING_PLAYER_DURATION_SECONDS - 3.2;
 
 const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;

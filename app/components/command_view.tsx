@@ -227,12 +227,12 @@ function CommandOutput({
           <div><dt><span>TYPE</span><span>SPEAK.LOG</span></dt><dd>登壇情報を表示</dd></div>
           <div><dt><span>GUI</span><span /></dt><dd>SX-WINDOWへ切り替え</dd></div>
           <div><dt><span>VER</span><span /></dt><dd>システムのバージョンを表示</dd></div>
-          <div><dt><span>OPM</span><span /></dt><dd>？？？？？？</dd></div>
-          <div><dt><span>OPM2</span><span /></dt><dd>？？？？？？</dd></div>
-          <div><dt><span>OPM3</span><span /></dt><dd>？？？？？？</dd></div>
-          <div><dt><span>OPM4</span><span /></dt><dd>？？？？？？</dd></div>
-          <div><dt><span>OPM5</span><span /></dt><dd>？？？？？？</dd></div>
-          <div><dt><span>OPM6</span><span /></dt><dd>？？？？？？</dd></div>
+          <div><dt><span>OPM</span><span /></dt><dd>音楽を再生します</dd></div>
+          <div><dt><span>OPM2</span><span /></dt><dd>音楽を再生します</dd></div>
+          <div><dt><span>OPM3</span><span /></dt><dd>音楽を再生します</dd></div>
+          <div><dt><span>OPM4</span><span /></dt><dd>音楽を再生します</dd></div>
+          <div><dt><span>OPM5</span><span /></dt><dd>音楽を再生します</dd></div>
+          <div><dt><span>OPM6</span><span /></dt><dd>音楽を再生します</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
           <div><dt><span>SHUTDOWN</span><span /></dt><dd>システムを終了</dd></div>
           <div><dt><span>REBOOT</span><span /></dt><dd>システムを再起動</dd></div>

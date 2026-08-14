@@ -43,7 +43,10 @@ function createNoise(seed: number): () => number {
   };
 }
 
-function renderSample(duration: number, render: (time: number, index: number) => number): Float32Array {
+function renderSample(
+  duration: number,
+  render: (time: number, index: number) => number,
+): Float32Array<ArrayBuffer> {
   const frameCount = Math.ceil(duration * ADPCM_SAMPLE_RATE);
   const samples = new Float32Array(frameCount);
   const fadeSeconds = 0.018;
@@ -55,7 +58,9 @@ function renderSample(duration: number, render: (time: number, index: number) =>
   return samples;
 }
 
-function applyFourBitAdaptiveQuantization(input: Float32Array): Float32Array {
+function applyFourBitAdaptiveQuantization(
+  input: Float32Array<ArrayBufferLike>,
+): Float32Array<ArrayBuffer> {
   const output = new Float32Array(input.length);
   let predictor = 0;
   let stepIndex = 20;

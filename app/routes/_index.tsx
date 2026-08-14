@@ -16,31 +16,6 @@ import {
   BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS,
   playMorningMusic,
 } from "~/lib/morning_music_player";
-import type { MetaFunction } from "@remix-run/node";
-
-export const meta: MetaFunction = () => [
-  { title: "Tsutsui Shota | Software Engineer" },
-  {
-    name: "description",
-    content:
-      "Software Engineer Tsutsui Shota のポートフォリオ。プロフィール、経歴、技術スタック、執筆・登壇情報を掲載しています。",
-  },
-  { property: "og:title", content: "Tsutsui Shota | Software Engineer" },
-  {
-    property: "og:description",
-    content: "Human68k v3.02 / SX-WINDOW inspired portfolio.",
-  },
-  { property: "og:type", content: "website" },
-  {
-    property: "og:image",
-    content: "https://wind111-lang.github.io/my-portfolio/og-v2.png",
-  },
-  { name: "twitter:card", content: "summary_large_image" },
-  {
-    name: "twitter:image",
-    content: "https://wind111-lang.github.io/my-portfolio/og-v2.png",
-  },
-];
 
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");

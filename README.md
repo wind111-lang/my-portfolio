@@ -1,40 +1,48 @@
-# Welcome to Remix!
+# Tsutsui Shota Portfolio
 
-- 📖 [Remix docs](https://remix.run/docs)
+X68000のHuman68kとSX-WINDOWをモチーフにしたポートフォリオサイトです。COMMANDモードとGUIモードを切り替えて、プロフィール、経歴、技術スタック、執筆・登壇情報を閲覧できます。
+
+## Tech stack
+
+- React Router v8（Framework Mode / SPA Mode）
+- React 19
+- TypeScript 7
+- Vite 8
+- Tailwind CSS 3
+- Web Audio API
+
+## Requirements
+
+- Node.js 22.22.0以上
+- pnpm 10.33.0
 
 ## Development
 
-Run the dev server:
+依存関係をインストールし、開発サーバーを起動します。
 
-```shellscript
+```sh
+pnpm install
 pnpm dev
 ```
 
-## Deployment
+型チェックとLintは次のコマンドで実行できます。
 
-First, build your app for production:
+```sh
+pnpm typecheck
+pnpm lint
+```
+
+## Production build
 
 ```sh
 pnpm build
-```
-
-Then run the app in production mode:
-
-```sh
 pnpm start
 ```
 
-Now you'll need to pick a host to deploy it to.
+`pnpm build` はGitHub Pagesへ配置する静的ファイルを `build/client` に生成します。`pnpm start` はその成果物をローカルでプレビューします。
 
-### DIY
+## Deployment
 
-If you're familiar with deploying Node applications, the built-in Remix app server is production-ready.
+`main` ブランチへのpushを契機に、GitHub Actionsがproduction buildを実行し、`build/client` をGitHub Pagesへデプロイします。
 
-Make sure to deploy the output of `pnpm build`
-
-- `build/server`
-- `build/client`
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever css framework you prefer. See the [Vite docs on css](https://vitejs.dev/guide/features.html#css) for more information.
+React Routerは `/my-portfolio/` をbasenameとするSPAとして構成しています。GitHub Pagesで直接URLを開いた場合にもSPAへフォールバックできるよう、ビルド時に `404.html` も生成します。

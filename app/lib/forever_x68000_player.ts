@@ -316,7 +316,7 @@ const introHits: readonly IntroHit[] = [
   [1.641, "snare", 0.055, 1.82, 0.16],
 ];
 
-function createSoftClipCurve(): Float32Array {
+function createSoftClipCurve(): Float32Array<ArrayBuffer> {
   const curve = new Float32Array(1024);
   const drive = 1.18;
   const ceiling = Math.tanh(drive);

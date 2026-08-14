@@ -151,6 +151,12 @@ export default function Index(): React.ReactNode {
   useEffect(() => () => stopBootAudio(), [stopBootAudio]);
 
   useEffect(() => {
+    if (mode === "gui") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [mode]);
+
+  useEffect(() => {
     if (startupPhase !== "ready" || systemExitAction !== null) return;
 
     const handleFunctionKey = (event: KeyboardEvent) => {

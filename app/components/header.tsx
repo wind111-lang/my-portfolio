@@ -24,8 +24,8 @@ export default function Header({ mode, onModeChange, disabled = false }: HeaderP
     return (
       <header className="human68k-command-bars">
         <div className="human68k-function-strip" aria-hidden="true">
-          {functionLabels.map((label, index) => (
-            <span key={label}><small>F{index + 1}</small>{label}</span>
+          {functionLabels.map((label) => (
+            <span key={label}><>{label}</></span>
           ))}
         </div>
         <div className="human68k-status-strip">

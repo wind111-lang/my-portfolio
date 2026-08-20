@@ -205,3 +205,6 @@ export const playKatyushaTrack = (context: AudioContext): (() => void) =>
 
 export const playTechnotrisTrack = (context: AudioContext): (() => void) =>
   playTetrisTrack(context, "technotris");
+
+export const playHeroesTrack = (context: AudioContext): (() => void) =>
+  playTetrisTrack(context, "heroes");

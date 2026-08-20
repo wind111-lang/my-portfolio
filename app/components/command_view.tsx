@@ -4,6 +4,7 @@ import { playForeverX68000Track } from "~/lib/forever_x68000_player";
 import { playOpmTrack } from "~/lib/opm_player";
 import { playStrollingPlayerTrack } from "~/lib/opm2_player";
 import {
+  playHeroesTrack,
   playKarinkaTrack,
   playKatyushaTrack,
   playKorobushkaTrack,
@@ -37,6 +38,7 @@ type OutputName =
   | "karinka"
   | "katyusha"
   | "technotris"
+  | "heroes"
   | "version"
   | "error";
 
@@ -141,6 +143,7 @@ const commandAliases: Record<string, OutputName> = {
   OPM4: "karinka",
   OPM5: "troika",
   OPM6: "katyusha",
+  OPM7: "heroes",
   TROIKA: "troika",
   "STROLLING PLAYER": "strolling",
   STROLLINGPLAYER: "strolling",
@@ -154,6 +157,8 @@ const commandAliases: Record<string, OutputName> = {
   "CELEBRATION 2": "katyusha",
   TECHNOTRIS: "technotris",
   TECHNOTORIS: "technotris",
+  HEROES: "heroes",
+  RANKING: "heroes",
   VER: "version",
 };
 
@@ -177,6 +182,9 @@ const opmTrackPlayers: Record<string, typeof playOpmTrack> = {
   KATHUSHA: playKatyushaTrack,
   CELEBRATION2: playKatyushaTrack,
   "CELEBRATION 2": playKatyushaTrack,
+  OPM7: playHeroesTrack,
+  HEROES: playHeroesTrack,
+  RANKING: playHeroesTrack,
 };
 
 const opmTrackFiles = {
@@ -186,6 +194,7 @@ const opmTrackFiles = {
   karinka: "MUSIC4.DAT",
   troika: "MUSIC5.DAT",
   katyusha: "MUSIC6.DAT",
+  heroes: "MUSIC7.DAT",
 } as const;
 
 function CommandOutput({
@@ -233,6 +242,7 @@ function CommandOutput({
           <div><dt><span>OPM4</span><span /></dt><dd>音楽を再生します</dd></div>
           <div><dt><span>OPM5</span><span /></dt><dd>音楽を再生します</dd></div>
           <div><dt><span>OPM6</span><span /></dt><dd>音楽を再生します</dd></div>
+          <div><dt><span>OPM7</span><span /></dt><dd>音楽を再生します</dd></div>
           <div><dt><span>CLS</span><span /></dt><dd>画面をクリア</dd></div>
           <div><dt><span>SHUTDOWN</span><span /></dt><dd>システムを終了</dd></div>
           <div><dt><span>REBOOT</span><span /></dt><dd>システムを再起動</dd></div>

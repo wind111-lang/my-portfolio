@@ -1,6 +1,13 @@
+import { HEROES_SCORE } from "~/lib/heroes_vgm_score";
+
 // X68000版TetrisのVGMから抽出したYM2151キーオンイベント。
 // 元VGZは同梱せず、44.1kHzログを10ms単位のMIDIイベントへ量子化して保持する。
-export type TetrisTrackName = "korobushka" | "karinka" | "katyusha" | "technotris";
+export type TetrisTrackName =
+  | "korobushka"
+  | "karinka"
+  | "katyusha"
+  | "technotris"
+  | "heroes";
 
 export type TetrisTrackEvent = readonly [
   startCentisecond: number,
@@ -1376,4 +1383,5 @@ export const TETRIS_TRACK_SCORES: Record<TetrisTrackName, TetrisTrackScore> = {
       ]
     ],
   },
+  heroes: HEROES_SCORE,
 };

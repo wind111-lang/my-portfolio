@@ -839,9 +839,7 @@ button:focus-visible {
   display: grid;
   width: 48px;
   height: 32px;
-  border: 1px solid #111;
-  color: #fff;
-  background: #070908;
+  background: transparent;
   place-items: center;
 }
 

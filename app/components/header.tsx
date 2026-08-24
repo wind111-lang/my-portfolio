@@ -7,7 +7,7 @@ type HeaderProps = {
 };
 
 export function X68000Mark(): React.ReactNode {
-  const markPath = "M6 35 20 13l9 22H6ZM17 7h14l19 28H33L17 7Zm16 0h19L40 22 33 7Z";
+  const markPath = "M7 35 19 20l6 15H7ZM17 7h14l19 28H33L17 7Zm16 0h19L40 22 33 7Z";
 
   return (
     <svg className="x68000-mark" viewBox="0 0 58 44" aria-hidden="true">

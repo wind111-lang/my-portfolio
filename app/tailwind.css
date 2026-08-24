@@ -953,20 +953,16 @@ button:focus-visible {
   z-index: 20;
   display: grid;
   width: 58px;
-  border: 1px solid var(--gui-shadow);
-  padding: 3px;
-  background: var(--gui-face);
-  box-shadow: 3px 3px 0 rgb(20 25 23 / 35%);
-  gap: 2px;
+  gap: 3px;
 }
 
 .sx-rail-logo {
   display: grid;
   height: 46px;
-  color: #fff;
-  background: #101311;
+  border: 1px solid var(--gui-shadow);
+  background: var(--gui-face);
+  box-shadow: inset 1px 1px var(--gui-light), inset -1px -1px var(--gui-mid);
   place-content: center;
-  text-align: center;
 }
 
 .sx-rail-logo .x68000-mark {
@@ -974,21 +970,16 @@ button:focus-visible {
   height: 29px;
 }
 
-.sx-rail-logo small {
-  color: #27bd68;
-  font-size: 0.44rem;
-  letter-spacing: 0.08em;
-}
-
 .sx-icon-rail a,
 .sx-icon-rail button {
   display: grid;
   justify-items: center;
-  min-height: 60px;
-  border: 1px solid transparent;
+  min-height: 58px;
+  border: 1px solid var(--gui-shadow);
   padding: 3px 1px 2px;
   color: #101311;
-  background: transparent;
+  background: var(--gui-face);
+  box-shadow: inset 1px 1px var(--gui-light), inset -1px -1px var(--gui-mid);
   font: inherit;
   font-size: 0.49rem;
   line-height: 1.1;
@@ -999,9 +990,10 @@ button:focus-visible {
 
 .sx-icon-rail a:hover,
 .sx-icon-rail button:hover {
-  border-color: var(--gui-shadow);
-  color: #fff;
-  background: var(--gui-blue);
+  border-color: var(--gui-shadow) var(--gui-light) var(--gui-light) var(--gui-shadow);
+  color: #101311;
+  background: #c3c9c6;
+  box-shadow: inset 1px 1px var(--gui-mid);
 }
 
 .sx-drive-icon,
@@ -1808,9 +1800,9 @@ button:focus-visible {
     left: auto;
     display: flex;
     width: 100%;
-    padding: 3px;
-    border: 1px solid var(--gui-shadow);
-    gap: 2px;
+    padding: 3px 0;
+    border: 0;
+    gap: 3px;
     overflow-x: auto;
   }
 

@@ -6,6 +6,17 @@ type HeaderProps = {
   disabled?: boolean;
 };
 
+export function X68000Mark(): React.ReactNode {
+  const markPath = "M6 35 20 13l9 22H6ZM17 7h14l19 28H33L17 7Zm16 0h19L40 22 33 7Z";
+
+  return (
+    <svg className="x68000-mark" viewBox="0 0 58 44" aria-hidden="true">
+      <path className="x68000-mark-edge" d={markPath} />
+      <path className="x68000-mark-face" d={markPath} />
+    </svg>
+  );
+}
+
 export default function Header({ mode, onModeChange, disabled = false }: HeaderProps): React.ReactNode {
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -56,8 +67,11 @@ export default function Header({ mode, onModeChange, disabled = false }: HeaderP
   return (
     <header className="system-header">
       <div className="system-brand">
-        <strong>SX-WINDOW</strong>
-        <small>version 3.1</small>
+        <span className="system-brand-mark"><X68000Mark /></span>
+        <span className="system-brand-copy">
+          <strong>SX-WINDOW</strong>
+          <small>Version 3.1</small>
+        </span>
       </div>
       <nav className="desktop-menu" aria-label="メインナビゲーション">
         <ul className="system-nav">
@@ -76,25 +90,28 @@ export default function Header({ mode, onModeChange, disabled = false }: HeaderP
           ))}
         </ul>
       </nav>
-      <div className="mode-switcher" aria-label="表示モード">
-        <button
-          type="button"
-          disabled={disabled}
-          aria-pressed="false"
-          onClick={() => onModeChange("command")}
-          title="F1キーでも切り替えられます"
-        >
-          <kbd>F1</kbd> COMMAND
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          aria-pressed="true"
-          onClick={() => onModeChange("gui")}
-          title="F2キーでも切り替えられます"
-        >
-          <kbd>F2</kbd> GUI
-        </button>
+      <div className="sx-header-tools">
+        <span className="sx-header-status" aria-hidden="true">A: PORTFOLIO</span>
+        <div className="mode-switcher" aria-label="表示モード">
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed="false"
+            onClick={() => onModeChange("command")}
+            title="F1キーでも切り替えられます"
+          >
+            <kbd>F1</kbd> COMMAND
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-pressed="true"
+            onClick={() => onModeChange("gui")}
+            title="F2キーでも切り替えられます"
+          >
+            <kbd>F2</kbd> GUI
+          </button>
+        </div>
       </div>
     </header>
   );

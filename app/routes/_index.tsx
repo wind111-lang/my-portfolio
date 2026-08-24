@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Header from "~/components/header";
+import Header, { X68000Mark } from "~/components/header";
 import AboutSection from "~/components/about_section";
 import ProfileSection from "~/components/profile_section";
 import CareerSection from "~/components/career_section";
@@ -180,8 +180,9 @@ export default function Index(): React.ReactNode {
       {mode === "gui" && (
         <div className="sx-workspace">
           <aside className="sx-icon-rail" aria-label="SX-WINDOW デスクトップ">
-            <a href="#profile" onClick={(event) => handleGuiShortcut(event, "profile")}><span className="sx-drive-icon">A:</span><span>PROFILE</span></a>
-            <a href="#tech" onClick={(event) => handleGuiShortcut(event, "tech")}><span className="sx-folder-icon" aria-hidden="true" /><span>TECH</span></a>
+            <div className="sx-rail-logo" aria-hidden="true"><X68000Mark /><small>SX-WINDOW</small></div>
+            <a href="#profile" onClick={(event) => handleGuiShortcut(event, "profile")}><span className="sx-drive-icon"><small>2HD</small>A:</span><span>PROFILE</span></a>
+            <a href="#tech" onClick={(event) => handleGuiShortcut(event, "tech")}><span className="sx-drive-icon sx-drive-b"><small>2HD</small>B:</span><span>TECH</span></a>
             <a href="#blog" onClick={(event) => handleGuiShortcut(event, "blog")}><span className="sx-file-icon" aria-hidden="true">T</span><span>ARTICLES</span></a>
             <button type="button" onClick={() => setMode("command")}>
               <span className="sx-terminal-icon" aria-hidden="true">A&gt;</span><span>COMMAND.X</span>

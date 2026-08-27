@@ -11,11 +11,11 @@ const kontiPatch = {
   algorithm: 4,
   operatorCount: 2,
   ratios: [1, 2, 1, 1],
-  modulation: [0.52, 0, 0],
+  modulation: [0.78, 0, 0],
   carrierGains: [0.74, 0, 0, 0],
   operatorDetuneCents: [0, 2, 0, 0],
-  filterFrequency: 7000,
-  filterStartFrequency: 3200,
+  filterFrequency: 7600,
+  filterStartFrequency: 2800,
   filterAttack: 0.012,
   filterQ: 0.65,
   pitchAttackCents: 12,
@@ -30,12 +30,12 @@ const kontiPatch = {
 const payoutPatch = {
   algorithm: 4,
   operatorCount: 2,
-  ratios: [1, 3, 1, 1],
-  modulation: [0.46, 0, 0],
+  ratios: [1, 4, 1, 1],
+  modulation: [0.88, 0, 0],
   carrierGains: [0.7, 0, 0, 0],
   operatorDetuneCents: [0, 2, 0, 0],
   filterFrequency: 7600,
-  filterStartFrequency: 4300,
+  filterStartFrequency: 3600,
   filterAttack: 0.007,
   filterQ: 0.62,
   pitchAttackCents: 18,
@@ -47,15 +47,27 @@ const payoutPatch = {
   release: 0.025,
 } as const;
 
+const payoutAccentPatch = {
+  ...payoutPatch,
+  ratios: [1, 2, 1, 1],
+  modulation: [0.62, 0, 0],
+  carrierGains: [0.62, 0, 0, 0],
+  filterFrequency: 9200,
+  filterStartFrequency: 5200,
+  peakGain: 0.026,
+  sustainGain: 0.004,
+  release: 0.018,
+} as const;
+
 const vBrassPatch = {
   algorithm: 4,
   operatorCount: 2,
-  ratios: [1, 2, 1, 1],
-  modulation: [0.64, 0, 0],
+  ratios: [1, 1, 1, 1],
+  modulation: [0.76, 0, 0],
   carrierGains: [0.64, 0, 0, 0],
   operatorDetuneCents: [0, 3, 0, 0],
-  filterFrequency: 6200,
-  filterStartFrequency: 2400,
+  filterFrequency: 7000,
+  filterStartFrequency: 2200,
   filterAttack: 0.055,
   filterQ: 0.75,
   pitchAttackCents: 20,
@@ -209,6 +221,18 @@ export function playThunderVFanfare(context: AudioContext): () => void {
         sustainGain: payoutPatch.sustainGain * velocityGain,
       },
     );
+    if (index >= 11 && index <= 18) {
+      createFmVoice(
+        context,
+        bus,
+        sources,
+        midiToFrequency(note + 12),
+        startAt + PAYOUT_START + offset + 0.004,
+        duration * 0.82,
+        index % 2 ? -0.13 : 0.13,
+        payoutAccentPatch,
+      );
+    }
   });
 
   vNotes.forEach(([note, offset, duration, velocity], index) => {

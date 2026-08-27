@@ -22,7 +22,7 @@ const FM_ENTRY_SECONDS = 1.855;
 const PHRASE_UNITS = 128;
 const TRACK_UNITS = PHRASE_UNITS * 4;
 const TRACK_DURATION = 65.37;
-const OUTPUT_GAIN = 1.65;
+const OUTPUT_GAIN = 1.45;
 const SCHEDULE_AHEAD_SECONDS = 5;
 
 // 公開VGMに記録されたYM2151レジスタを、M1/C1/M2/C2順へ並べ直した音色。

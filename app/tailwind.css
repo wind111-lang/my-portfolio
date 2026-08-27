@@ -954,13 +954,24 @@ button:focus-visible {
   gap: 3px;
 }
 
-.sx-rail-logo {
+.sx-icon-rail .sx-rail-logo {
   display: grid;
   height: 46px;
+  min-height: 46px;
   border: 1px solid var(--gui-shadow);
+  padding: 0;
   background: var(--gui-face);
   box-shadow: inset 1px 1px var(--gui-light), inset -1px -1px var(--gui-mid);
   place-content: center;
+}
+
+.sx-icon-rail .sx-rail-logo:active .x68000-mark {
+  transform: translate(1px, 1px);
+}
+
+.sx-icon-rail .sx-rail-logo:focus-visible {
+  outline: 2px solid #0069b5;
+  outline-offset: 1px;
 }
 
 .sx-rail-logo .x68000-mark {
@@ -1804,7 +1815,7 @@ button:focus-visible {
     overflow-x: auto;
   }
 
-  .sx-rail-logo {
+  .sx-icon-rail .sx-rail-logo {
     flex: 0 0 52px;
   }
 

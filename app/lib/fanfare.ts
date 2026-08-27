@@ -3,9 +3,8 @@ import { createFmVoice, midiToFrequency } from "~/lib/fm_synth";
 
 type NoteEvent = readonly [note: number, offset: number, duration: number, velocity: number];
 
-const TOTAL_DURATION_SECONDS = 10.36;
-const PAYOUT_START = 4.42;
-const V_FANFARE_START = 7.2;
+const TOTAL_DURATION_SECONDS = 7.58;
+const V_FANFARE_START = 4.42;
 
 const kontiPatch = {
   algorithm: 4,
@@ -25,38 +24,6 @@ const kontiPatch = {
   peakGain: 0.072,
   sustainGain: 0.024,
   release: 0.028,
-} as const;
-
-const payoutPatch = {
-  algorithm: 4,
-  operatorCount: 2,
-  ratios: [1, 4, 1, 1],
-  modulation: [0.88, 0, 0],
-  carrierGains: [0.7, 0, 0, 0],
-  operatorDetuneCents: [0, 2, 0, 0],
-  filterFrequency: 7600,
-  filterStartFrequency: 3600,
-  filterAttack: 0.007,
-  filterQ: 0.62,
-  pitchAttackCents: 18,
-  pitchAttackTime: 0.008,
-  attack: 0.001,
-  decay: 0.025,
-  peakGain: 0.042,
-  sustainGain: 0.01,
-  release: 0.025,
-} as const;
-
-const payoutAccentPatch = {
-  ...payoutPatch,
-  ratios: [1, 2, 1, 1],
-  modulation: [0.62, 0, 0],
-  carrierGains: [0.62, 0, 0, 0],
-  filterFrequency: 9200,
-  filterStartFrequency: 5200,
-  peakGain: 0.026,
-  sustainGain: 0.004,
-  release: 0.018,
 } as const;
 
 const vBrassPatch = {
@@ -133,35 +100,39 @@ const midiKontiNotes: readonly NoteEvent[] = [
   [76, 3.4146, 0.1969, 106], [76, 3.6115, 0.1969, 97], [76, 3.8094, 0.3844, 80],
 ];
 
-const dominantKontiIndexes = [
-  0, 2, 3, 5, 6, 7, 9, 10, 13, 15, 16, 17, 20, 23, 24, 25, 26, 27, 28,
-  29, 30, 31, 32, 33, 34, 36, 37, 38, 40, 41, 44, 46, 48, 49, 52, 54, 56,
-  57, 58, 59, 60, 61,
+const KONTI_SECOND_MOTIF_START = 2.1604;
+
+const kontiTransitionIndexes = [29, 30, 31, 32] as const;
+
+const kontiMotifIndexes = [
+  33, 34, 36, 37, 38, 40, 41, 44, 46, 48, 49, 52, 54, 56, 57, 58, 59, 60,
+  61,
 ] as const;
 
 const kontiPitchOverrides = new Map<number, number>([
-  [2, 48],
-  [23, 64],
   [33, 48],
   [34, 48],
   [54, 64],
 ]);
 
-const kontiNotes: readonly NoteEvent[] = dominantKontiIndexes.map((sourceIndex) => {
-  const [note, offset, duration, velocity] = midiKontiNotes[sourceIndex];
-  return [kontiPitchOverrides.get(sourceIndex) ?? note, offset, duration, velocity];
-});
+const secondKontiMotif: readonly NoteEvent[] = kontiMotifIndexes.map(
+  (sourceIndex): NoteEvent => {
+    const [note, offset, duration, velocity] = midiKontiNotes[sourceIndex];
+    return [kontiPitchOverrides.get(sourceIndex) ?? note, offset, duration, velocity];
+  },
+);
 
-const payoutNotes: readonly NoteEvent[] = [
-  [65, 0.177, 0.055, 96], [65, 0.26, 0.055, 88], [60, 0.365, 0.055, 96],
-  [60, 0.453, 0.055, 88], [67, 0.56, 0.055, 96], [70, 0.657, 0.055, 88],
-  [48, 0.757, 0.055, 96], [77, 0.855, 0.055, 88], [70, 0.953, 0.055, 96],
-  [72, 1.055, 0.055, 88], [63, 1.145, 0.055, 96], [82, 1.24, 0.055, 88],
-  [84, 1.33, 0.055, 96], [70, 1.433, 0.055, 88], [65, 1.542, 0.055, 96],
-  [65, 1.633, 0.055, 88], [70, 1.74, 0.055, 96], [65, 1.835, 0.055, 88],
-  [60, 1.942, 0.055, 96], [60, 1.992, 0.055, 88], [60, 2.083, 0.055, 96],
-  [60, 2.172, 0.055, 88], [60, 2.275, 0.055, 96], [48, 2.373, 0.055, 88],
-  [59, 2.467, 0.055, 96], [59, 2.558, 0.055, 88], [59, 2.667, 0.07, 96],
+const kontiNotes: readonly NoteEvent[] = [
+  ...secondKontiMotif.map(
+    ([note, offset, duration, velocity]): NoteEvent => [
+      note,
+      offset - KONTI_SECOND_MOTIF_START,
+      duration,
+      velocity,
+    ],
+  ),
+  ...kontiTransitionIndexes.map((sourceIndex): NoteEvent => midiKontiNotes[sourceIndex]),
+  ...secondKontiMotif,
 ];
 
 const vNotes: readonly NoteEvent[] = [
@@ -180,6 +151,17 @@ const vNotes: readonly NoteEvent[] = [
   [48, 1.5802, 1.4646, 91], [60, 1.5802, 0.6042, 46], [79, 1.5802, 1.1031, 94],
   [84, 1.5802, 1.4521, 90],
 ];
+
+const vEntryChords = [
+  [0, [44, 72, 75]],
+  [0.128, [44, 72, 75]],
+  [0.244, [44, 72, 75, 79]],
+  [0.43, [44, 72, 75]],
+  [0.523, [44, 72, 75]],
+  [0.639, [44, 72, 75]],
+  [0.779, [46, 74, 77]],
+  [0.907, [46, 74, 77]],
+] as const;
 
 export function playThunderVFanfare(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.025;
@@ -205,40 +187,31 @@ export function playThunderVFanfare(context: AudioContext): () => void {
     });
   });
 
-  payoutNotes.forEach(([note, offset, duration, velocity], index) => {
-    const velocityGain = velocity / 96;
-    createFmVoice(
-      context,
-      bus,
-      sources,
-      midiToFrequency(note),
-      startAt + PAYOUT_START + offset,
-      duration,
-      index % 2 ? 0.1 : -0.1,
-      {
-        ...payoutPatch,
-        peakGain: payoutPatch.peakGain * velocityGain,
-        sustainGain: payoutPatch.sustainGain * velocityGain,
-      },
-    );
-    if (index >= 11 && index <= 18) {
+  vEntryChords.forEach(([offset, notes]) => {
+    notes.forEach((note, noteIndex) => {
+      const patch = note <= 60 ? vBassPatch : vHitPatch;
+      const gain = note <= 60 ? 1.25 : 1.05;
       createFmVoice(
         context,
         bus,
         sources,
-        midiToFrequency(note + 12),
-        startAt + PAYOUT_START + offset + 0.004,
-        duration * 0.82,
-        index % 2 ? -0.13 : 0.13,
-        payoutAccentPatch,
+        midiToFrequency(note),
+        startAt + V_FANFARE_START + offset,
+        offset < 0.7 ? 0.105 : 0.12,
+        -0.22 + (noteIndex * 0.44) / (notes.length - 1),
+        {
+          ...patch,
+          peakGain: patch.peakGain * gain,
+          sustainGain: patch.sustainGain * gain,
+        },
       );
-    }
+    });
   });
 
   vNotes.forEach(([note, offset, duration, velocity], index) => {
+    if (offset < 1) return;
     const patch = offset < 1.58 ? (note <= 60 ? vBassPatch : vHitPatch) : vBrassPatch;
-    const entryBoost = index < 8 ? 1.5 : 1;
-    const velocityGain = (0.55 + (velocity / 106) * 0.45) * entryBoost;
+    const velocityGain = 0.55 + (velocity / 106) * 0.45;
     createFmVoice(
       context,
       bus,

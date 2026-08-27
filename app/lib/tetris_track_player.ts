@@ -11,7 +11,7 @@ import {
 } from "~/lib/tetris_tracks_vgm_score";
 
 const SCHEDULE_AHEAD_SECONDS = 5;
-const OUTPUT_GAIN = 1.75;
+const OUTPUT_GAIN = 1.5;
 const FADE_SECONDS = 3.2;
 const DT1_CENTS = [0, 3.4, 6.8, 10.2, 0, -3.4, -6.8, -10.2] as const;
 const CHANNEL_GAINS = [0.96, 0.94, 1, 0.86, 0.84, 0.86, 0.92, 0.82] as const;

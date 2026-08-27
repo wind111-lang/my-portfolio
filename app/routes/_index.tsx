@@ -16,6 +16,7 @@ import {
   BUBBLE_SYSTEM_MORNING_MUSIC_DURATION_SECONDS,
   playMorningMusic,
 } from "~/lib/morning_music_player";
+import { playThunderVFanfare } from "~/lib/fanfare";
 
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
@@ -25,6 +26,8 @@ export default function Index(): React.ReactNode {
   const bootAudioContextRef = React.useRef<AudioContext | null>(null);
   const stopBootMusicRef = React.useRef<(() => void) | null>(null);
   const closeBootAudioTimerRef = React.useRef<number | null>(null);
+  const guiAudioContextRef = React.useRef<AudioContext | null>(null);
+  const stopGuiFanfareRef = React.useRef<(() => void) | null>(null);
 
   const stopBootAudio = React.useCallback(() => {
     if (closeBootAudioTimerRef.current !== null) {
@@ -39,6 +42,39 @@ export default function Index(): React.ReactNode {
       void context.close();
     }
   }, []);
+
+  const stopGuiAudio = React.useCallback(() => {
+    stopGuiFanfareRef.current?.();
+    stopGuiFanfareRef.current = null;
+    const context = guiAudioContextRef.current;
+    guiAudioContextRef.current = null;
+    if (context && context.state !== "closed") {
+      void context.close();
+    }
+  }, []);
+
+  const playGuiFanfare = React.useCallback(() => {
+    try {
+      const existingContext = guiAudioContextRef.current;
+      const context = existingContext?.state === "closed"
+        ? new AudioContext({ latencyHint: "interactive" })
+        : existingContext ?? new AudioContext({ latencyHint: "interactive" });
+      guiAudioContextRef.current = context;
+
+      const startPlayback = () => {
+        stopGuiFanfareRef.current?.();
+        stopGuiFanfareRef.current = playThunderVFanfare(context);
+      };
+
+      if (context.state === "suspended") {
+        void context.resume().then(startPlayback).catch(stopGuiAudio);
+      } else {
+        startPlayback();
+      }
+    } catch {
+      // Web Audio非対応環境でも緑のXは通常のボタンとして操作できる。
+    }
+  }, [stopGuiAudio]);
 
   const powerOn = React.useCallback(() => {
     if (isPoweringOnRef.current) return;
@@ -123,7 +159,10 @@ export default function Index(): React.ReactNode {
     return () => window.removeEventListener("pageshow", resetShutdownAfterHistoryRestore);
   }, [stopBootAudio]);
 
-  useEffect(() => () => stopBootAudio(), [stopBootAudio]);
+  useEffect(() => () => {
+    stopBootAudio();
+    stopGuiAudio();
+  }, [stopBootAudio, stopGuiAudio]);
 
   useEffect(() => {
     if (mode === "gui") {
@@ -180,7 +219,15 @@ export default function Index(): React.ReactNode {
       {mode === "gui" && (
         <div className="sx-workspace">
           <aside className="sx-icon-rail" aria-label="SX-WINDOW デスクトップ">
-            <div className="sx-rail-logo" aria-hidden="true"><X68000Mark /></div>
+            <button
+              type="button"
+              className="sx-rail-logo"
+              onClick={playGuiFanfare}
+              aria-label="サンダーVのファンファーレを鳴らす"
+              title="FANFARE"
+            >
+              <X68000Mark />
+            </button>
             <a href="#profile" onClick={(event) => handleGuiShortcut(event, "profile")}><span className="sx-drive-icon"><small>2HD</small>A:</span><span>PROFILE</span></a>
             <a href="#tech" onClick={(event) => handleGuiShortcut(event, "tech")}><span className="sx-drive-icon sx-drive-b"><small>2HD</small>B:</span><span>TECH</span></a>
             <a href="#blog" onClick={(event) => handleGuiShortcut(event, "blog")}><span className="sx-file-icon" aria-hidden="true">T</span><span>ARTICLES</span></a>

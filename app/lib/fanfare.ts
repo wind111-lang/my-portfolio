@@ -3,139 +3,62 @@ import { createFmVoice, midiToFrequency } from "~/lib/fm_synth";
 
 type NoteEvent = readonly [note: number, offset: number, duration: number, velocity: number];
 
-const TOTAL_DURATION_SECONDS = 7.58;
-const V_FANFARE_START = 4.42;
+const TOTAL_DURATION_SECONDS = 3.22;
 
-const kontiPatch = {
-  algorithm: 4,
-  operatorCount: 2,
-  ratios: [1, 2, 1, 1],
-  modulation: [0.78, 0, 0],
-  carrierGains: [0.74, 0, 0, 0],
-  operatorDetuneCents: [0, 2, 0, 0],
-  filterFrequency: 7600,
-  filterStartFrequency: 2800,
-  filterAttack: 0.012,
-  filterQ: 0.65,
-  pitchAttackCents: 12,
-  pitchAttackTime: 0.012,
-  attack: 0.002,
-  decay: 0.032,
-  peakGain: 0.072,
-  sustainGain: 0.024,
-  release: 0.028,
-} as const;
-
-const vBrassPatch = {
+// Thunder V uses a YM2413 (OPLL). These two-operator patches deliberately keep
+// the channels mono and use short, stepped envelopes instead of the wider OPM
+// character used by the X68000 tracks elsewhere on the site.
+const fanfareSustainPatch = {
   algorithm: 4,
   operatorCount: 2,
   ratios: [1, 1, 1, 1],
-  modulation: [0.76, 0, 0],
-  carrierGains: [0.64, 0, 0, 0],
-  operatorDetuneCents: [0, 3, 0, 0],
-  filterFrequency: 7000,
-  filterStartFrequency: 2200,
-  filterAttack: 0.055,
-  filterQ: 0.75,
-  pitchAttackCents: 20,
-  pitchAttackTime: 0.04,
-  attack: 0.008,
-  decay: 0.16,
-  peakGain: 0.052,
-  sustainGain: 0.038,
-  release: 0.18,
-  vibratoRate: 5.8,
-  vibratoCents: 6,
-} as const;
-
-const vHitPatch = {
-  ...vBrassPatch,
-  filterFrequency: 7200,
-  filterStartFrequency: 3100,
-  filterAttack: 0.018,
-  pitchAttackCents: 10,
+  modulation: [1.34, 0, 0],
+  carrierGains: [0.7, 0, 0, 0],
+  operatorDetuneCents: [0, 0, 0, 0],
+  filterFrequency: 8200,
+  filterStartFrequency: 4300,
+  filterAttack: 0.026,
+  filterQ: 0.5,
+  pitchAttackCents: 8,
   pitchAttackTime: 0.012,
   attack: 0.002,
-  decay: 0.055,
-  peakGain: 0.058,
-  sustainGain: 0.028,
-  release: 0.055,
+  decay: 0.12,
+  peakGain: 0.054,
+  sustainGain: 0.036,
+  release: 0.13,
+  vibratoRate: 6.4,
+  vibratoCents: 3.5,
+} as const;
+
+const fanfareHitPatch = {
+  ...fanfareSustainPatch,
+  modulation: [1.72, 0, 0],
+  filterFrequency: 9400,
+  filterStartFrequency: 5600,
+  filterAttack: 0.007,
+  pitchAttackCents: 5,
+  pitchAttackTime: 0.006,
+  attack: 0.001,
+  decay: 0.046,
+  peakGain: 0.061,
+  sustainGain: 0.022,
+  release: 0.038,
   vibratoRate: 0,
   vibratoCents: 0,
 } as const;
 
-const vBassPatch = {
-  ...vHitPatch,
-  ratios: [1, 1, 1, 1],
-  modulation: [0.28, 0, 0],
-  carrierGains: [0.72, 0, 0, 0],
-  filterFrequency: 4200,
-  filterStartFrequency: 1800,
-  peakGain: 0.064,
+const fanfareBassPatch = {
+  ...fanfareHitPatch,
+  modulation: [0.48, 0, 0],
+  carrierGains: [0.78, 0, 0, 0],
+  filterFrequency: 4800,
+  filterStartFrequency: 2100,
+  peakGain: 0.068,
   sustainGain: 0.034,
-  release: 0.075,
+  release: 0.06,
 } as const;
 
-const midiKontiNotes: readonly NoteEvent[] = [
-  [48, 0, 0.1281, 36], [60, 0, 0.0698, 40], [60, 0.0698, 0.0813, 38],
-  [48, 0.1271, 0.0698, 46], [52, 0.1271, 0.0698, 47], [52, 0.1969, 0.0698, 90],
-  [52, 0.2667, 0.0812, 64], [55, 0.2896, 0.0812, 76], [64, 0.325, 0.0812, 41],
-  [55, 0.3834, 0.0927, 69], [60, 0.4521, 0.0698, 93], [67, 0.4521, 0.1156, 38],
-  [84, 0.4521, 0.1396, 43], [60, 0.5219, 0.1281, 92], [84, 0.5917, 0.0927, 44],
-  [60, 0.65, 0.0698, 90], [60, 0.7198, 0.1281, 86], [60, 0.8469, 0.0698, 91],
-  [64, 0.8469, 0.0698, 45], [76, 0.8469, 0.1281, 36], [60, 0.9167, 0.0927, 71],
-  [64, 0.9167, 0.1281, 44], [67, 0.975, 0.1396, 36], [76, 0.975, 0.0812, 67],
-  [64, 1.0448, 0.0813, 75], [67, 1.1146, 0.0813, 67], [72, 1.1719, 0.1042, 77],
-  [76, 1.2417, 0.1969, 103], [76, 1.4396, 0.4062, 87],
-  [60, 1.8104, 0.0813, 75], [60, 1.9042, 0.0594, 91], [60, 1.9636, 0.0698, 81],
-  [60, 2.0323, 0.1281, 62], [60, 2.1604, 0.0698, 43], [60, 2.2302, 0.1156, 46],
-  [64, 2.3459, 0.1396, 30], [52, 2.3584, 0.0698, 80], [52, 2.4271, 0.0813, 60],
-  [55, 2.4855, 0.0698, 95], [64, 2.4855, 0.0927, 47], [55, 2.5552, 0.0812, 70],
-  [60, 2.6136, 0.0698, 95], [67, 2.6136, 0.1042, 37], [84, 2.6136, 0.0698, 44],
-  [60, 2.6834, 0.0698, 90], [84, 2.6834, 0.0698, 49], [60, 2.7521, 0.1281, 94],
-  [84, 2.7521, 0.1042, 40], [60, 2.8802, 0.0698, 90], [60, 2.95, 0.1281, 90],
-  [64, 3.0084, 0.0698, 54], [76, 3.0084, 0.1281, 35], [60, 3.0782, 0.0927, 70],
-  [64, 3.0782, 0.1281, 43], [76, 3.1355, 0.1042, 65], [67, 3.1469, 0.1281, 35],
-  [64, 3.2052, 0.0927, 73], [67, 3.275, 0.0812, 73], [72, 3.3448, 0.0927, 76],
-  [76, 3.4146, 0.1969, 106], [76, 3.6115, 0.1969, 97], [76, 3.8094, 0.3844, 80],
-];
-
-const KONTI_SECOND_MOTIF_START = 2.1604;
-
-const kontiTransitionIndexes = [29, 30, 31, 32] as const;
-
-const kontiMotifIndexes = [
-  33, 34, 36, 37, 38, 40, 41, 44, 46, 48, 49, 52, 54, 56, 57, 58, 59, 60,
-  61,
-] as const;
-
-const kontiPitchOverrides = new Map<number, number>([
-  [33, 48],
-  [34, 48],
-  [54, 64],
-]);
-
-const secondKontiMotif: readonly NoteEvent[] = kontiMotifIndexes.map(
-  (sourceIndex): NoteEvent => {
-    const [note, offset, duration, velocity] = midiKontiNotes[sourceIndex];
-    return [kontiPitchOverrides.get(sourceIndex) ?? note, offset, duration, velocity];
-  },
-);
-
-const kontiNotes: readonly NoteEvent[] = [
-  ...secondKontiMotif.map(
-    ([note, offset, duration, velocity]): NoteEvent => [
-      note,
-      offset - KONTI_SECOND_MOTIF_START,
-      duration,
-      velocity,
-    ],
-  ),
-  ...kontiTransitionIndexes.map((sourceIndex): NoteEvent => midiKontiNotes[sourceIndex]),
-  ...secondKontiMotif,
-];
-
-const vNotes: readonly NoteEvent[] = [
+const vFanfareNotes: readonly NoteEvent[] = [
   [44, 0, 0.1281, 78], [75, 0.0937, 0.1625, 66], [72, 0.1052, 0.0927, 73],
   [44, 0.1281, 0.1156, 89], [72, 0.1979, 0.1969, 72], [56, 0.2322, 0.151, 54],
   [44, 0.2437, 0.1854, 85], [75, 0.2562, 0.3365, 59], [79, 0.2562, 0.0698, 43],
@@ -163,42 +86,51 @@ const vEntryChords = [
   [0.907, [46, 74, 77]],
 ] as const;
 
+function createNineBitCurve(): Float32Array<ArrayBuffer> {
+  const curve = new Float32Array(4096);
+  for (let index = 0; index < curve.length; index += 1) {
+    const input = (index / (curve.length - 1)) * 2 - 1;
+    curve[index] = Math.round(input * 255) / 255;
+  }
+  return curve;
+}
+
 export function playThunderVFanfare(context: AudioContext): () => void {
   const startAt = context.currentTime + 0.025;
-  const output = createLimitedOutput(context, startAt, 1.32);
+  const output = createLimitedOutput(context, startAt, 1.28);
   const bus = context.createGain();
   const presence = context.createBiquadFilter();
+  const speaker = context.createBiquadFilter();
+  const quantizer = context.createWaveShaper();
   const sources: AudioScheduledSourceNode[] = [];
   let disconnected = false;
 
-  bus.gain.setValueAtTime(0.98, startAt);
+  bus.gain.setValueAtTime(0.9, startAt);
   presence.type = "highshelf";
-  presence.frequency.setValueAtTime(3000, startAt);
-  presence.gain.setValueAtTime(0.8, startAt);
+  presence.frequency.setValueAtTime(2900, startAt);
+  presence.gain.setValueAtTime(1.25, startAt);
+  speaker.type = "lowpass";
+  speaker.frequency.setValueAtTime(9600, startAt);
+  speaker.Q.setValueAtTime(0.38, startAt);
+  quantizer.curve = createNineBitCurve();
+  quantizer.oversample = "none";
   bus.connect(presence);
-  presence.connect(output.input);
-
-  kontiNotes.forEach(([note, offset, duration, velocity], index) => {
-    const velocityGain = Math.max(0.18, velocity / 106);
-    createFmVoice(context, bus, sources, midiToFrequency(note), startAt + offset, duration, index % 2 ? 0.1 : -0.1, {
-      ...kontiPatch,
-      peakGain: kontiPatch.peakGain * velocityGain,
-      sustainGain: kontiPatch.sustainGain * velocityGain,
-    });
-  });
+  presence.connect(speaker);
+  speaker.connect(quantizer);
+  quantizer.connect(output.input);
 
   vEntryChords.forEach(([offset, notes]) => {
-    notes.forEach((note, noteIndex) => {
-      const patch = note <= 60 ? vBassPatch : vHitPatch;
-      const gain = note <= 60 ? 1.25 : 1.05;
+    notes.forEach((note) => {
+      const patch = note <= 60 ? fanfareBassPatch : fanfareHitPatch;
+      const gain = note <= 60 ? 1.18 : 1;
       createFmVoice(
         context,
         bus,
         sources,
         midiToFrequency(note),
-        startAt + V_FANFARE_START + offset,
+        startAt + offset,
         offset < 0.7 ? 0.105 : 0.12,
-        -0.22 + (noteIndex * 0.44) / (notes.length - 1),
+        0,
         {
           ...patch,
           peakGain: patch.peakGain * gain,
@@ -208,18 +140,20 @@ export function playThunderVFanfare(context: AudioContext): () => void {
     });
   });
 
-  vNotes.forEach(([note, offset, duration, velocity], index) => {
+  vFanfareNotes.forEach(([note, offset, duration, velocity]) => {
     if (offset < 1) return;
-    const patch = offset < 1.58 ? (note <= 60 ? vBassPatch : vHitPatch) : vBrassPatch;
-    const velocityGain = 0.55 + (velocity / 106) * 0.45;
+    const patch = offset < 1.58
+      ? (note <= 60 ? fanfareBassPatch : fanfareHitPatch)
+      : fanfareSustainPatch;
+    const velocityGain = 0.58 + (velocity / 106) * 0.42;
     createFmVoice(
       context,
       bus,
       sources,
       midiToFrequency(note),
-      startAt + V_FANFARE_START + offset,
+      startAt + offset,
       duration,
-      index % 2 ? 0.14 : -0.14,
+      0,
       {
         ...patch,
         peakGain: patch.peakGain * velocityGain,
@@ -233,6 +167,8 @@ export function playThunderVFanfare(context: AudioContext): () => void {
     disconnected = true;
     bus.disconnect();
     presence.disconnect();
+    speaker.disconnect();
+    quantizer.disconnect();
     output.disconnect();
   };
   const cleanupTimer = window.setTimeout(disconnectGraph, (TOTAL_DURATION_SECONDS + 0.3) * 1000);

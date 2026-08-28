@@ -223,8 +223,8 @@ export default function Index(): React.ReactNode {
               type="button"
               className="sx-rail-logo"
               onClick={playGuiFanfare}
-              aria-label="サンダーVのVファンファーレとボーナスBGMを鳴らす"
-              title="V FANFARE / VBB"
+              aria-label="サンダーVのVファンファーレを鳴らす"
+              title="V FANFARE"
             >
               <X68000Mark />
             </button>

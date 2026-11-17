@@ -315,12 +315,32 @@ function CommandOutput({
       <div className="terminal-output">
         <a
           className="talk-command"
+          href="https://speakerdeck.com/wind111/how-to-manage-link-domain-reputation-for-email-deliverability"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          [PHP Conference Niigata 2026 / Regular Talk]<br />
+          メール到達性を支える、リンク先URLのドメイン評価の扱い方
+        </a>
+        <br />
+        <a
+          className="talk-command"
+          href="https://speakerdeck.com/wind111/php-game-controller-midi-device"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          [PHP Conference Niigata 2026 / LT]<br />
+          PHPで家庭用ゲーム機の専用コントローラーをMIDIデバイスとして扱ってみる
+        </a>
+        <br />
+        <a
+          className="talk-command"
           href="https://fortee.jp/phpcon-fukuoka-2025/proposal/739e5ee1-e3a0-4dfa-a33f-cc84613006e5"
           target="_blank"
           rel="noopener noreferrer"
         >
           [PHP Conference Fukuoka 2025]<br />
-          ゼロタウンタイムでミドルウェアのバージョンアップを実現した手法と課題
+          ゼロダウンタイムでミドルウェアのバージョンアップを実現した手法と課題
         </a>
       </div>
     );

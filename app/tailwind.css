@@ -253,7 +253,7 @@ button:focus-visible {
 }
 
 .x68k-splash-specs {
-  margin-top: 0.8rem !important;
+  margin-top: 0.5rem !important;
   font-size: clamp(0.68rem, 1.65vw, 0.92rem);
 }
 
@@ -286,6 +286,12 @@ button:focus-visible {
   letter-spacing: 0.08em;
   text-align: center;
   white-space: nowrap;
+}
+
+.x68k-splash-copy .x68k-splash-wait {
+  margin-top: 0.85rem;
+  font-size: clamp(0.68rem, 1.65vw, 0.92rem);
+  text-align: center;
 }
 
 .x68k-boot-blackout {

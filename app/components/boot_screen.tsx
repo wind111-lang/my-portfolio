@@ -71,6 +71,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
               </dl>
               <p className="x68k-splash-motto">POWER TO MAKE YOUR DREAM COME TRUE.</p>
               <p className="x68k-splash-secret">FOREVER X68000 (FOREVERX68K) !</p>
+              <p className="x68k-splash-wait">PLEASE WAIT...</p>
             </div>
           </div>
         </section>

@@ -61,17 +61,17 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
                     />
                   </span>
                   <small>ＰＯＲＴＦＯＬＩＯ</small>
-                  <span className="x68k-splash-clock">- ＨＩＧＨ ＣＬＯＣＫ -</span>
+                  <span className="x68k-splash-clock">－ ＨＩＧＨ ＣＬＯＣＫ －</span>
                 </span>
               </div>
               <dl className="x68k-splash-specs">
-                <div><dt>ＨＯＳＴＮＡＭＥ:</dt><dd>ＰＯＲＴＦＯＬＩＯ</dd></div>
-                <div><dt>ＯＷＮＥＲ:</dt><dd>ＳＨＯＴＡ ＴＳＵＴＳＵＩ</dd></div>
-                <div><dt>ＯＳ:</dt><dd>Ｈｕｍａｎ68ｋ Ｖｅｒｓｉｏｎ 3.02</dd></div>
+                <div><dt>ＨＯＳＴＮＡＭＥ：</dt><dd>ＰＯＲＴＦＯＬＩＯ</dd></div>
+                <div><dt>ＯＷＮＥＲ：</dt><dd>ＳＨＯＴＡ ＴＳＵＴＳＵＩ</dd></div>
+                <div><dt>ＯＳ：</dt><dd>Ｈｕｍａｎ６８ｋ Ｖｅｒｓｉｏｎ ３．０２</dd></div>
               </dl>
-              <p className="x68k-splash-motto">ＰＯＷＥＲ ＴＯ ＭＡＫＥ ＹＯＵＲ ＤＲＥＡＭ ＣＯＭＥ ＴＲＵＥ.</p>
-              <p className="x68k-splash-secret">ＦＯＲＥＶＥＲ Ｘ68000 (ＦＯＲＥＶＥＲＸ68Ｋ) !</p>
-              <p className="x68k-splash-wait">ＰＬＥＡＳＥ ＷＡＩＴ...</p>
+              <p className="x68k-splash-motto">ＰＯＷＥＲ ＴＯ ＭＡＫＥ ＹＯＵＲ ＤＲＥＡＭ ＣＯＭＥ ＴＲＵＥ．</p>
+              <p className="x68k-splash-secret">ＦＯＲＥＶＥＲ Ｘ６８０００ （ＦＯＲＥＶＥＲＸ６８Ｋ） ！</p>
+              <p className="x68k-splash-wait">ＰＬＥＡＳＥ ＷＡＩＴ．．．</p>
             </div>
           </div>
         </section>

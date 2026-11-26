@@ -142,9 +142,9 @@ button:focus-visible {
   display: grid;
   grid-template-columns: clamp(4.4rem, 13vw, 7rem) 1fr;
   align-items: center;
-  width: min(38rem, 88vw);
-  min-height: 10.25rem;
-  padding: 1rem clamp(1rem, 3vw, 1.75rem);
+  width: min(44rem, 100%);
+  min-height: 18.25rem;
+  padding: 1.6rem clamp(1rem, 3vw, 1.75rem);
   border: 2px solid #1f2c29;
   border-radius: 0.55rem;
   color: #26312f;
@@ -253,7 +253,7 @@ button:focus-visible {
 }
 
 .x68k-splash-specs {
-  margin-top: 0.5rem !important;
+  margin-top: 0.75rem !important;
   font-size: clamp(0.68rem, 1.65vw, 0.92rem);
 }
 
@@ -271,7 +271,7 @@ button:focus-visible {
 }
 
 .x68k-splash-motto {
-  margin-top: 0.8rem !important;
+  margin-top: 1rem !important;
   font-size: clamp(0.64rem, 1.5vw, 0.84rem);
   text-align: center;
 }
@@ -284,7 +284,7 @@ button:focus-visible {
 }
 
 .x68k-splash-copy .x68k-splash-wait {
-  margin-top: 0.85rem;
+  margin-top: 1.05rem;
   font-size: clamp(0.68rem, 1.65vw, 0.92rem);
   text-align: center;
 }
@@ -1657,22 +1657,42 @@ button:focus-visible {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
+  .x68k-custom-splash {
+    padding: 0.5rem;
+  }
+
   .x68k-splash-card {
-    grid-template-columns: 3rem 1fr;
-    width: min(94vw, 38rem);
-    padding: 0.75rem;
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding: 1.15rem 0.75rem;
   }
 
   .x68k-paw-mark {
-    width: 2.8rem;
-    height: 3.2rem;
+    position: absolute;
+    top: 2.5rem;
+    left: 1.25rem;
+    width: clamp(2.8rem, 9vw, 4.4rem);
+    height: clamp(3.2rem, 10vw, 4.8rem);
   }
 
   .x68k-splash-brand {
-    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: end;
+    gap: 0.35rem;
   }
 
+  .x68k-splash-specs {
+    font-size: clamp(0.54rem, 2.75vw, 0.92rem);
+  }
+
+  .x68k-splash-motto {
+    font-size: clamp(0.47rem, 2.5vw, 0.84rem);
+  }
+}
+
+@media (max-width: 640px) {
   .system-header,
   .site-shell[data-mode="gui"] .system-header {
     position: relative;

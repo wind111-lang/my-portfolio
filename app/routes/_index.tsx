@@ -17,11 +17,14 @@ import {
   playMorningMusic,
 } from "~/lib/morning_music_player";
 import { playThunderVFanfare } from "~/lib/fanfare";
+import { playShutdownSound } from "~/lib/shutdown_sound";
 
 export default function Index(): React.ReactNode {
   const [mode, setMode] = useState<"command" | "gui">("command");
   const [startupPhase, setStartupPhase] = useState<"power" | "system" | "command" | "ready">("power");
   const [systemExitAction, setSystemExitAction] = useState<"shutdown" | "reboot" | null>(null);
+  const shutdownAudioRef = React.useRef<AudioContext | null>(null);
+  const shutdownSoundFinishedRef = React.useRef<Promise<void> | null>(null);
   const isPoweringOnRef = React.useRef(false);
   const bootAudioContextRef = React.useRef<AudioContext | null>(null);
   const stopBootMusicRef = React.useRef<(() => void) | null>(null);
@@ -115,12 +118,37 @@ export default function Index(): React.ReactNode {
     setStartupPhase("ready");
   }, []);
 
+  const stopShutdownAudio = React.useCallback(() => {
+    const context = shutdownAudioRef.current;
+    shutdownAudioRef.current = null;
+    shutdownSoundFinishedRef.current = null;
+    if (context && context.state !== "closed") {
+      void context.close();
+    }
+  }, []);
+
   const beginSystemExit = React.useCallback((action: "shutdown" | "reboot") => {
     stopBootAudio();
+    if (action === "shutdown") {
+      try {
+        const context = new AudioContext({ latencyHint: "interactive" });
+        shutdownAudioRef.current = context;
+        const playSound = async () => {
+          if (context.state === "suspended") await context.resume();
+          if (shutdownAudioRef.current === context) await playShutdownSound(context);
+        };
+        shutdownSoundFinishedRef.current = playSound().catch(() => {
+          if (shutdownAudioRef.current === context) stopShutdownAudio();
+        });
+      } catch {
+        stopShutdownAudio();
+      }
+    }
     setSystemExitAction(action);
-  }, [stopBootAudio]);
+  }, [stopBootAudio, stopShutdownAudio]);
 
   const completeSystemExit = React.useCallback(() => {
+    stopShutdownAudio();
     if (systemExitAction === "reboot") {
       isPoweringOnRef.current = false;
       setMode("command");
@@ -136,7 +164,7 @@ export default function Index(): React.ReactNode {
       return;
     }
     window.location.assign("https://www.google.com/");
-  }, [systemExitAction]);
+  }, [stopShutdownAudio, systemExitAction]);
 
   const handleGuiShortcut = React.useCallback((
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -149,6 +177,7 @@ export default function Index(): React.ReactNode {
   useEffect(() => {
     const resetShutdownAfterHistoryRestore = () => {
       stopBootAudio();
+      stopShutdownAudio();
       isPoweringOnRef.current = false;
       setMode("command");
       setStartupPhase("power");
@@ -157,12 +186,13 @@ export default function Index(): React.ReactNode {
 
     window.addEventListener("pageshow", resetShutdownAfterHistoryRestore);
     return () => window.removeEventListener("pageshow", resetShutdownAfterHistoryRestore);
-  }, [stopBootAudio]);
+  }, [stopBootAudio, stopShutdownAudio]);
 
   useEffect(() => () => {
     stopBootAudio();
     stopGuiAudio();
-  }, [stopBootAudio, stopGuiAudio]);
+    stopShutdownAudio();
+  }, [stopBootAudio, stopGuiAudio, stopShutdownAudio]);
 
   useEffect(() => {
     if (mode === "gui") {
@@ -201,6 +231,7 @@ export default function Index(): React.ReactNode {
       <ShutdownScreen
         command={systemExitAction === "reboot" ? "REBOOT" : "SHUTDOWN"}
         onComplete={completeSystemExit}
+        soundFinished={shutdownSoundFinishedRef.current}
       />
     );
   }

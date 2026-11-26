@@ -50,7 +50,7 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
             </div>
             <div className="x68k-splash-copy">
               <div className="x68k-splash-brand">
-                <span>PERSONAL WORKSTATION</span>
+                <span>ＰＥＲＳＯＮＡＬ ＷＯＲＫＳＴＡＴＩＯＮ</span>
                 <span className="x68k-splash-logo">
                   <span className="x68k-splash-logo-crop">
                     <img
@@ -60,18 +60,18 @@ export default function BootScreen({ onComplete }: BootScreenProps): React.React
                       height={100}
                     />
                   </span>
-                  <small>PORTFOLIO</small>
-                  <span className="x68k-splash-clock">- HIGH CLOCK -</span>
+                  <small>ＰＯＲＴＦＯＬＩＯ</small>
+                  <span className="x68k-splash-clock">- ＨＩＧＨ ＣＬＯＣＫ -</span>
                 </span>
               </div>
               <dl className="x68k-splash-specs">
-                <div><dt>HOSTNAME:</dt><dd>PORTFOLIO</dd></div>
-                <div><dt>OWNER:</dt><dd>SHOTA TSUTSUI</dd></div>
-                <div><dt>OS:</dt><dd>Human68k Version 3.02</dd></div>
+                <div><dt>ＨＯＳＴＮＡＭＥ:</dt><dd>ＰＯＲＴＦＯＬＩＯ</dd></div>
+                <div><dt>ＯＷＮＥＲ:</dt><dd>ＳＨＯＴＡ ＴＳＵＴＳＵＩ</dd></div>
+                <div><dt>ＯＳ:</dt><dd>Ｈｕｍａｎ68ｋ Ｖｅｒｓｉｏｎ 3.02</dd></div>
               </dl>
-              <p className="x68k-splash-motto">POWER TO MAKE YOUR DREAM COME TRUE.</p>
-              <p className="x68k-splash-secret">FOREVER X68000 (FOREVERX68K) !</p>
-              <p className="x68k-splash-wait">PLEASE WAIT...</p>
+              <p className="x68k-splash-motto">ＰＯＷＥＲ ＴＯ ＭＡＫＥ ＹＯＵＲ ＤＲＥＡＭ ＣＯＭＥ ＴＲＵＥ.</p>
+              <p className="x68k-splash-secret">ＦＯＲＥＶＥＲ Ｘ68000 (ＦＯＲＥＶＥＲＸ68Ｋ) !</p>
+              <p className="x68k-splash-wait">ＰＬＥＡＳＥ ＷＡＩＴ...</p>
             </div>
           </div>
         </section>

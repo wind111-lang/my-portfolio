@@ -525,7 +525,7 @@ export default function CommandView({
   };
 
   const runCommand = (rawCommand: string) => {
-    const command = rawCommand.trim().replace(/\s+/g, " ").toUpperCase();
+    const command = rawCommand.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
     const resolvedCommand = command === "FOREVER X68000" ? "FOREVERX68000" : command;
     setInput("");
     setInputHistoryIndex(null);

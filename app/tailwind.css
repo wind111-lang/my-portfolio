@@ -378,28 +378,18 @@ button:focus-visible {
   margin: 0;
 }
 
-.x68k-poweroff {
+.x68k-shutdown-screen::after {
+  content: "";
   position: absolute;
   inset: 0;
-  display: grid;
-  place-content: center;
-  isolation: isolate;
+  z-index: 1;
+  background: #000;
+  opacity: 0;
+  transition: opacity 780ms ease-out;
 }
 
-.x68k-poweroff-beam {
-  position: fixed;
-  inset: 0;
-  background: #d7ded9;
-  box-shadow: 0 0 2.5rem rgb(215 222 217 / 85%);
-  transform-origin: center;
-  animation: x68k-crt-off 0.62s ease-in forwards;
-}
-
-@keyframes x68k-crt-off {
-  0% { opacity: 0.72; transform: scale(1); }
-  58% { opacity: 0.9; transform: scale(1, 0.012); }
-  82% { opacity: 1; transform: scale(0.16, 0.012); }
-  100% { opacity: 0; transform: scale(0, 0.012); }
+.x68k-shutdown-screen[data-fading="true"]::after {
+  opacity: 1;
 }
 
 @keyframes x68k-screen-on {
@@ -1886,6 +1876,10 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .x68k-shutdown-screen::after {
+    transition: none;
   }
 
   .cursor,

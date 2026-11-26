@@ -3,9 +3,8 @@ import React, { useEffect, useState } from "react";
 type ShutdownScreenProps = {
   command: "SHUTDOWN" | "REBOOT";
   onComplete: () => void;
+  soundFinished: Promise<void> | null;
 };
-
-type ShutdownStage = "unloading" | "poweroff";
 
 const shutdownMessages = [
   "",
@@ -31,16 +30,17 @@ const blockedEvents = [
   "touchmove",
 ] as const;
 
-export default function ShutdownScreen({ command, onComplete }: ShutdownScreenProps): React.ReactNode {
-  const [stage, setStage] = useState<ShutdownStage>("unloading");
+export default function ShutdownScreen({ command, onComplete, soundFinished }: ShutdownScreenProps): React.ReactNode {
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [visibleMessageCount, setVisibleMessageCount] = useState(1);
   const isRebooting = command === "REBOOT";
   const messages = [`A:\\>${command}`, ...shutdownMessages];
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const scale = reducedMotion ? 0.35 : 1;
+    const scale = reducedMotion && isRebooting ? 0.35 : 1;
     const timers: number[] = [];
+    let finished = false;
     const schedule = (callback: () => void, delay: number) => {
       timers.push(window.setTimeout(callback, delay * scale));
     };
@@ -60,57 +60,62 @@ export default function ShutdownScreen({ command, onComplete }: ShutdownScreenPr
     shutdownMessages.forEach((_, index) => {
       schedule(() => setVisibleMessageCount(index + 2), 240 + index * 235);
     });
-    schedule(() => setStage("poweroff"), 2350);
-    schedule(onComplete, 3350);
+    const completeAfter = 3350;
+    schedule(() => setIsFadingOut(true), completeAfter - (reducedMotion ? 120 : 1000));
+    schedule(() => {
+      if (!soundFinished) {
+        onComplete();
+        return;
+      }
+
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        onComplete();
+      };
+      // バックグラウンドで音声が中断されても、暗転したまま待ち続けない。
+      schedule(finish, 2500);
+      void soundFinished.then(() => {
+        if (!finished) schedule(finish, 550);
+      });
+    }, completeAfter);
 
     return () => {
+      finished = true;
       timers.forEach((timer) => window.clearTimeout(timer));
       blockedEvents.forEach((eventName) => {
         window.removeEventListener(eventName, blockInput, eventOptions);
       });
       document.body.style.overflow = previousOverflow;
     };
-  }, [onComplete]);
+  }, [isRebooting, onComplete, soundFinished]);
 
   return (
     <main
       className="x68k-shutdown-screen"
-      data-stage={stage}
+      data-fading={isFadingOut}
       aria-label={isRebooting ? "システム再起動中" : "システム終了中"}
       aria-busy="true"
     >
-      {stage === "unloading" && (
-        <section className="x68k-shutdown-console" aria-live="assertive" aria-atomic="false">
-          {messages.slice(0, visibleMessageCount).map((message, index) => (
-            message
-              ? <p key={`${index}-${message}`}>{message}</p>
-              : <br key={`space-${index}`} />
-          ))}
-          <span className="x68k-boot-cursor" aria-hidden="true" />
-        </section>
-      )}
-
-      {stage === "poweroff" && (
-        <section className="x68k-poweroff" role="status" aria-label="CRT電源断中">
-          <span className="x68k-poweroff-beam" aria-hidden="true" />
-        </section>
-      )}
-
-      {stage === "unloading" && (
-        <>
-          <div className="x68k-drive-status" aria-hidden="true">
-            <span className="is-active" />
-            <small>FDD 0</small>
-          </div>
-          <p
-            className="x68k-boot-status"
-            role="status"
-            aria-label={`${isRebooting ? "システム再起動中" : "システム終了中"}。入力は無効です。`}
-          >
-            {isRebooting ? "SYSTEM REBOOTING..." : "SYSTEM SHUTTING DOWN..."}
-          </p>
-        </>
-      )}
+      <section className="x68k-shutdown-console" aria-live="assertive" aria-atomic="false">
+        {messages.slice(0, visibleMessageCount).map((message, index) => (
+          message
+            ? <p key={`${index}-${message}`}>{message}</p>
+            : <br key={`space-${index}`} />
+        ))}
+        <span className="x68k-boot-cursor" aria-hidden="true" />
+      </section>
+      <div className="x68k-drive-status" aria-hidden="true">
+        <span className="is-active" />
+        <small>FDD 0</small>
+      </div>
+      <p
+        className="x68k-boot-status"
+        role="status"
+        aria-label={`${isRebooting ? "システム再起動中" : "システム終了中"}。入力は無効です。`}
+      >
+        {isRebooting ? "SYSTEM REBOOTING..." : "SYSTEM SHUTTING DOWN..."}
+      </p>
     </main>
   );
 }
